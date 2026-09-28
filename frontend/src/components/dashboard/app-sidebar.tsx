@@ -1,0 +1,156 @@
+"use client";
+
+import Link from "next/link";
+import Image from "next/image";
+import { usePathname } from "next/navigation";
+import {
+  Home,
+  FileText,
+  User,
+  Settings2,
+} from "lucide-react";
+
+import {
+  Sidebar,
+  SidebarContent,
+  SidebarFooter,
+  SidebarGroup,
+  SidebarGroupContent,
+  SidebarGroupLabel,
+  SidebarHeader,
+  SidebarMenu,
+  SidebarMenuButton,
+  SidebarMenuItem,
+  SidebarSeparator,
+} from "@/components/ui/sidebar";
+import { OrgSwitcher } from "./org-switcher";
+import { authClient } from "@/lib/auth-client";
+
+// ---------------------------------------------------------------------------
+// Nav items
+// ---------------------------------------------------------------------------
+
+const mainNavItems = [
+  { title: "Home", href: "/home", icon: Home },
+  { title: "My Forms", href: "/my-forms", icon: FileText },
+  { title: "Profile", href: "/profile", icon: User },
+];
+
+const ownerNavItems = [
+  { title: "Org Settings", href: "/org-settings", icon: Settings2 },
+];
+
+// ---------------------------------------------------------------------------
+// AppSidebar
+// ---------------------------------------------------------------------------
+
+export function AppSidebar() {
+  const pathname = usePathname();
+
+  const { data: session } = authClient.useSession();
+  const { data: activeMember } = authClient.useActiveOrganization();
+
+  // Show org-settings only for owners
+  const isOwner = (activeMember as any)?.members?.find(
+    (m: any) => m.userId === session?.user?.id
+  )?.role === "owner";
+
+  return (
+    <Sidebar collapsible="icon">
+      {/* ------------------------------------------------------------------ */}
+      {/* Header — Logo (collapsible shrink support)                         */}
+      {/* ------------------------------------------------------------------ */}
+      <SidebarHeader className="h-14 justify-center border-b border-sidebar-border/50 px-4 group-data-[collapsible=icon]:px-0 group-data-[collapsible=icon]:items-center">
+        <Link
+          href="/home"
+          className="flex items-center gap-2 outline-none focus-visible:ring-2 focus-visible:ring-ring rounded-md group-data-[collapsible=icon]:justify-center"
+        >
+          <Image
+            src="/logo.svg"
+            alt="Convia"
+            width={160}
+            height={48}
+            className="h-8 w-auto transition-all group-data-[collapsible=icon]:hidden"
+            priority
+          />
+          <Image
+            src="/favicon.svg"
+            alt="Convia"
+            width={28}
+            height={28}
+            className="hidden size-7 transition-all group-data-[collapsible=icon]:block"
+            priority
+          />
+        </Link>
+      </SidebarHeader>
+
+      {/* ------------------------------------------------------------------ */}
+      {/* Main Nav                                                            */}
+      {/* ------------------------------------------------------------------ */}
+      <SidebarContent>
+        <SidebarGroup>
+          <SidebarGroupLabel>Navigation</SidebarGroupLabel>
+          <SidebarGroupContent>
+            <SidebarMenu>
+              {mainNavItems.map((item) => {
+                const active = pathname === item.href || pathname.startsWith(item.href + "/");
+                return (
+                  <SidebarMenuItem key={item.href}>
+                    <SidebarMenuButton
+                      asChild
+                      isActive={active}
+                      tooltip={item.title}
+                    >
+                      <Link href={item.href}>
+                        <item.icon />
+                        <span>{item.title}</span>
+                      </Link>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                );
+              })}
+            </SidebarMenu>
+          </SidebarGroupContent>
+        </SidebarGroup>
+
+        {/* Owner-only section */}
+        {isOwner && (
+          <>
+            <SidebarSeparator />
+            <SidebarGroup>
+              <SidebarGroupLabel>Organisation</SidebarGroupLabel>
+              <SidebarGroupContent>
+                <SidebarMenu>
+                  {ownerNavItems.map((item) => {
+                    const active = pathname === item.href || pathname.startsWith(item.href + "/");
+                    return (
+                      <SidebarMenuItem key={item.href}>
+                        <SidebarMenuButton
+                          asChild
+                          isActive={active}
+                          tooltip={item.title}
+                        >
+                          <Link href={item.href}>
+                            <item.icon />
+                            <span>{item.title}</span>
+                          </Link>
+                        </SidebarMenuButton>
+                      </SidebarMenuItem>
+                    );
+                  })}
+                </SidebarMenu>
+              </SidebarGroupContent>
+            </SidebarGroup>
+          </>
+        )}
+      </SidebarContent>
+
+      {/* ------------------------------------------------------------------ */}
+      {/* Footer — only org switcher remains                                 */}
+      {/* ------------------------------------------------------------------ */}
+      <SidebarFooter>
+        <OrgSwitcher />
+      </SidebarFooter>
+    </Sidebar>
+  );
+}

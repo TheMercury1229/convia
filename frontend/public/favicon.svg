@@ -1,0 +1,38 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="84 64 348 360" width="100%" height="100%" fill="none">
+  <style>
+    .frame-stroke { stroke: #102A4E; }
+    .teal-stroke { stroke: #00B4B4; }
+    .teal-fill   { fill: #00B4B4; stroke: #00B4B4; }
+    .blue-stroke { stroke: #0077FE; }
+
+    @media (prefers-color-scheme: dark) {
+      .frame-stroke { stroke: #F8FAFC; }
+      .teal-stroke { stroke: #00E5C9; }
+      .teal-fill   { fill: #00E5C9; stroke: #00E5C9; }
+      .blue-stroke { stroke: #38BDF8; }
+    }
+  </style>
+
+  <!-- Structured Document Base -->
+  <g class="frame-stroke" stroke-width="32" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M 290 88 L 108 88 L 108 340 L 196 340" />
+    <path d="M 348 88 L 356 88 L 356 186" />
+    <line x1="134" y1="168" x2="276" y2="168" class="teal-stroke" />
+    <line x1="134" y1="248" x2="232" y2="248" class="teal-stroke" />
+  </g>
+
+  <!-- Flow & Dialogue Dynamic Elements -->
+  <g fill="none" stroke-linecap="round" stroke-linejoin="round">
+    <!-- Lower speech bubble / return curve -->
+    <path d="M 218 408 L 248 370 C 248 370 330 408 394 326 C 418 294 418 270 418 270" 
+          class="blue-stroke" stroke-width="32" />
+    <path d="M 386 270 L 418 266 L 422 298" 
+          class="blue-stroke" stroke-width="32" />
+
+    <!-- Upper loop transitioning into form data -->
+    <path d="M 218 322 C 218 238 298 224 358 224 C 388 224 410 232 410 232" 
+          class="teal-stroke" stroke-width="32" />
+    <path d="M 380 200 L 420 228 L 380 256" 
+          class="teal-fill" stroke-width="6" />
+  </g>
+</svg>

@@ -13,6 +13,10 @@ const fontMono = Geist_Mono({
   variable: "--font-mono",
 })
 
+export const metadata = {
+  title: "Convia - The Conversational way of filling forms",
+  description: "AI-powered form builder that talks to your users. Create smart, conversational forms that adapt to each respondent.",
+};
 export default function RootLayout({
   children,
 }: Readonly<{

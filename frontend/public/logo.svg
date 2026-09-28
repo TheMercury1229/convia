@@ -1,0 +1,46 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="32 30 520 158" width="100%" height="100%" fill="none">
+  <style>
+    .primary-color { stroke: #102A4E; }
+    .text-color { fill: #102A4E; }
+    .accent-cyan { stroke: #00B4B4; }
+    .accent-cyan-fill { fill: #00B4B4; stroke: #00B4B4; }
+    .accent-blue { stroke: #0077FE; }
+
+    @media (prefers-color-scheme: dark) {
+      .primary-color { stroke: #F8FAFC; }
+      .text-color { fill: #F8FAFC; }
+      .accent-cyan { stroke: #00E5C9; }
+      .accent-cyan-fill { fill: #00E5C9; stroke: #00E5C9; }
+      .accent-blue { stroke: #3B82F6; }
+    }
+  </style>
+
+  <!-- Form Boundary -->
+  <g class="primary-color" stroke-width="12" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M 120 40 L 40 40 L 40 148 L 82 148" />
+    <path d="M 148 40 L 152 40 L 152 86" />
+    <line x1="52" y1="76" x2="114" y2="76" class="accent-cyan" />
+    <line x1="52" y1="112" x2="94" y2="112" class="accent-cyan" />
+  </g>
+
+  <!-- Flow Arrows -->
+  <g fill="none" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M 88 180 L 102 162 C 102 162 140 180 170 142 C 182 126 182 116 182 116" 
+          class="accent-blue" stroke-width="12" />
+    <path d="M 166 116 L 182 114 L 184 130" 
+          class="accent-blue" stroke-width="12" />
+
+    <path d="M 88 140 C 88 100 126 94 154 94 C 168 94 178 98 178 98" 
+          class="accent-cyan" stroke-width="12" />
+    <path d="M 164 82 L 182 96 L 164 110" 
+          class="accent-cyan-fill" stroke-width="2" />
+  </g>
+
+  <!-- Wordmark -->
+  <text x="230" y="142" 
+        class="text-color"
+        font-family="system-ui, -apple-system, BlinkMacSystemFont, 'Inter', 'Segoe UI', Roboto, sans-serif" 
+        font-size="94" 
+        font-weight="700" 
+        letter-spacing="-1.5px">Convia</text>
+</svg>
