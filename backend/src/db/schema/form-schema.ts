@@ -18,6 +18,7 @@ import {
 export const questionTypeEnum = pgEnum("question_type", [
   "text",
   "textarea",
+  "paragraph",
   "number",
   "email",
   "phone",
@@ -28,6 +29,12 @@ export const questionTypeEnum = pgEnum("question_type", [
   "checkbox",
   "rating",
   "file",
+  "url",
+  "time",
+  "datetime",
+  "yes_no",
+  "scale",
+  "heading",
 ]);
 
 // ---------------------------------------------------------------------------

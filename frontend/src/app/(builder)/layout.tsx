@@ -1,0 +1,12 @@
+
+export default function BuilderLayout({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
+  return (
+    <div className="flex h-screen w-screen flex-col overflow-hidden bg-background">
+      {children}
+    </div>
+  );
+}

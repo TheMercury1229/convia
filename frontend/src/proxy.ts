@@ -9,6 +9,7 @@ const PROTECTED_PREFIXES = [
   "/home",
   "/my-forms",
   "/forms",
+  "/form",
   "/org-settings",
   "/profile",
   "/create-org",
