@@ -32,6 +32,8 @@ interface FormBuilderHeaderProps {
   backHref?: string;
   /** Real form title from the API. Falls back to "Untitled Form". */
   title?: string;
+  /** Autosave indicator state. Defaults to "saved". */
+  saveState?: "saved" | "saving" | "unsaved";
 }
 
 // ---------------------------------------------------------------------------
@@ -39,26 +41,27 @@ interface FormBuilderHeaderProps {
 // ---------------------------------------------------------------------------
 
 function EditableTitle({ initialTitle = "Untitled Form" }: { initialTitle?: string }) {
-  const [title, setTitle] = React.useState(initialTitle);
+  // The store is the single source of truth for the form title.
+  // Local state is used only while the input is open (the in-progress draft).
+  const { form, updateForm } = useBuilderStore();
   const [editing, setEditing] = React.useState(false);
-  const [draft, setDraft] = React.useState(title);
+  const [draft, setDraft] = React.useState(form.title);
   const inputRef = React.useRef<HTMLInputElement>(null);
 
   const startEditing = () => {
-    setDraft(title);
+    setDraft(form.title);
     setEditing(true);
   };
 
   const commit = () => {
     const trimmed = draft.trim();
-    setTitle(trimmed || "Untitled Form");
+    updateForm({ title: trimmed || "Untitled Form" });
     setEditing(false);
   };
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === "Enter") commit();
     if (e.key === "Escape") {
-      setDraft(title);
       setEditing(false);
     }
   };
@@ -70,10 +73,11 @@ function EditableTitle({ initialTitle = "Untitled Form" }: { initialTitle?: stri
     }
   }, [editing]);
 
-  // Sync when the real title arrives from the API after initial mount
+  // One-way bridge: sync an API-provided title into the store on mount / prop change.
+  // The store is authoritative afterwards — no need to mirror into local state.
   React.useEffect(() => {
     if (initialTitle && !editing) {
-      setTitle(initialTitle);
+      updateForm({ title: initialTitle });
     }
   }, [initialTitle]); // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -111,7 +115,7 @@ function EditableTitle({ initialTitle = "Untitled Form" }: { initialTitle?: stri
           id="form-title-display"
           aria-label="Click to edit form title"
         >
-          <span className="truncate">{title}</span>
+          <span className="truncate">{form.title}</span>
           <Pencil
             className="size-3 shrink-0 opacity-0 transition-opacity group-hover/title:opacity-40"
             aria-hidden="true"
@@ -129,35 +133,22 @@ function EditableTitle({ initialTitle = "Untitled Form" }: { initialTitle?: stri
 
 type SaveState = "saved" | "saving" | "unsaved";
 
-function SaveIndicator({ state = "saved" }: { state?: SaveState }) {
+function SaveIndicator({ state }: { state: SaveState }) {
   return (
     <div
       className={cn(
-        "flex items-center gap-1.5 text-sm font-medium transition-colors",
-        state === "saved" && "text-muted-foreground",
-        state === "saving" && "text-muted-foreground",
+        "flex items-center gap-1.5 text-xs text-muted-foreground",
         state === "unsaved" && "text-amber-500 dark:text-amber-400",
       )}
       aria-live="polite"
-      aria-label={
-        state === "saved"
-          ? "All changes saved"
-          : state === "saving"
-            ? "Saving…"
-            : "Unsaved changes"
-      }
     >
       {state === "saving" ? (
-        <Loader2 className="h-3.5 w-3.5 animate-spin" aria-hidden="true" />
-      ) : state === "saved" ? (
-        <Check className="h-3.5 w-3.5" aria-hidden="true" />
-      ) : null}
+        <Loader2 className="size-3.5 animate-spin" />
+      ) : (
+        <Check className="size-3.5" />
+      )}
       <span className="hidden sm:inline">
-        {state === "saved"
-          ? "Saved"
-          : state === "saving"
-            ? "Saving…"
-            : "Unsaved"}
+        {state === "saving" ? "Saving…" : state === "unsaved" ? "Unsaved" : "Saved"}
       </span>
     </div>
   );
@@ -170,11 +161,10 @@ function SaveIndicator({ state = "saved" }: { state?: SaveState }) {
 export function FormBuilderHeader({
   backHref = "/my-forms",
   title,
+  saveState = "saved",
 }: FormBuilderHeaderProps) {
   const [shareOpen, setShareOpen] = React.useState(false);
   const { rightPanelTab, setRightPanelTab } = useBuilderStore();
-  // Placeholder — will be wired to real autosave state later
-  const saveState: SaveState = "saved";
 
   return (
     <header

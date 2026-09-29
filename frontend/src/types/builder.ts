@@ -92,9 +92,6 @@ export interface QuestionValidation {
   // url
   requireHttps?: boolean;
   allowedUrlDomains?: string;
-
-  // Generic key index to allow loose backend JSON compatibility
-  [key: string]: unknown;
 }
 
 export interface Question {

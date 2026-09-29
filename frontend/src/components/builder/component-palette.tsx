@@ -2,90 +2,11 @@
 
 import * as React from "react";
 import { useDrag } from "react-dnd";
-import {
-  Heading1,
-  AlignLeft,
-  Type,
-  AlignJustify,
-  Mail,
-  Hash,
-  Phone,
-  Link,
-  ChevronDown,
-  ListFilter,
-  CircleDot,
-  CheckSquare,
-  ToggleLeft,
-  Calendar,
-  Clock,
-  CalendarClock,
-  Upload,
-  Star,
-  Sliders,
-  GripVertical,
-  Search,
-  X,
-} from "lucide-react";
+import { GripVertical, Search, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { DND_TYPES } from "./dnd-types";
 import type { QuestionType } from "@/types/builder";
-
-// --------------------------------------------------------
-// Palette component registry
-// --------------------------------------------------------
-
-interface PaletteEntry {
-  type: QuestionType;
-  label: string;
-  Icon: React.ElementType;
-}
-
-interface PaletteGroup {
-  group: string;
-  items: PaletteEntry[];
-}
-
-const PALETTE_GROUPS: PaletteGroup[] = [
-  {
-    group: "Text & Input",
-    items: [
-      { type: "heading", label: "Heading", Icon: Heading1 },
-      { type: "text", label: "Short Text", Icon: Type },
-      { type: "textarea", label: "Long Text", Icon: AlignJustify },
-      { type: "paragraph", label: "Paragraph", Icon: AlignLeft },
-      { type: "number", label: "Number", Icon: Hash },
-      { type: "email", label: "Email", Icon: Mail },
-      { type: "phone", label: "Phone", Icon: Phone },
-      { type: "url", label: "Website / URL", Icon: Link },
-    ],
-  },
-  {
-    group: "Choices",
-    items: [
-      { type: "select", label: "Dropdown", Icon: ChevronDown },
-      { type: "multi_select", label: "Multi Select", Icon: ListFilter },
-      { type: "radio", label: "Single Choice", Icon: CircleDot },
-      { type: "checkbox", label: "Multiple Choice", Icon: CheckSquare },
-      { type: "yes_no", label: "Yes / No", Icon: ToggleLeft },
-    ],
-  },
-  {
-    group: "Date & Time",
-    items: [
-      { type: "date", label: "Date", Icon: Calendar },
-      { type: "time", label: "Time", Icon: Clock },
-      { type: "datetime", label: "Date & Time", Icon: CalendarClock },
-    ],
-  },
-  {
-    group: "Feedback & Media",
-    items: [
-      { type: "rating", label: "Rating", Icon: Star },
-      { type: "scale", label: "Opinion Scale", Icon: Sliders },
-      { type: "file", label: "File Upload", Icon: Upload },
-    ],
-  },
-];
+import { PALETTE_GROUPS, type PaletteEntry } from "@/lib/question-registry";
 
 // --------------------------------------------------------
 // Individual draggable palette item

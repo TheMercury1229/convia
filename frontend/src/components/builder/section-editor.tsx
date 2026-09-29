@@ -5,31 +5,13 @@ import { useDrag, useDrop } from "react-dnd";
 import {
   GripVertical,
   MoreHorizontal,
-  Pencil,
   Trash2,
   Plus,
   ArrowUp,
   ArrowDown,
-  ChevronDown,
-  Heading1,
-  AlignLeft,
-  Type,
-  AlignJustify,
-  Mail,
-  Hash,
-  Phone,
-  Link,
-  ListFilter,
-  CircleDot,
-  CheckSquare,
-  ToggleLeft,
-  Calendar,
-  Clock,
-  CalendarClock,
-  Upload,
-  Star,
-  Sliders,
+  PencilIcon,
 } from "lucide-react";
+import { ADD_ITEMS } from "@/lib/question-registry";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import {
@@ -37,14 +19,13 @@ import {
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
-  DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu";
 import {
   Popover,
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
-import { useBuilderStore } from "@/store/builder-store";
+import { useBuilderStore, useBuilderTheme } from "@/store/builder-store";
 import {
   DND_TYPES,
   type SectionDragItem,
@@ -53,58 +34,33 @@ import {
 } from "./dnd-types";
 import { QuestionCard } from "./question-card";
 import type { Section, Question, QuestionType } from "@/types/builder";
-import { useTheme } from "next-themes";
-import { getFormTheme, type FormThemeResolved } from "@/lib/builder-themes";
+import { type FormThemeResolved } from "@/lib/builder-themes";
 
 // ─────────────────────────────────────────────────────────
 // Add Question popover
 // ─────────────────────────────────────────────────────────
 
-const ADD_ITEMS: { type: QuestionType; label: string; Icon: React.ElementType }[] = [
-  { type: "heading", label: "Heading", Icon: Heading1 },
-  { type: "text", label: "Short Text", Icon: Type },
-  { type: "textarea", label: "Long Text", Icon: AlignJustify },
-  { type: "paragraph", label: "Paragraph", Icon: AlignLeft },
-  { type: "number", label: "Number", Icon: Hash },
-  { type: "email", label: "Email", Icon: Mail },
-  { type: "phone", label: "Phone", Icon: Phone },
-  { type: "url", label: "Website / URL", Icon: Link },
-  { type: "select", label: "Dropdown", Icon: ChevronDown },
-  { type: "multi_select", label: "Multi Select", Icon: ListFilter },
-  { type: "radio", label: "Single Choice", Icon: CircleDot },
-  { type: "checkbox", label: "Multiple Choice", Icon: CheckSquare },
-  { type: "yes_no", label: "Yes / No", Icon: ToggleLeft },
-  { type: "date", label: "Date", Icon: Calendar },
-  { type: "time", label: "Time", Icon: Clock },
-  { type: "datetime", label: "Date & Time", Icon: CalendarClock },
-  { type: "rating", label: "Rating", Icon: Star },
-  { type: "scale", label: "Opinion Scale", Icon: Sliders },
-  { type: "file", label: "File Upload", Icon: Upload },
-];
+
 
 function AddQuestionPopover({ sectionId, theme }: { sectionId: string; theme: FormThemeResolved }) {
   const addQuestion = useBuilderStore((s) => s.addQuestion);
   const [open, setOpen] = React.useState(false);
-  const [isHovered, setIsHovered] = React.useState(false);
 
   return (
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>
         <button
-          onMouseEnter={() => setIsHovered(true)}
-          onMouseLeave={() => setIsHovered(false)}
-          className="flex w-full items-center justify-center gap-2 rounded-md py-2.5 border border-dashed text-sm font-medium transition-all cursor-pointer"
+          className="flex w-full items-center justify-center gap-2 rounded-md py-2.5 border border-dashed text-sm font-medium transition-all cursor-pointer hover:border-[var(--btn-hover-border)] hover:bg-[var(--btn-hover-bg)] hover:text-[var(--btn-hover-text)]"
           style={{
-            borderColor: isHovered
-              ? `color-mix(in oklch, ${theme.colors.primary} 50%, ${theme.colors.cardBorder})`
-              : theme.colors.cardBorder,
-            backgroundColor: isHovered
-              ? `color-mix(in oklch, ${theme.colors.primary} 7%, transparent)`
-              : "transparent",
-            color: isHovered ? theme.colors.primary : theme.colors.cardMuted,
-          }}
+            borderColor: theme.colors.cardBorder,
+            backgroundColor: "transparent",
+            color: theme.colors.cardMuted,
+            ["--btn-hover-border" as string]: `color-mix(in oklch, ${theme.colors.primary} 50%, ${theme.colors.cardBorder})`,
+            ["--btn-hover-bg" as string]: `color-mix(in oklch, ${theme.colors.primary} 7%, transparent)`,
+            ["--btn-hover-text" as string]: theme.colors.primary,
+          } as React.CSSProperties}
         >
-          <Plus className="size-4" style={{ color: isHovered ? theme.colors.primary : theme.colors.cardMuted }} />
+          <Plus className="size-4 text-inherit" />
           Add question
         </button>
       </PopoverTrigger>
@@ -128,28 +84,54 @@ function AddQuestionPopover({ sectionId, theme }: { sectionId: string; theme: Fo
 }
 
 // ─────────────────────────────────────────────────────────
+// Shared visual indicator for question and section drop slots
+// ─────────────────────────────────────────────────────────
+
+interface DropSlotIndicatorProps {
+  active: boolean;
+  theme: FormThemeResolved;
+  isCompact?: boolean;
+}
+
+const DropSlotIndicator = React.forwardRef<HTMLDivElement, DropSlotIndicatorProps>(
+  ({ active, theme, isCompact }, ref) => (
+    <div
+      ref={ref}
+      className={cn(
+        "relative flex items-center transition-all duration-100",
+        active ? "h-8 py-0" : isCompact ? "h-2" : "h-3",
+      )}
+    >
+      <div
+        className={cn(
+          "absolute inset-x-0 top-1/2 -translate-y-1/2 h-0.5 rounded-full transition-all duration-100",
+          active ? "scale-x-100 opacity-100" : "opacity-0 scale-x-75",
+        )}
+        style={{ backgroundColor: theme.colors.primary }}
+      />
+      {active && (
+        <div
+          className="absolute left-0 top-1/2 -translate-y-1/2 size-2 rounded-full ring-2 ring-background"
+          style={{ backgroundColor: theme.colors.primary }}
+        />
+      )}
+    </div>
+  ),
+);
+DropSlotIndicator.displayName = "DropSlotIndicator";
+
+// ─────────────────────────────────────────────────────────
 // QuestionDropSlot
-//
-// A thin invisible strip rendered BETWEEN question cards (and
-// before the first / after the last). It is the ONLY drop target
-// for questions — no drop logic lives on QuestionCard itself.
-// This avoids nested-drop-target confusion entirely.
 // ─────────────────────────────────────────────────────────
 
 interface QuestionDropSlotProps {
-  /** The section this slot belongs to */
   sectionId: string;
-  /** Index position where a dropped item should be inserted */
   insertAt: number;
-  /** Active form theme */
-  theme?: FormThemeResolved;
+  theme: FormThemeResolved;
 }
 
-function QuestionDropSlot({ sectionId, insertAt, theme: propTheme }: QuestionDropSlotProps) {
-  const { form, addQuestion, reorderQuestions, moveQuestion } = useBuilderStore();
-  const { resolvedTheme } = useTheme();
-  const isDark = resolvedTheme === "dark";
-  const theme = propTheme ?? getFormTheme(form.themeId || "nova", isDark);
+function QuestionDropSlot({ sectionId, insertAt, theme }: QuestionDropSlotProps) {
+  const { addQuestion, reorderQuestions, moveQuestion } = useBuilderStore();
 
   const [{ isOver, canDrop }, drop] = useDrop<
     PaletteDragItem | QuestionDragItem,
@@ -159,8 +141,6 @@ function QuestionDropSlot({ sectionId, insertAt, theme: propTheme }: QuestionDro
     () => ({
       accept: [DND_TYPES.PALETTE_COMPONENT, DND_TYPES.QUESTION_CARD],
       canDrop(item) {
-        // Don't allow dropping a card onto a slot that's immediately
-        // adjacent to itself (would produce a no-op reorder).
         if (item.type === DND_TYPES.QUESTION_CARD) {
           if (item.sectionId === sectionId) {
             return item.index !== insertAt && item.index !== insertAt - 1;
@@ -172,7 +152,6 @@ function QuestionDropSlot({ sectionId, insertAt, theme: propTheme }: QuestionDro
         if (item.type === DND_TYPES.PALETTE_COMPONENT) {
           addQuestion(sectionId, item.questionType as QuestionType, insertAt);
         } else {
-          // QUESTION_CARD
           if (item.sectionId === sectionId) {
             reorderQuestions(sectionId, item.index, insertAt);
           } else {
@@ -188,52 +167,26 @@ function QuestionDropSlot({ sectionId, insertAt, theme: propTheme }: QuestionDro
     [sectionId, insertAt],
   );
 
-  const active = isOver && canDrop;
-
   return (
-    <div
+    <DropSlotIndicator
       ref={drop as unknown as React.Ref<HTMLDivElement>}
-      className={cn(
-        // Always occupies some height so it is easy to target
-        "relative flex items-center transition-all duration-100",
-        active ? "h-8 py-0" : "h-3",
-      )}
-    >
-      {/* Visible insertion line */}
-      <div
-        className={cn(
-          "absolute inset-x-0 top-1/2 -translate-y-1/2 h-0.5 rounded-full transition-all duration-100",
-          active ? "scale-x-100 opacity-100" : "opacity-0 scale-x-75",
-        )}
-        style={{ backgroundColor: theme?.colors.primary }}
-      />
-      {/* Dot at left end of the line */}
-      {active && (
-        <div
-          className="absolute left-0 top-1/2 -translate-y-1/2 size-2 rounded-full ring-2 ring-background"
-          style={{ backgroundColor: theme?.colors.primary }}
-        />
-      )}
-    </div>
+      active={isOver && canDrop}
+      theme={theme}
+    />
   );
 }
 
 // ─────────────────────────────────────────────────────────
 // SectionDropSlot — for reordering sections
-//
-// Rendered BETWEEN SectionEditors in FormCanvas.
 // ─────────────────────────────────────────────────────────
 
 interface SectionDropSlotProps {
   insertAt: number;
-  totalSections: number;
+  theme: FormThemeResolved;
 }
 
-export function SectionDropSlot({ insertAt, totalSections }: SectionDropSlotProps) {
-  const { form, reorderSections } = useBuilderStore();
-  const { resolvedTheme } = useTheme();
-  const isDark = resolvedTheme === "dark";
-  const theme = getFormTheme(form.themeId || "nova", isDark);
+export function SectionDropSlot({ insertAt, theme }: SectionDropSlotProps) {
+  const { reorderSections } = useBuilderStore();
 
   const [{ isOver, canDrop }, drop] = useDrop<
     SectionDragItem,
@@ -256,30 +209,13 @@ export function SectionDropSlot({ insertAt, totalSections }: SectionDropSlotProp
     [insertAt],
   );
 
-  const active = isOver && canDrop;
-
   return (
-    <div
+    <DropSlotIndicator
       ref={drop as unknown as React.Ref<HTMLDivElement>}
-      className={cn(
-        "relative flex items-center transition-all duration-100",
-        active ? "h-8" : "h-2",
-      )}
-    >
-      <div
-        className={cn(
-          "absolute inset-x-0 top-1/2 -translate-y-1/2 h-0.5 rounded-full transition-all duration-100",
-          active ? "opacity-100" : "opacity-0",
-        )}
-        style={{ backgroundColor: theme.colors.primary }}
-      />
-      {active && (
-        <div
-          className="absolute left-0 top-1/2 -translate-y-1/2 size-2 rounded-full ring-2 ring-background"
-          style={{ backgroundColor: theme.colors.primary }}
-        />
-      )}
-    </div>
+      active={isOver && canDrop}
+      theme={theme}
+      isCompact
+    />
   );
 }
 
@@ -287,11 +223,9 @@ export function SectionDropSlot({ insertAt, totalSections }: SectionDropSlotProp
 // Empty-section drop zone (no questions yet)
 // ─────────────────────────────────────────────────────────
 
-function EmptySectionDropZone({ sectionId, theme: propTheme }: { sectionId: string; theme?: FormThemeResolved }) {
-  const { form, addQuestion, moveQuestion } = useBuilderStore();
-  const { resolvedTheme } = useTheme();
-  const isDark = resolvedTheme === "dark";
-  const theme = propTheme ?? getFormTheme(form.themeId || "nova", isDark);
+function EmptySectionDropZone({ sectionId, theme }: { sectionId: string; theme: FormThemeResolved }) {
+  // Only subscribe to the actions this component calls — no form/theme resolution here.
+  const { addQuestion, moveQuestion } = useBuilderStore();
 
   const [{ isOver, canDrop }, drop] = useDrop<
     PaletteDragItem | QuestionDragItem,
@@ -321,12 +255,12 @@ function EmptySectionDropZone({ sectionId, theme: propTheme }: { sectionId: stri
       className="flex h-20 items-center justify-center rounded-lg border border-dashed transition-all"
       style={{
         borderColor: isOver && canDrop
-          ? theme?.colors.primary
-          : theme?.colors.cardBorder,
+          ? theme.colors.primary
+          : theme.colors.cardBorder,
         backgroundColor: isOver && canDrop
-          ? `color-mix(in oklch, ${theme?.colors.primary} 7%, transparent)`
+          ? `color-mix(in oklch, ${theme.colors.primary} 7%, transparent)`
           : "transparent",
-        color: isOver && canDrop ? theme?.colors.primary : theme?.colors.cardMuted,
+        color: isOver && canDrop ? theme.colors.primary : theme.colors.cardMuted,
       }}
     >
       <p className="text-sm font-medium">
@@ -354,7 +288,6 @@ export function SectionEditor({
   isLast = false,
 }: SectionEditorProps) {
   const {
-    form,
     questions: allQuestions,
     selectedElement,
     selectElement,
@@ -364,9 +297,7 @@ export function SectionEditor({
     moveSectionDown,
   } = useBuilderStore();
 
-  const { resolvedTheme } = useTheme();
-  const isDark = resolvedTheme === "dark";
-  const currentTheme = getFormTheme(form.themeId || "nova", isDark);
+  const currentTheme = useBuilderTheme();
 
   const questions: Question[] = allQuestions
     .filter((q) => q.sectionId === section.id)
@@ -475,7 +406,7 @@ export function SectionEditor({
                 className="opacity-0 group-hover:opacity-60 hover:!opacity-100 transition-opacity cursor-pointer"
                 title="Edit section title"
               >
-                <Pencil className="size-3.5 text-muted-foreground" />
+                <PencilIcon className="size-3.5 text-muted-foreground" />
               </button>
             </div>
           )}
@@ -534,42 +465,13 @@ export function SectionEditor({
                 <MoreHorizontal className="size-4" />
               </Button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-44">
-              <DropdownMenuItem
-                onClick={(e) => {
-                  e.stopPropagation();
-                  moveSectionUp(section.id);
-                }}
-                disabled={isFirst}
-              >
-                <ArrowUp className="size-4 mr-2" />
-                Move section up
-              </DropdownMenuItem>
-              <DropdownMenuItem
-                onClick={(e) => {
-                  e.stopPropagation();
-                  moveSectionDown(section.id);
-                }}
-                disabled={isLast}
-              >
-                <ArrowDown className="size-4 mr-2" />
-                Move section down
-              </DropdownMenuItem>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem
-                onClick={(e) => {
-                  e.stopPropagation();
-                  setTitleDraft(section.title);
-                  setEditingTitle(true);
-                }}
-              >
-                <Pencil className="size-4 mr-2" />
-                Edit title
-              </DropdownMenuItem>
-              <DropdownMenuSeparator />
+            <DropdownMenuContent align="end" className="w-40">
               <DropdownMenuItem
                 className="text-destructive focus:text-destructive"
-                onClick={(e) => { e.stopPropagation(); deleteSection(section.id); }}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  deleteSection(section.id);
+                }}
               >
                 <Trash2 className="size-4 mr-2" />
                 Delete section
@@ -582,11 +484,11 @@ export function SectionEditor({
       {/* ── Question list with interleaved drop slots ─ */}
       <div className="px-5 pb-5 pt-3">
         {questions.length === 0 ? (
-          <EmptySectionDropZone sectionId={section.id} />
+          <EmptySectionDropZone sectionId={section.id} theme={currentTheme} />
         ) : (
           <div>
             {/* Slot before the first card */}
-            <QuestionDropSlot sectionId={section.id} insertAt={0} />
+            <QuestionDropSlot sectionId={section.id} insertAt={0} theme={currentTheme} />
 
             {questions.map((q, idx) => (
               <React.Fragment key={q.id}>
@@ -595,9 +497,10 @@ export function SectionEditor({
                   index={idx}
                   isFirst={idx === 0}
                   isLast={idx === questions.length - 1}
+                  theme={currentTheme}
                 />
                 {/* Slot after each card */}
-                <QuestionDropSlot sectionId={section.id} insertAt={idx + 1} />
+                <QuestionDropSlot sectionId={section.id} insertAt={idx + 1} theme={currentTheme} />
               </React.Fragment>
             ))}
           </div>

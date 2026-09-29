@@ -1,5 +1,11 @@
 import { create } from "zustand";
 import { immer } from "zustand/middleware/immer";
+import { current } from "immer";
+import { useState, useEffect } from "react";
+import { useTheme } from "next-themes";
+import { getFormTheme, type FormThemeResolved } from "@/lib/builder-themes";
+import { seedForm, seedSections, seedQuestions } from "@/lib/builder-seed";
+import { getTypeLabel } from "@/lib/question-registry";
 import type {
   BuilderForm,
   Question,
@@ -31,7 +37,7 @@ function defaultQuestion(
   type: QuestionType,
   position: number,
 ): Question {
-  const label = typeLabel(type);
+  const label = getTypeLabel(type);
   return {
     id: uid(),
     sectionId,
@@ -44,211 +50,41 @@ function defaultQuestion(
     position,
     options:
       type === "select" ||
-        type === "multi_select" ||
-        type === "radio" ||
-        type === "checkbox"
+      type === "multi_select" ||
+      type === "radio" ||
+      type === "checkbox"
         ? [
-          { id: uid(), label: "Option 1" },
-          { id: uid(), label: "Option 2" },
-        ]
+            { id: uid(), label: "Option 1" },
+            { id: uid(), label: "Option 2" },
+          ]
         : [],
     validation: {},
   };
 }
 
-function typeLabel(type: QuestionType): string {
-  const map: Record<QuestionType, string> = {
-    heading: "Heading",
-    paragraph: "Paragraph",
-    text: "Short Text",
-    textarea: "Long Text",
-    email: "Email",
-    number: "Number",
-    phone: "Phone",
-    date: "Date",
-    time: "Time",
-    datetime: "Date & Time",
-    select: "Dropdown",
-    multi_select: "Multi Select",
-    radio: "Single Choice",
-    checkbox: "Multiple Choice",
-    yes_no: "Yes / No",
-    rating: "Rating",
-    scale: "Opinion Scale",
-    file: "File Upload",
-    url: "Website / URL",
-  };
-  return map[type] ?? type;
+function syncSectionPositions(sections: Section[]) {
+  sections.forEach((sec, i) => {
+    sec.position = i;
+  });
 }
 
-// --------------------------------------------------------
-// Demo seed data
-// --------------------------------------------------------
-
-const FORM_ID = "form-demo";
-const SEC_1 = "sec-personal";
-const SEC_2 = "sec-education";
-const SEC_3 = "sec-experience";
-
-const seedForm: BuilderForm = {
-  id: FORM_ID,
-  title: "Job Application Form",
-  slug: "job-application-form",
-  description: "Tell us about yourself so we can get to know you better.",
-  deadline: null,
-  themeId: "nova",
-  themeColor: "indigo",
-  fontFamily: "sans",
-};
-
-const seedSections: Section[] = [
-  {
-    id: SEC_1,
-    formId: FORM_ID,
-    title: "Personal Information",
-    description: "Tell us the basics about yourself.",
-    position: 0,
-  },
-  {
-    id: SEC_2,
-    formId: FORM_ID,
-    title: "Education",
-    description: "Share your educational background.",
-    position: 1,
-  },
-  {
-    id: SEC_3,
-    formId: FORM_ID,
-    title: "Work Experience",
-    description: "Tell us about your past roles.",
-    position: 2,
-  },
-];
-
-const seedQuestions: Question[] = [
-  {
-    id: "q-fullname",
-    sectionId: SEC_1,
-    type: "text",
-    fieldName: "full_name",
-    label: "Full Name",
-    description: "",
-    placeholder: "Enter your full name",
-    required: true,
-    position: 0,
-    options: [],
-    validation: {},
-  },
-  {
-    id: "q-email",
-    sectionId: SEC_1,
-    type: "email",
-    fieldName: "email",
-    label: "Email Address",
-    description: "We'll use this to contact you.",
-    placeholder: "you@example.com",
-    required: true,
-    position: 1,
-    options: [],
-    validation: {},
-  },
-  {
-    id: "q-phone",
-    sectionId: SEC_1,
-    type: "phone",
-    fieldName: "phone",
-    label: "Phone Number",
-    description: "",
-    placeholder: "+91 98765 43210",
-    required: false,
-    position: 2,
-    options: [],
-    validation: {},
-  },
-  {
-    id: "q-university",
-    sectionId: SEC_2,
-    type: "text",
-    fieldName: "university",
-    label: "University / College",
-    description: "",
-    placeholder: "e.g. IIT Bombay",
-    required: true,
-    position: 0,
-    options: [],
-    validation: {},
-  },
-  {
-    id: "q-degree",
-    sectionId: SEC_2,
-    type: "select",
-    fieldName: "degree",
-    label: "Degree",
-    description: "",
-    placeholder: "Select degree",
-    required: true,
-    position: 1,
-    options: [
-      { id: uid(), label: "Bachelor's" },
-      { id: uid(), label: "Master's" },
-      { id: uid(), label: "PhD" },
-      { id: uid(), label: "Diploma" },
-    ],
-    validation: {},
-  },
-  {
-    id: "q-grad-year",
-    sectionId: SEC_2,
-    type: "number",
-    fieldName: "graduation_year",
-    label: "Graduation Year",
-    description: "",
-    placeholder: "e.g. 2022",
-    required: false,
-    position: 2,
-    options: [],
-    validation: { min: 1950, max: 2030 },
-  },
-  {
-    id: "q-company",
-    sectionId: SEC_3,
-    type: "text",
-    fieldName: "current_company",
-    label: "Current / Last Company",
-    description: "",
-    placeholder: "Company name",
-    required: false,
-    position: 0,
-    options: [],
-    validation: {},
-  },
-  {
-    id: "q-role",
-    sectionId: SEC_3,
-    type: "text",
-    fieldName: "role",
-    label: "Job Title",
-    description: "",
-    placeholder: "e.g. Senior Engineer",
-    required: false,
-    position: 1,
-    options: [],
-    validation: {},
-  },
-  {
-    id: "q-cover",
-    sectionId: SEC_3,
-    type: "textarea",
-    fieldName: "cover_letter",
-    label: "Cover Letter",
-    description: "Tell us why you'd be a great fit.",
-    placeholder: "Write your cover letter here…",
-    required: true,
-    position: 2,
-    options: [],
-    validation: { maxLength: 2000 },
-  },
-];
+function syncQuestionPositions(questions: Question[], sectionId?: string) {
+  if (sectionId) {
+    let pos = 0;
+    for (const q of questions) {
+      if (q.sectionId === sectionId) {
+        q.position = pos++;
+      }
+    }
+  } else {
+    const counters = new Map<string, number>();
+    for (const q of questions) {
+      const current = counters.get(q.sectionId) ?? 0;
+      q.position = current;
+      counters.set(q.sectionId, current + 1);
+    }
+  }
+}
 
 // --------------------------------------------------------
 // Store state & actions
@@ -299,7 +135,7 @@ interface BuilderState {
 }
 
 export const useBuilderStore = create<BuilderState>()(
-  immer((set) => ({
+  immer((set, get) => ({
     form: seedForm,
     sections: seedSections,
     questions: seedQuestions,
@@ -319,15 +155,15 @@ export const useBuilderStore = create<BuilderState>()(
     // ── Sections ────────────────────────────────────────
     addSection: () =>
       set((s) => {
-        const position = s.sections.length;
         const id = uid();
         s.sections.push({
           id,
           formId: s.form.id,
           title: "Untitled Section",
           description: "",
-          position,
+          position: s.sections.length,
         });
+        syncSectionPositions(s.sections);
         s.selectedElement = { type: "section", id };
       }),
 
@@ -341,57 +177,57 @@ export const useBuilderStore = create<BuilderState>()(
       set((s) => {
         s.sections = s.sections.filter((x) => x.id !== id);
         s.questions = s.questions.filter((q) => q.sectionId !== id);
+        syncSectionPositions(s.sections);
         if (s.selectedElement?.id === id) s.selectedElement = null;
-        // Re-normalise positions
-        s.sections.forEach((sec, i) => (sec.position = i));
       }),
 
     reorderSections: (fromIndex, toIndex) =>
       set((s) => {
-        // Sort by current position first so array order matches position
-        s.sections.sort((a, b) => a.position - b.position);
+        if (
+          fromIndex === toIndex ||
+          fromIndex < 0 ||
+          fromIndex >= s.sections.length ||
+          toIndex < 0 ||
+          toIndex >= s.sections.length
+        ) {
+          return;
+        }
         const [moved] = s.sections.splice(fromIndex, 1);
-        // After removing, if toIndex is past fromIndex the array shifted left
-        const insertAt = toIndex > fromIndex ? toIndex - 1 : toIndex;
-        s.sections.splice(insertAt, 0, moved);
-        s.sections.forEach((sec, i) => (sec.position = i));
+        s.sections.splice(toIndex, 0, moved);
+        syncSectionPositions(s.sections);
       }),
 
-    moveSectionUp: (id) =>
-      set((s) => {
-        s.sections.sort((a, b) => a.position - b.position);
-        const index = s.sections.findIndex((x) => x.id === id);
-        if (index <= 0) return;
-        const temp = s.sections[index];
-        s.sections[index] = s.sections[index - 1];
-        s.sections[index - 1] = temp;
-        s.sections.forEach((sec, i) => (sec.position = i));
-      }),
+    moveSectionUp: (id) => {
+      const index = get().sections.findIndex((x) => x.id === id);
+      if (index > 0) {
+        get().reorderSections(index, index - 1);
+      }
+    },
 
-    moveSectionDown: (id) =>
-      set((s) => {
-        s.sections.sort((a, b) => a.position - b.position);
-        const index = s.sections.findIndex((x) => x.id === id);
-        if (index === -1 || index >= s.sections.length - 1) return;
-        const temp = s.sections[index];
-        s.sections[index] = s.sections[index + 1];
-        s.sections[index + 1] = temp;
-        s.sections.forEach((sec, i) => (sec.position = i));
-      }),
+    moveSectionDown: (id) => {
+      const index = get().sections.findIndex((x) => x.id === id);
+      if (index >= 0 && index < get().sections.length - 1) {
+        get().reorderSections(index, index + 1);
+      }
+    },
 
     // ── Questions ───────────────────────────────────────
     addQuestion: (sectionId, type, atIndex) =>
       set((s) => {
-        const existing = s.questions
-          .filter((q) => q.sectionId === sectionId)
-          .sort((a, b) => a.position - b.position);
-        const position = atIndex ?? existing.length;
-        // Shift positions of questions that come after
-        s.questions
-          .filter((q) => q.sectionId === sectionId && q.position >= position)
-          .forEach((q) => (q.position += 1));
-        const newQ = defaultQuestion(sectionId, type, position);
-        s.questions.push(newQ);
+        const secIndices = s.questions
+          .map((q, i) => (q.sectionId === sectionId ? i : -1))
+          .filter((i) => i !== -1);
+
+        const insertAt =
+          atIndex !== undefined && atIndex < secIndices.length
+            ? secIndices[atIndex]
+            : secIndices.length > 0
+              ? secIndices[secIndices.length - 1] + 1
+              : s.questions.length;
+
+        const newQ = defaultQuestion(sectionId, type, atIndex ?? secIndices.length);
+        s.questions.splice(insertAt, 0, newQ);
+        syncQuestionPositions(s.questions, sectionId);
         s.selectedElement = { type: "question", id: newQ.id };
       }),
 
@@ -405,92 +241,108 @@ export const useBuilderStore = create<BuilderState>()(
       set((s) => {
         const q = s.questions.find((x) => x.id === id);
         if (!q) return;
-        const { sectionId, position } = q;
+        const { sectionId } = q;
         s.questions = s.questions.filter((x) => x.id !== id);
-        // Re-normalise positions in same section
-        s.questions
-          .filter((x) => x.sectionId === sectionId && x.position > position)
-          .forEach((x) => (x.position -= 1));
+        syncQuestionPositions(s.questions, sectionId);
         if (s.selectedElement?.id === id) s.selectedElement = null;
       }),
 
     duplicateQuestion: (id) =>
       set((s) => {
-        const q = s.questions.find((x) => x.id === id);
-        if (!q) return;
-        const position = q.position + 1;
-        // Shift questions after this one
-        s.questions
-          .filter((x) => x.sectionId === q.sectionId && x.position >= position)
-          .forEach((x) => (x.position += 1));
+        const index = s.questions.findIndex((x) => x.id === id);
+        if (index === -1) return;
+        const q = s.questions[index];
+        const snapshot = current(q);
         const newQ: Question = {
-          ...JSON.parse(JSON.stringify(q)),
+          ...snapshot,
           id: uid(),
-          fieldName: q.fieldName + "_copy",
-          position,
-          options: q.options.map((o) => ({ ...o, id: uid() })),
+          fieldName: `${snapshot.fieldName}_copy`,
+          position: 0,
+          options: snapshot.options.map((o) => ({ ...o, id: uid() })),
         };
-        s.questions.push(newQ);
+        s.questions.splice(index + 1, 0, newQ);
+        syncQuestionPositions(s.questions, q.sectionId);
         s.selectedElement = { type: "question", id: newQ.id };
       }),
 
     reorderQuestions: (sectionId, fromIndex, toIndex) =>
       set((s) => {
-        const qs = s.questions
-          .filter((q) => q.sectionId === sectionId)
-          .sort((a, b) => a.position - b.position);
-        const [moved] = qs.splice(fromIndex, 1);
-        // After removing, if toIndex is past fromIndex the array shifted left
-        const insertAt = toIndex > fromIndex ? toIndex - 1 : toIndex;
-        qs.splice(insertAt, 0, moved);
-        qs.forEach((q, i) => (q.position = i));
+        const secIndices = s.questions
+          .map((q, i) => (q.sectionId === sectionId ? i : -1))
+          .filter((i) => i !== -1);
+
+        if (
+          fromIndex < 0 ||
+          fromIndex >= secIndices.length ||
+          toIndex < 0 ||
+          toIndex >= secIndices.length ||
+          fromIndex === toIndex
+        ) {
+          return;
+        }
+
+        const globalFrom = secIndices[fromIndex];
+        const [moved] = s.questions.splice(globalFrom, 1);
+
+        const newSecIndices = s.questions
+          .map((q, i) => (q.sectionId === sectionId ? i : -1))
+          .filter((i) => i !== -1);
+
+        const globalTo =
+          toIndex < newSecIndices.length
+            ? newSecIndices[toIndex]
+            : newSecIndices.length > 0
+              ? newSecIndices[newSecIndices.length - 1] + 1
+              : s.questions.length;
+
+        s.questions.splice(globalTo, 0, moved);
+        syncQuestionPositions(s.questions, sectionId);
       }),
 
-    moveQuestionUp: (id) =>
-      set((s) => {
-        const q = s.questions.find((x) => x.id === id);
-        if (!q) return;
-        const qs = s.questions
-          .filter((x) => x.sectionId === q.sectionId)
-          .sort((a, b) => a.position - b.position);
-        const index = qs.findIndex((x) => x.id === id);
-        if (index <= 0) return;
-        const temp = qs[index];
-        qs[index] = qs[index - 1];
-        qs[index - 1] = temp;
-        qs.forEach((item, i) => (item.position = i));
-      }),
+    moveQuestionUp: (id) => {
+      const q = get().questions.find((x) => x.id === id);
+      if (!q) return;
+      const secQuestions = get().questions.filter((x) => x.sectionId === q.sectionId);
+      const index = secQuestions.findIndex((x) => x.id === id);
+      if (index > 0) {
+        get().reorderQuestions(q.sectionId, index, index - 1);
+      }
+    },
 
-    moveQuestionDown: (id) =>
-      set((s) => {
-        const q = s.questions.find((x) => x.id === id);
-        if (!q) return;
-        const qs = s.questions
-          .filter((x) => x.sectionId === q.sectionId)
-          .sort((a, b) => a.position - b.position);
-        const index = qs.findIndex((x) => x.id === id);
-        if (index === -1 || index >= qs.length - 1) return;
-        const temp = qs[index];
-        qs[index] = qs[index + 1];
-        qs[index + 1] = temp;
-        qs.forEach((item, i) => (item.position = i));
-      }),
+    moveQuestionDown: (id) => {
+      const q = get().questions.find((x) => x.id === id);
+      if (!q) return;
+      const secQuestions = get().questions.filter((x) => x.sectionId === q.sectionId);
+      const index = secQuestions.findIndex((x) => x.id === id);
+      if (index >= 0 && index < secQuestions.length - 1) {
+        get().reorderQuestions(q.sectionId, index, index + 1);
+      }
+    },
 
     moveQuestion: (questionId, toSectionId, toIndex) =>
       set((s) => {
-        const q = s.questions.find((x) => x.id === questionId);
-        if (!q || q.sectionId === toSectionId) return;
-        const oldSectionId = q.sectionId;
-        // Remove from old section & re-normalise
-        s.questions
-          .filter((x) => x.sectionId === oldSectionId && x.position > q.position)
-          .forEach((x) => (x.position -= 1));
-        // Insert into new section
-        s.questions
-          .filter((x) => x.sectionId === toSectionId && x.position >= toIndex)
-          .forEach((x) => (x.position += 1));
-        q.sectionId = toSectionId;
-        q.position = toIndex;
+        const fromIndex = s.questions.findIndex((x) => x.id === questionId);
+        if (fromIndex === -1) return;
+        const [moved] = s.questions.splice(fromIndex, 1);
+        const oldSectionId = moved.sectionId;
+        moved.sectionId = toSectionId;
+
+        const toSecIndices = s.questions
+          .map((q, i) => (q.sectionId === toSectionId ? i : -1))
+          .filter((i) => i !== -1);
+
+        const insertAt =
+          toIndex < toSecIndices.length
+            ? toSecIndices[toIndex]
+            : toSecIndices.length > 0
+              ? toSecIndices[toSecIndices.length - 1] + 1
+              : s.questions.length;
+
+        s.questions.splice(insertAt, 0, moved);
+        syncQuestionPositions(s.questions, oldSectionId);
+        if (oldSectionId !== toSectionId) {
+          syncQuestionPositions(s.questions, toSectionId);
+        }
       }),
 
     selectElement: (el) =>
@@ -538,3 +390,24 @@ export const useBuilderStore = create<BuilderState>()(
       }),
   })),
 );
+
+/**
+ * Derived hook: resolves the active form theme from the builder store.
+ *
+ * Uses a fine-grained Zustand selector so consumers only re-render when
+ * `form.themeId` or the system color scheme changes — not on every
+ * unrelated form / question mutation.
+ *
+ * The `mounted` guard is required because next-themes reads localStorage
+ * inside a useEffect, meaning `resolvedTheme` is `undefined` on the first
+ * paint. Without the guard, dark-mode users see light theme after a refresh
+ * until next-themes fires its effect. Once mounted, the correct value is
+ * used and the canvas re-renders automatically.
+ */
+export function useBuilderTheme(): FormThemeResolved {
+  const themeId = useBuilderStore((s) => s.form.themeId);
+  const { resolvedTheme } = useTheme();
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => { setMounted(true); }, []);
+  return getFormTheme(themeId || "nova", mounted && resolvedTheme === "dark");
+}

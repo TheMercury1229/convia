@@ -50,7 +50,7 @@ export function useForm(id: string) {
 export function useCreateForm() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: (payload: CreateFormPayload) => createForm(payload),
+    mutationFn: createForm,
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: formKeys.lists() });
       toast.success("Form created successfully!");
@@ -79,7 +79,7 @@ export function useUpdateForm(id: string) {
 export function useTogglePublish() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: (id: string) => togglePublish(id),
+    mutationFn: togglePublish,
     onSuccess: (form) => {
       qc.invalidateQueries({ queryKey: formKeys.lists() });
       qc.invalidateQueries({ queryKey: formKeys.detail(form.id) });
@@ -94,7 +94,7 @@ export function useTogglePublish() {
 export function useDuplicateForm() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: (id: string) => duplicateForm(id),
+    mutationFn: duplicateForm,
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: formKeys.lists() });
       toast.success("Form duplicated!");
@@ -108,7 +108,7 @@ export function useDuplicateForm() {
 export function useDeleteForm() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: (id: string) => deleteForm(id),
+    mutationFn: deleteForm,
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: formKeys.lists() });
       toast.success("Form deleted");

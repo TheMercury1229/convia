@@ -38,15 +38,10 @@ export interface FormTheme {
   dark: ThemeColors;
 }
 
-export interface FormThemeResolved {
-  id: string;
-  name: string;
-  preset: string;
-  description: string;
-  avatarSeed: string;
+export type FormThemeResolved = Omit<FormTheme, "light" | "dark"> & {
   primary: string;
   colors: ThemeColors;
-}
+};
 
 export const BUILDER_THEMES: FormTheme[] = [
   // 1) Modern
