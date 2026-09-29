@@ -116,18 +116,20 @@ export function CreateOrgDialog({
             />
           </div>
 
-          <DialogFooter className="gap-2 sm:gap-0">
+          <DialogFooter className="flex-col-reverse sm:flex-row gap-2 sm:gap-0">
             <Button
               type="button"
               variant="outline"
               onClick={() => handleOpenChange(false)}
               disabled={isSubmitting}
+              className="w-full sm:w-auto"
             >
               Cancel
             </Button>
             <Button
               type="submit"
               disabled={isSubmitting || !orgName.trim()}
+              className="w-full sm:w-auto"
             >
               {isSubmitting && (
                 <Loader2 className="mr-2 size-4 animate-spin" />

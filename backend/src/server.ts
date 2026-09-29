@@ -27,7 +27,6 @@ app.get("/", (req: Request, res: Response) => {
 // Routes
 app.use("/api/forms", formRouter);
 
-// Must be registered last — catches all errors forwarded via next(err)
 app.use(errorHandler);
 
 export default app;

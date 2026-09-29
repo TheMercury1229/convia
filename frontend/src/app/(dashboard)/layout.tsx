@@ -43,7 +43,7 @@ export default function DashboardLayout({
         {/* ---------------------------------------------------------------- */}
         {/* Page content                                                       */}
         {/* ---------------------------------------------------------------- */}
-        <main className="flex flex-1 flex-col gap-4 p-4 pt-6">{children}</main>
+        <main className="flex flex-1 flex-col gap-4 p-3.5 sm:p-6 lg:p-8 min-w-0 overflow-x-hidden">{children}</main>
       </SidebarInset>
     </SidebarProvider>
   );

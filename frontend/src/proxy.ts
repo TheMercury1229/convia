@@ -5,10 +5,18 @@ import { getSessionCookie } from "better-auth/cookies";
 const AUTH_ROUTES = ["/sign-in", "/sign-up", "/forgot-password", "/reset-password"];
 
 // Routes accessible ONLY by authenticated users
-const PROTECTED_PREFIXES = ["/home", "/my-forms", "/org-settings", "/profile", "/create-org"];
+const PROTECTED_PREFIXES = [
+  "/home",
+  "/my-forms",
+  "/forms",
+  "/org-settings",
+  "/profile",
+  "/create-org",
+  "/accept-invitation",
+];
 
 export async function proxy(request: NextRequest) {
-  const { pathname } = request.nextUrl;
+  const { pathname, search } = request.nextUrl;
 
   // Retrieve session token using better-auth helper and standard cookie lookups
   const sessionToken =
@@ -37,13 +45,25 @@ export async function proxy(request: NextRequest) {
   // 1. Private route check: Redirect unauthenticated users to /sign-in
   if (isProtectedRoute && !hasSession) {
     const signInUrl = new URL("/sign-in", request.url);
-    // Optionally preserve the attempted path for post-login redirect
-    signInUrl.searchParams.set("callbackUrl", pathname);
+    // Preserve the full attempted path including search params (e.g. ?id=...) for post-login redirect
+    signInUrl.searchParams.set("callbackUrl", `${pathname}${search}`);
     return NextResponse.redirect(signInUrl);
   }
 
-  // 2. Guest-only route check: Redirect authenticated users to /home
+  // 2. Guest-only route check: Redirect authenticated users to callbackUrl (if present) or /home
   if (isAuthRoute && hasSession) {
+    const callbackUrl = request.nextUrl.searchParams.get("callbackUrl");
+    if (callbackUrl) {
+      try {
+        const redirectUrl = new URL(callbackUrl, request.url);
+        // Ensure redirect stays within same origin to prevent open-redirect vulnerabilities
+        if (redirectUrl.origin === request.nextUrl.origin) {
+          return NextResponse.redirect(redirectUrl);
+        }
+      } catch {
+        // Fall back to /home on invalid URL
+      }
+    }
     return NextResponse.redirect(new URL("/home", request.url));
   }
 

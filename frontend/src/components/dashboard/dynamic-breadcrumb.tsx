@@ -35,9 +35,13 @@ export function DynamicBreadcrumb() {
               {idx > 0 && <BreadcrumbSeparator />}
               <BreadcrumbItem>
                 {isLast ? (
-                  <BreadcrumbPage>{label}</BreadcrumbPage>
+                  <BreadcrumbPage className="max-w-[110px] sm:max-w-[180px] md:max-w-none truncate">
+                    {label}
+                  </BreadcrumbPage>
                 ) : (
-                  <BreadcrumbLink href={href}>{label}</BreadcrumbLink>
+                  <BreadcrumbLink href={href} className="max-w-[90px] sm:max-w-[140px] md:max-w-none truncate">
+                    {label}
+                  </BreadcrumbLink>
                 )}
               </BreadcrumbItem>
             </React.Fragment>

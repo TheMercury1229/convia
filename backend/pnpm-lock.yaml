@@ -166,6 +166,9 @@ importers:
 
   .:
     dependencies:
+      '@getbrevo/brevo':
+        specifier: ^6.0.3
+        version: 6.0.3
       better-auth:
         specifier: ^1.7.6
         version: 1.7.6(drizzle-kit@0.31.11)(drizzle-orm@0.45.3(@types/pg@8.23.1)(kysely@0.29.6)(pg@8.23.0))(pg@8.23.0)
@@ -745,6 +748,10 @@ packages:
     engines: {node: '>=18'}
     cpu: [x64]
     os: [win32]
+
+  '@getbrevo/brevo@6.0.3':
+    resolution: {integrity: sha512-yWBLKoHC8P5HLZ8z6iRuqDYLpCRKPTUETnZOLZzNDWGFYL78y4SHOTxQVrKH5ROX7f4q+SQ19LD3GWtJlIuNXA==}
+    engines: {node: '>=18.0.0'}
 
   '@noble/ciphers@2.4.0':
     resolution: {integrity: sha512-AnjFn0Jv92laAkvMrghlFZq4qQCIN/4DxFV/eooqtC2YTjB7kBeLMS2T9KJX4Dn+ZVXLOwK0lSgqDtx9gvxtiw==}
@@ -1879,6 +1886,8 @@ snapshots:
 
   '@esbuild/win32-x64@0.28.2':
     optional: true
+
+  '@getbrevo/brevo@6.0.3': {}
 
   '@noble/ciphers@2.4.0': {}
 

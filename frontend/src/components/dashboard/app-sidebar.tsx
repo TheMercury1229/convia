@@ -50,10 +50,11 @@ export function AppSidebar() {
   const { data: session } = authClient.useSession();
   const { data: activeMember } = authClient.useActiveOrganization();
 
-  // Show org-settings only for owners
-  const isOwner = (activeMember as any)?.members?.find(
+  // Show org-settings for owners and editors
+  const currentRole = (activeMember as any)?.members?.find(
     (m: any) => m.userId === session?.user?.id
-  )?.role === "owner";
+  )?.role;
+  const canManageOrg = currentRole === "owner" || currentRole === "editor";
 
   return (
     <Sidebar collapsible="icon">
@@ -113,8 +114,8 @@ export function AppSidebar() {
           </SidebarGroupContent>
         </SidebarGroup>
 
-        {/* Owner-only section */}
-        {isOwner && (
+        {/* Management section (owners & editors) */}
+        {canManageOrg && (
           <>
             <SidebarSeparator />
             <SidebarGroup>

@@ -5,6 +5,7 @@ import { organization } from "better-auth/plugins";
 import { ac, owner, editor, viewer } from "./permissions";
 import * as schema from "../db/schema/index";
 import ENV_CONFIG from "../config/env.config";
+import { sendInvitationEmail } from "./email";
 
 export const auth = betterAuth({
   baseURL: ENV_CONFIG.BETTER_AUTH_URL,
@@ -22,7 +23,11 @@ export const auth = betterAuth({
     },
   },
   trustedOrigins: [ENV_CONFIG.CLIENT_URL!],
-
+  user: {
+    deleteUser: {
+      enabled: true,
+    }
+  },
   databaseHooks: {
     user: {
       create: {
@@ -74,6 +79,9 @@ export const auth = betterAuth({
       },
       // The user who creates an organisation automatically becomes its owner.
       creatorRole: "owner",
+      sendInvitationEmail: async (data) => {
+        await sendInvitationEmail(data);
+      },
     }),
   ],
 });

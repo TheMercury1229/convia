@@ -1,2 +1,6 @@
-export { OrgAvatar, getOrgInitials } from "./org-avatar";
-export { CreateOrgDialog } from "./create-org-dialog";
+export { OrgAvatar, getOrgInitials } from "./org-avatar"
+export { CreateOrgDialog } from "./create-org-dialog"
+export { DicebearGlassPicker } from "./dicebear-glass-picker"
+export { OrgMetadataTab } from "./org-metadata-tab"
+export { OrgMembersTab } from "./org-members-tab"
+export { InviteMembersDialog } from "./invite-members-dialog"

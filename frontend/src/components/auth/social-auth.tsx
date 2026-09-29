@@ -39,9 +39,19 @@ export function SocialAuth({ disabled = false }: SocialAuthProps) {
   const handleGoogleSignIn = async () => {
     setGoogleLoading(true);
     try {
+      const searchParams =
+        typeof window !== "undefined"
+          ? new URLSearchParams(window.location.search)
+          : null;
+      const callbackParam = searchParams?.get("callbackUrl");
+      const targetPath = callbackParam || "/home";
+      const fullCallbackUrl = targetPath.startsWith("http")
+        ? targetPath
+        : `${window.location.origin}${targetPath.startsWith("/") ? "" : "/"}${targetPath}`;
+
       await authClient.signIn.social({
         provider: "google",
-        callbackURL: `${window.location.origin}/home`,
+        callbackURL: fullCallbackUrl,
       });
     } catch {
       toast.error("Google authentication failed. Please try again.");

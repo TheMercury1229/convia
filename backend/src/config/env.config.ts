@@ -9,7 +9,10 @@ const ENV_CONFIG = {
   BETTER_AUTH_URL: process.env.BETTER_AUTH_URL,
   GOOGLE_CLIENT_ID: process.env.GOOGLE_CLIENT_ID,
   GOOGLE_CLIENT_SECRET: process.env.GOOGLE_CLIENT_SECRET,
-  CLIENT_URL: process.env.CLIENT_URL
+  CLIENT_URL: process.env.CLIENT_URL,
+  BREVO_API_KEY: process.env.BREVO_API_KEY,
+  BREVO_SENDER_EMAIL: process.env.BREVO_SENDER_EMAIL || "notifications@convia.app",
+  BREVO_SENDER_NAME: process.env.BREVO_SENDER_NAME || "Convia",
 };
 Object.freeze(ENV_CONFIG);
 

@@ -43,7 +43,11 @@ export function SignUpForm() {
         toast.error(error.message ?? "Sign up failed. Please try again.");
       } else {
         toast.success("Account created! Welcome to Convia.");
-        router.push("/home");
+        const callbackUrl =
+          typeof window !== "undefined"
+            ? new URLSearchParams(window.location.search).get("callbackUrl") || "/home"
+            : "/home";
+        router.push(callbackUrl);
       }
     } catch {
       toast.error("An unexpected error occurred. Please try again.");

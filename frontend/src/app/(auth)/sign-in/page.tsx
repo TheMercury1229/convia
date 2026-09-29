@@ -10,7 +10,20 @@ export const metadata: Metadata = {
   description: "Sign in to your Convia account to continue building conversational forms",
 };
 
-export default function SignInPage() {
+export default async function SignInPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
+}) {
+  const resolvedParams = await searchParams;
+  const callbackUrl =
+    typeof resolvedParams.callbackUrl === "string"
+      ? resolvedParams.callbackUrl
+      : null;
+  const signUpHref = callbackUrl
+    ? `/sign-up?callbackUrl=${encodeURIComponent(callbackUrl)}`
+    : "/sign-up";
+
   return (
     <div className="w-full space-y-6">
       <AuthHeader
@@ -27,7 +40,7 @@ export default function SignInPage() {
       <div className="text-center text-sm text-muted-foreground pt-1">
         Don&apos;t have an account?{" "}
         <Link
-          href="/sign-up"
+          href={signUpHref}
           className="text-primary font-semibold underline-offset-4 hover:underline"
         >
           Create one
