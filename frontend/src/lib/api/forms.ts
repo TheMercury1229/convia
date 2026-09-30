@@ -11,10 +11,42 @@ export interface Form {
   slug: string;
   isPublished: boolean;
   deadline?: string | null;
+  themeId?: string | null;
   createdAt: string;
   updatedAt: string;
   orgId: string;
-  createdBy?: string | null;
+  updatedBy?: string | null;
+}
+
+export interface ApiSection {
+  id: string;
+  formId: string;
+  title?: string | null;
+  description?: string | null;
+  position: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface ApiQuestion {
+  id: string;
+  sectionId: string;
+  formId: string;
+  fieldName: string;
+  label: string;
+  description?: string | null;
+  placeholder?: string | null;
+  type: string;
+  isRequired: boolean;
+  position: number;
+  options?: unknown;
+  validation?: unknown;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface FormWithSections extends Form {
+  sections: (ApiSection & { questions: ApiQuestion[] })[];
 }
 
 export interface CreateFormPayload {
@@ -26,6 +58,28 @@ export interface CreateFormPayload {
 }
 
 export interface UpdateFormPayload extends Partial<CreateFormPayload> {}
+
+export interface SaveBuilderPayload {
+  sections: {
+    id: string;
+    title?: string | null;
+    description?: string | null;
+    position: number;
+  }[];
+  questions: {
+    id: string;
+    sectionId: string;
+    fieldName: string;
+    label: string;
+    description?: string | null;
+    placeholder?: string | null;
+    type: string;
+    isRequired: boolean;
+    position: number;
+    options?: unknown;
+    validation?: unknown;
+  }[];
+}
 
 interface ApiEnvelope<T> {
   success: boolean;
@@ -43,9 +97,9 @@ export async function listForms(): Promise<Form[]> {
   return res.data.data;
 }
 
-/** GET /forms/:id – fetch a single form */
-export async function getForm(id: string): Promise<Form> {
-  const res = await api.get<ApiEnvelope<Form>>(`/forms/${id}`);
+/** GET /forms/:id – fetch a single form with its sections and questions */
+export async function getForm(id: string): Promise<FormWithSections> {
+  const res = await api.get<ApiEnvelope<FormWithSections>>(`/forms/${id}`);
   return res.data.data;
 }
 
@@ -55,13 +109,21 @@ export async function createForm(payload: CreateFormPayload): Promise<Form> {
   return res.data.data;
 }
 
-/** PATCH /forms/:id – update an existing form */
+/** PATCH /forms/:id – update form metadata (title, slug, themeId, deadline, etc.) */
 export async function updateForm(
   id: string,
   payload: UpdateFormPayload,
 ): Promise<Form> {
   const res = await api.patch<ApiEnvelope<Form>>(`/forms/${id}`, payload);
   return res.data.data;
+}
+
+/** PATCH /forms/:id/builder – replace all sections + questions (autosave) */
+export async function saveBuilderState(
+  id: string,
+  payload: SaveBuilderPayload,
+): Promise<void> {
+  await api.patch(`/forms/${id}/builder`, payload);
 }
 
 /** PATCH /forms/:id/publish – toggle publish state */

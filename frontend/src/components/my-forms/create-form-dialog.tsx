@@ -40,7 +40,7 @@ export function CreateFormDialog({ open, onOpenChange }: CreateFormDialogProps) 
       onOpenChange(false);
       setTitle("");
       setDescription("");
-      router.push(`/form/${form.id}`);
+      router.push(`/builder/${form.id}?mode=create`);
     } catch {
       // toast is shown by the hook
     }

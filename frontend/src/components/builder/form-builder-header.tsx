@@ -8,6 +8,7 @@ import {
   Eye,
   Loader2,
   Pencil,
+  Save,
   Settings2,
   Share2,
   Sparkles,
@@ -15,6 +16,7 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import {
   Tooltip,
   TooltipContent,
@@ -34,6 +36,10 @@ interface FormBuilderHeaderProps {
   title?: string;
   /** Autosave indicator state. Defaults to "saved". */
   saveState?: "saved" | "saving" | "unsaved";
+  /** Builder mode: "create" | "edit" */
+  mode?: "create" | "edit";
+  /** Called when the user clicks Save or triggers Ctrl+S. */
+  onSave?: () => void;
 }
 
 // ---------------------------------------------------------------------------
@@ -72,14 +78,6 @@ function EditableTitle({ initialTitle = "Untitled Form" }: { initialTitle?: stri
       inputRef.current?.select();
     }
   }, [editing]);
-
-  // One-way bridge: sync an API-provided title into the store on mount / prop change.
-  // The store is authoritative afterwards — no need to mirror into local state.
-  React.useEffect(() => {
-    if (initialTitle && !editing) {
-      updateForm({ title: initialTitle });
-    }
-  }, [initialTitle]); // eslint-disable-line react-hooks/exhaustive-deps
 
   if (editing) {
     return (
@@ -162,9 +160,11 @@ export function FormBuilderHeader({
   backHref = "/my-forms",
   title,
   saveState = "saved",
+  mode = "edit",
+  onSave,
 }: FormBuilderHeaderProps) {
   const [shareOpen, setShareOpen] = React.useState(false);
-  const { rightPanelTab, setRightPanelTab } = useBuilderStore();
+  const { rightPanelTab, setRightPanelTab, form } = useBuilderStore();
 
   return (
     <header
@@ -211,6 +211,29 @@ export function FormBuilderHeader({
 
         {/* Autosave indicator */}
         <SaveIndicator state={saveState} />
+
+        {/* Manual save button — visible only when there are unsaved changes */}
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Button
+              variant="ghost"
+              size="icon-sm"
+              id="builder-save-btn"
+              aria-label="Save now"
+              onClick={onSave}
+              disabled={saveState === "saving"}
+              className={cn(
+                "shrink-0 transition-all duration-150",
+                saveState === "unsaved"
+                  ? "opacity-100 text-primary hover:text-primary hover:bg-primary/10"
+                  : "opacity-0 pointer-events-none",
+              )}
+            >
+              <Save className="h-3.5 w-3.5" />
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent side="bottom">Save now</TooltipContent>
+        </Tooltip>
       </div>
 
       {/* ------------------------------------------------------------------ */}
@@ -272,12 +295,19 @@ export function FormBuilderHeader({
               id="builder-preview-btn"
               className="gap-1.5 text-muted-foreground hover:text-foreground"
               aria-label="Preview form"
+              asChild
             >
-              <Eye className="h-3.5 w-3.5" />
-              <span className="hidden sm:inline">Preview</span>
+              <Link
+                href={`/form/${form.slug || form.id}?preview=true`}
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                <Eye className="h-3.5 w-3.5" />
+                <span className="hidden sm:inline">Preview</span>
+              </Link>
             </Button>
           </TooltipTrigger>
-          <TooltipContent side="bottom">Preview form</TooltipContent>
+          <TooltipContent side="bottom">Preview live form in new tab</TooltipContent>
         </Tooltip>
 
         {/* Share */}
@@ -303,10 +333,12 @@ export function FormBuilderHeader({
           size="sm"
           id="builder-publish-btn"
           className="gap-1.5"
-          aria-label="Publish form"
+          aria-label="Save and publish form"
+          disabled={saveState === "saving"}
+          onClick={onSave}
         >
           <Globe className="h-3.5 w-3.5" />
-          Publish
+          {saveState === "saving" ? "Saving…" : "Publish"}
         </Button>
       </div>
 

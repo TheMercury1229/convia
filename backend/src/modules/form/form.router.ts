@@ -1,7 +1,8 @@
-﻿import { Router } from "express";
+import { Router } from "express";
 import { validate } from "../../middlewares/validate";
 import { requireAuth, requireOrgMember } from "../../middlewares/require-auth";
 import { createFormSchema, updateFormSchema } from "./form.schema";
+import { saveBuilderSchema } from "./builder.schema";
 import * as controller from "./form.controller";
 
 const router = Router();
@@ -22,6 +23,7 @@ router.post("/", validate(createFormSchema), controller.createForm);
 router.get("/:id", controller.getForm);
 router.patch("/:id", validate(updateFormSchema), controller.updateForm);
 router.patch("/:id/publish", controller.togglePublish);
+router.patch("/:id/builder", validate(saveBuilderSchema), controller.saveBuilder);
 router.post("/:id/duplicate", controller.duplicateForm);
 router.delete("/:id", controller.deleteForm);
 

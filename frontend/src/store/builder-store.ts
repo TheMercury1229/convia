@@ -4,7 +4,6 @@ import { current } from "immer";
 import { useState, useEffect } from "react";
 import { useTheme } from "next-themes";
 import { getFormTheme, type FormThemeResolved } from "@/lib/builder-themes";
-import { seedForm, seedSections, seedQuestions } from "@/lib/builder-seed";
 import { getTypeLabel } from "@/lib/question-registry";
 import type {
   BuilderForm,
@@ -15,6 +14,7 @@ import type {
   Section,
   SelectedElement,
 } from "@/types/builder";
+import type { FormWithSections } from "@/lib/api/forms";
 
 // --------------------------------------------------------
 // Helpers
@@ -43,6 +43,8 @@ function defaultQuestion(
     sectionId,
     type,
     fieldName: makeFieldName(label),
+    // Unlocked — fieldName will be derived + frozen on the user's first label edit
+    fieldNameLocked: false,
     label,
     description: "",
     placeholder: "",
@@ -86,6 +88,68 @@ function syncQuestionPositions(questions: Question[], sectionId?: string) {
   }
 }
 
+/** Map a raw API FormWithSections into the builder store's Section[] + Question[] */
+function apiToBuilderState(apiForm: FormWithSections): {
+  form: BuilderForm;
+  sections: Section[];
+  questions: Question[];
+} {
+  const form: BuilderForm = {
+    id: apiForm.id,
+    title: apiForm.title,
+    description: apiForm.description ?? "",
+    slug: apiForm.slug,
+    deadline: apiForm.deadline ?? null,
+    themeId: apiForm.themeId ?? "nova",
+    fontFamily: "sans",
+  };
+
+  const sections: Section[] = apiForm.sections.map((s) => ({
+    id: s.id,
+    formId: apiForm.id,
+    title: s.title ?? "",
+    description: s.description ?? "",
+    position: s.position,
+  }));
+
+  const questions: Question[] = apiForm.sections.flatMap((s) =>
+    s.questions.map((q) => ({
+      id: q.id,
+      sectionId: q.sectionId,
+      type: q.type as QuestionType,
+      fieldName: q.fieldName,
+      // Saved questions always have a committed fieldName — lock it
+      fieldNameLocked: true,
+      label: q.label,
+      description: q.description ?? "",
+      placeholder: q.placeholder ?? "",
+      // Backend uses isRequired; store uses required
+      required: q.isRequired,
+      position: q.position,
+      options: Array.isArray(q.options)
+        ? (q.options as QuestionOption[])
+        : [],
+      validation: (q.validation as QuestionValidation) ?? {},
+    })),
+  );
+
+  return { form, sections, questions };
+}
+
+// --------------------------------------------------------
+// Empty defaults — used as initial state before API loads
+// --------------------------------------------------------
+
+const emptyForm: BuilderForm = {
+  id: "",
+  title: "",
+  description: "",
+  slug: "",
+  deadline: null,
+  themeId: "nova",
+  fontFamily: "sans",
+};
+
 // --------------------------------------------------------
 // Store state & actions
 // --------------------------------------------------------
@@ -96,7 +160,15 @@ interface BuilderState {
   questions: Question[];
   selectedElement: SelectedElement | null;
   rightPanelTab: "properties" | "settings";
+  /** Whether the store has been initialised from the API (prevents flash of empty state) */
+  isInitialised: boolean;
   setRightPanelTab(tab: "properties" | "settings"): void;
+
+  /**
+   * Initialise the store from the API response.
+   * Call once when the form data first arrives from React Query.
+   */
+  initFromApi(apiForm: FormWithSections): void;
 
   // ── Form ──────────────────────────────────────────────
   updateForm(patch: Partial<BuilderForm>): void;
@@ -112,6 +184,12 @@ interface BuilderState {
   // ── Question ──────────────────────────────────────────
   addQuestion(sectionId: string, type: QuestionType, atIndex?: number): void;
   updateQuestion(id: string, patch: Partial<Omit<Question, "id" | "sectionId">>): void;
+  /**
+   * Called on blur of the label input.
+   * If the question's fieldName hasn't been locked yet, derives it from the
+   * current label and locks it permanently.
+   */
+  commitLabel(id: string): void;
   deleteQuestion(id: string): void;
   duplicateQuestion(id: string): void;
   /** Reorder within the same section */
@@ -136,14 +214,27 @@ interface BuilderState {
 
 export const useBuilderStore = create<BuilderState>()(
   immer((set, get) => ({
-    form: seedForm,
-    sections: seedSections,
-    questions: seedQuestions,
+    form: emptyForm,
+    sections: [],
+    questions: [],
     selectedElement: null,
     rightPanelTab: "properties",
+    isInitialised: false,
+
     setRightPanelTab: (tab) =>
       set((s) => {
         s.rightPanelTab = tab;
+      }),
+
+    // ── Init ────────────────────────────────────────────
+    initFromApi: (apiForm) =>
+      set((s) => {
+        const { form, sections, questions } = apiToBuilderState(apiForm);
+        s.form = form;
+        s.sections = sections;
+        s.questions = questions;
+        s.isInitialised = true;
+        s.selectedElement = null;
       }),
 
     // ── Form ────────────────────────────────────────────
@@ -234,7 +325,18 @@ export const useBuilderStore = create<BuilderState>()(
     updateQuestion: (id, patch) =>
       set((s) => {
         const q = s.questions.find((x) => x.id === id);
-        if (q) Object.assign(q, patch);
+        if (!q) return;
+        Object.assign(q, patch);
+      }),
+
+    // Fires on blur of the label input — derives + locks fieldName from the
+    // final committed label. Ignored if already locked.
+    commitLabel: (id) =>
+      set((s) => {
+        const q = s.questions.find((x) => x.id === id);
+        if (!q || q.fieldNameLocked) return;
+        q.fieldName = makeFieldName(q.label);
+        q.fieldNameLocked = true;
       }),
 
     deleteQuestion: (id) =>
@@ -257,6 +359,8 @@ export const useBuilderStore = create<BuilderState>()(
           ...snapshot,
           id: uid(),
           fieldName: `${snapshot.fieldName}_copy`,
+          // Copy has a defined fieldName — lock it immediately
+          fieldNameLocked: true,
           position: 0,
           options: snapshot.options.map((o) => ({ ...o, id: uid() })),
         };

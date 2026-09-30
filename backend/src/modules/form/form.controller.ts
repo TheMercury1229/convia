@@ -1,8 +1,11 @@
-﻿import type { Request, Response } from "express";
+import type { Request, Response } from "express";
 import { asyncHandler } from "../../utils/async-handler";
 import { sendResponse } from "../../utils/api-response";
 import * as formService from "./form.service";
 import type { CreateFormInput, UpdateFormInput } from "./form.schema";
+import type { SaveBuilderInput } from "./builder.schema";
+import { replaceBuilderState } from "./builder.repository";
+import { findFormById } from "./form.repository";
 import type { AuthenticatedRequest } from "../../types/index";
 import { ApiError } from "../../utils/api-error";
 
@@ -75,4 +78,17 @@ export const deleteForm = asyncHandler(async (req, res) => {
   if (!orgId) throw ApiError.badRequest("No active organisation");
   await formService.deleteForm(param(req, "id"), orgId);
   return sendResponse(res, 200, "Form deleted");
+});
+
+// PATCH /forms/:id/builder — replace sections + questions (autosave)
+export const saveBuilder = asyncHandler(async (req: Request, res: Response) => {
+  const { orgId } = authReq(req);
+  if (!orgId) throw ApiError.badRequest("No active organisation");
+  const id = param(req, "id");
+  const existing = await findFormById(id);
+  if (!existing) throw ApiError.notFound("Form not found");
+  if (existing.orgId !== orgId) throw ApiError.forbidden("Access denied");
+  const input = req.body as SaveBuilderInput;
+  await replaceBuilderState(id, input);
+  return sendResponse(res, 200, "Builder saved");
 });

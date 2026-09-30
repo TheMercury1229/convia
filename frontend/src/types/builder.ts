@@ -98,8 +98,13 @@ export interface Question {
   id: string;
   sectionId: string;
   type: QuestionType;
-  /** Machine-safe field name (e.g. "full_name") */
+  /** Machine-safe field name (e.g. "full_name"). Locked after first label commit. */
   fieldName: string;
+  /**
+   * True once the fieldName has been permanently set from the user's first label edit.
+   * Client-only — never persisted to the backend. Defaults to false for new questions.
+   */
+  fieldNameLocked?: boolean;
   label: string;
   description: string;
   placeholder: string;

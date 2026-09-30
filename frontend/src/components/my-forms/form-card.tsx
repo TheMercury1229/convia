@@ -10,6 +10,8 @@ import {
   Trash2,
   ExternalLink,
   Clock,
+  Pencil,
+  Eye,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -61,7 +63,7 @@ export function FormCard({ form }: FormCardProps) {
 
         {/* Header row */}
         <div className="flex items-start justify-between gap-2 pt-1">
-          <Link href={`/form/${form.id}`} className="flex-1 min-w-0">
+          <Link href={`/builder/${form.id}?mode=edit`} className="flex-1 min-w-0">
             <h3 className="font-semibold text-sm leading-snug truncate group-hover:text-primary transition-colors">
               {form.title}
             </h3>
@@ -81,9 +83,15 @@ export function FormCard({ form }: FormCardProps) {
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-44">
               <DropdownMenuItem asChild>
-                <Link href={`/form/${form.id}`}>
-                  <ExternalLink className="h-4 w-4 mr-2" />
-                  Open
+                <Link href={`/builder/${form.id}?mode=edit`}>
+                  <Pencil className="h-4 w-4 mr-2" />
+                  Edit Form
+                </Link>
+              </DropdownMenuItem>
+              <DropdownMenuItem asChild>
+                <Link href={`/form/${form.slug || form.id}`} target="_blank" rel="noopener noreferrer">
+                  <Eye className="h-4 w-4 mr-2" />
+                  Fill Form
                 </Link>
               </DropdownMenuItem>
               <DropdownMenuItem onClick={() => togglePublish(form.id)}>
