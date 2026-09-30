@@ -17,7 +17,6 @@ export const seedForm: BuilderForm = {
   deadline: null,
   themeId: "nova",
   themeColor: "indigo",
-  fontFamily: "sans",
 };
 
 export const seedSections: Section[] = [

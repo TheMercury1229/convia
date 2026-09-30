@@ -1,9 +1,5 @@
 import { api } from "@/lib/api";
 
-// ---------------------------------------------------------------------------
-// Types
-// ---------------------------------------------------------------------------
-
 export interface Form {
   id: string;
   title: string;
@@ -57,7 +53,7 @@ export interface CreateFormPayload {
   deadline?: string | null;
 }
 
-export interface UpdateFormPayload extends Partial<CreateFormPayload> {}
+export interface UpdateFormPayload extends Partial<CreateFormPayload> { }
 
 export interface SaveBuilderPayload {
   sections: {
@@ -100,6 +96,12 @@ export async function listForms(): Promise<Form[]> {
 /** GET /forms/:id – fetch a single form with its sections and questions */
 export async function getForm(id: string): Promise<FormWithSections> {
   const res = await api.get<ApiEnvelope<FormWithSections>>(`/forms/${id}`);
+  return res.data.data;
+}
+
+/** GET /forms/public/:slug – fetch a public published form with its sections and questions */
+export async function getPublicForm(slug: string): Promise<FormWithSections> {
+  const res = await api.get<ApiEnvelope<FormWithSections>>(`/forms/public/${slug}`);
   return res.data.data;
 }
 

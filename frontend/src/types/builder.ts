@@ -138,10 +138,10 @@ export interface BuilderForm {
   title: string;
   description: string;
   slug?: string;
+  isPublished?: boolean;
   deadline?: string | null;
   themeColor?: string;
   themeId?: string;
-  fontFamily?: string;
 }
 
 // --------------------------------------------------------

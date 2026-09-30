@@ -5,13 +5,11 @@ import { Plus } from "lucide-react";
 import { useBuilderStore, useBuilderTheme } from "@/store/builder-store";
 import { SectionEditor, SectionDropSlot } from "./section-editor";
 import { FormHeaderCard } from "./form-header-card";
-import { getFontOption } from "@/lib/builder-themes";
 
 export function FormCanvas() {
   const { form, sections, selectElement, addSection } = useBuilderStore();
 
   const currentTheme = useBuilderTheme();
-  const currentFont = getFontOption(form.fontFamily || "sans");
 
   const sortedSections = [...sections].sort((a, b) => a.position - b.position);
 
@@ -20,7 +18,6 @@ export function FormCanvas() {
       className="flex h-full flex-col overflow-y-auto transition-colors duration-200"
       style={{
         backgroundColor: currentTheme.colors.canvasBg,
-        fontFamily: currentFont.fontFamily,
       }}
       onClick={() => selectElement(null)}
     >

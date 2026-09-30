@@ -1,13 +1,13 @@
 "use client";
 
 import * as React from "react";
-import { Check, Clock, Globe, Palette, Type, Calendar } from "lucide-react";
+import { Check, Clock, Globe, Palette, Calendar } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { useBuilderStore } from "@/store/builder-store";
-import { BUILDER_THEMES, BUILDER_FONTS } from "@/lib/builder-themes";
+import { BUILDER_THEMES } from "@/lib/builder-themes";
 
 // --------------------------------------------------------
 // Helper UI wrappers
@@ -174,37 +174,6 @@ export function FormSettingsPanel() {
         </div>
       </SettingsSection>
 
-      {/* ── 4. Typography (6 simple names in 3x2 grid) ─────── */}
-      <SettingsSection title="Typography" icon={Type}>
-        <div className="grid grid-cols-3 gap-2">
-          {BUILDER_FONTS.map((font) => {
-            const isSelected = (form.fontFamily || "sans") === font.id;
-            return (
-              <button
-                key={font.id}
-                type="button"
-                onClick={() => updateForm({ fontFamily: font.id })}
-                className={cn(
-                  "flex flex-col items-center justify-center gap-1 rounded-xl border py-2.5 px-2 text-center transition-all cursor-pointer",
-                  isSelected
-                    ? "border-primary bg-primary/10 ring-1 ring-primary shadow-xs"
-                    : "border-border/60 bg-card hover:bg-muted/40 hover:border-border"
-                )}
-              >
-                <span
-                  className="text-lg font-semibold leading-tight text-foreground"
-                  style={{ fontFamily: font.fontFamily }}
-                >
-                  Aa
-                </span>
-                <span className="text-[11px] font-medium text-muted-foreground leading-none truncate max-w-full">
-                  {font.name}
-                </span>
-              </button>
-            );
-          })}
-        </div>
-      </SettingsSection>
     </div>
   );
 }

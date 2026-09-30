@@ -99,9 +99,9 @@ function apiToBuilderState(apiForm: FormWithSections): {
     title: apiForm.title,
     description: apiForm.description ?? "",
     slug: apiForm.slug,
+    isPublished: apiForm.isPublished ?? false,
     deadline: apiForm.deadline ?? null,
     themeId: apiForm.themeId ?? "nova",
-    fontFamily: "sans",
   };
 
   const sections: Section[] = apiForm.sections.map((s) => ({
@@ -145,9 +145,9 @@ const emptyForm: BuilderForm = {
   title: "",
   description: "",
   slug: "",
+  isPublished: false,
   deadline: null,
   themeId: "nova",
-  fontFamily: "sans",
 };
 
 // --------------------------------------------------------

@@ -24,6 +24,7 @@ import {
 } from "@/components/ui/tooltip";
 import { ShareDialog } from "./share-dialog";
 import { useBuilderStore } from "@/store/builder-store";
+import { useTogglePublish } from "@/hooks/use-forms";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -135,15 +136,17 @@ function SaveIndicator({ state }: { state: SaveState }) {
   return (
     <div
       className={cn(
-        "flex items-center gap-1.5 text-xs text-muted-foreground",
-        state === "unsaved" && "text-amber-500 dark:text-amber-400",
+        "flex items-center gap-1.5 text-xs text-muted-foreground select-none",
+        state === "unsaved" && "text-amber-500/90 dark:text-amber-400/90",
       )}
       aria-live="polite"
     >
       {state === "saving" ? (
         <Loader2 className="size-3.5 animate-spin" />
+      ) : state === "unsaved" ? (
+        <span className="size-1.5 rounded-full bg-amber-500" />
       ) : (
-        <Check className="size-3.5" />
+        <Check className="size-3.5 text-muted-foreground" />
       )}
       <span className="hidden sm:inline">
         {state === "saving" ? "Saving…" : state === "unsaved" ? "Unsaved" : "Saved"}
@@ -164,7 +167,21 @@ export function FormBuilderHeader({
   onSave,
 }: FormBuilderHeaderProps) {
   const [shareOpen, setShareOpen] = React.useState(false);
-  const { rightPanelTab, setRightPanelTab, form } = useBuilderStore();
+  const { rightPanelTab, setRightPanelTab, form, updateForm } = useBuilderStore();
+  const togglePublishMutation = useTogglePublish();
+  const isPublished = Boolean(form.isPublished);
+
+  const handleTogglePublish = () => {
+    if (!form.id) return;
+    if (saveState === "unsaved") {
+      onSave?.();
+    }
+    togglePublishMutation.mutate(form.id, {
+      onSuccess: (updated) => {
+        updateForm({ isPublished: updated.isPublished });
+      },
+    });
+  };
 
   return (
     <header
@@ -212,27 +229,32 @@ export function FormBuilderHeader({
         {/* Autosave indicator */}
         <SaveIndicator state={saveState} />
 
-        {/* Manual save button — visible only when there are unsaved changes */}
+        {/* Manual save button — accessible and consistent with other icons */}
         <Tooltip>
           <TooltipTrigger asChild>
             <Button
               variant="ghost"
               size="icon-sm"
               id="builder-save-btn"
-              aria-label="Save now"
+              aria-label="Save changes"
               onClick={onSave}
               disabled={saveState === "saving"}
-              className={cn(
-                "shrink-0 transition-all duration-150",
-                saveState === "unsaved"
-                  ? "opacity-100 text-primary hover:text-primary hover:bg-primary/10"
-                  : "opacity-0 pointer-events-none",
-              )}
+              className="shrink-0 text-muted-foreground hover:text-foreground"
             >
-              <Save className="h-3.5 w-3.5" />
+              {saveState === "saving" ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <Save className="h-4 w-4" />
+              )}
             </Button>
           </TooltipTrigger>
-          <TooltipContent side="bottom">Save now</TooltipContent>
+          <TooltipContent side="bottom">
+            {saveState === "unsaved"
+              ? "Save changes"
+              : saveState === "saving"
+              ? "Saving…"
+              : "Save"}
+          </TooltipContent>
         </Tooltip>
       </div>
 
@@ -298,7 +320,7 @@ export function FormBuilderHeader({
               asChild
             >
               <Link
-                href={`/form/${form.slug || form.id}?preview=true`}
+                href={`/form/${form.id}?preview=true`}
                 target="_blank"
                 rel="noopener noreferrer"
               >
@@ -328,18 +350,38 @@ export function FormBuilderHeader({
           <TooltipContent side="bottom">Share form</TooltipContent>
         </Tooltip>
 
-        {/* Publish — primary CTA */}
-        <Button
-          size="sm"
-          id="builder-publish-btn"
-          className="gap-1.5"
-          aria-label="Save and publish form"
-          disabled={saveState === "saving"}
-          onClick={onSave}
-        >
-          <Globe className="h-3.5 w-3.5" />
-          {saveState === "saving" ? "Saving…" : "Publish"}
-        </Button>
+        {/* Publish / Unpublish Toggle */}
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Button
+              size="sm"
+              id="builder-publish-btn"
+              variant={isPublished ? "outline" : "default"}
+              className="gap-1.5 font-medium transition-colors"
+              aria-label={isPublished ? "Unpublish form" : "Publish form"}
+              disabled={saveState === "saving" || togglePublishMutation.isPending}
+              onClick={handleTogglePublish}
+            >
+              {togglePublishMutation.isPending ? (
+                <Loader2 className="h-3.5 w-3.5 animate-spin" />
+              ) : isPublished ? (
+                <span className="size-1.5 rounded-full bg-emerald-500 dark:bg-emerald-400" />
+              ) : (
+                <Globe className="h-3.5 w-3.5" />
+              )}
+              <span>
+                {togglePublishMutation.isPending
+                  ? "Updating…"
+                  : isPublished
+                  ? "Published"
+                  : "Publish"}
+              </span>
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent side="bottom">
+            {isPublished ? "Click to unpublish" : "Publish form"}
+          </TooltipContent>
+        </Tooltip>
       </div>
 
       <ShareDialog open={shareOpen} onOpenChange={setShareOpen} />

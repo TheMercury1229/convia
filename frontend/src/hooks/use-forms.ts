@@ -2,6 +2,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   listForms,
   getForm,
+  getPublicForm,
   createForm,
   updateForm,
   togglePublish,
@@ -20,6 +21,7 @@ export const formKeys = {
   all: ["forms"] as const,
   lists: () => [...formKeys.all, "list"] as const,
   detail: (id: string) => [...formKeys.all, "detail", id] as const,
+  public: (slug: string) => [...formKeys.all, "public", slug] as const,
 };
 
 // ---------------------------------------------------------------------------
@@ -34,12 +36,21 @@ export function useForms() {
   });
 }
 
-/** Fetch a single form by id */
+/** Fetch a single form by id (builder / authenticated view) */
 export function useForm(id: string) {
   return useQuery({
     queryKey: formKeys.detail(id),
     queryFn: () => getForm(id),
     enabled: !!id,
+  });
+}
+
+/** Fetch a published form by slug (respondent / public view) */
+export function usePublicForm(slug: string) {
+  return useQuery({
+    queryKey: formKeys.public(slug),
+    queryFn: () => getPublicForm(slug),
+    enabled: !!slug,
   });
 }
 

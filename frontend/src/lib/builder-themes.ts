@@ -323,69 +323,6 @@ export const BUILDER_THEMES: FormTheme[] = [
 ];
 
 // --------------------------------------------------------
-// Typography Options
-// --------------------------------------------------------
-
-export interface FontOption {
-  id: string;
-  name: string;
-  category: string;
-  description: string;
-  fontFamily: string;
-}
-
-export const BUILDER_FONTS: FontOption[] = [
-  {
-    id: "sans",
-    name: "System Sans",
-    category: "Clean & Modern",
-    description: "Clean, ultra-legible native interface font",
-    fontFamily:
-      'ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif',
-  },
-  {
-    id: "serif",
-    name: "Editorial Serif",
-    category: "Classic & Literary",
-    description: "Warm, editorial look with traditional serif elegance",
-    fontFamily:
-      'ui-serif, Georgia, Cambria, "Times New Roman", Times, serif',
-  },
-  {
-    id: "mono",
-    name: "Code Mono",
-    category: "Technical & Precise",
-    description: "Fixed-width typewriter font ideal for technical forms",
-    fontFamily:
-      'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace',
-  },
-  {
-    id: "geometric",
-    name: "Geometric Sans",
-    category: "Modern Tech",
-    description: "Wide, balanced aesthetic inspired by contemporary SaaS",
-    fontFamily:
-      '"Montserrat", "Outfit", "Plus Jakarta Sans", "Century Gothic", -apple-system, sans-serif',
-  },
-  {
-    id: "rounded",
-    name: "Soft Rounded",
-    category: "Friendly & Casual",
-    description: "Curved terminals giving a welcoming, friendly touch",
-    fontFamily:
-      '"Quicksand", "Nunito", "Arial Rounded MT Bold", ui-rounded, system-ui, sans-serif',
-  },
-  {
-    id: "humanist",
-    name: "Humanist Serif",
-    category: "Artisanal & Warm",
-    description: "Bookish, humanist typeface for high readability",
-    fontFamily:
-      '"EB Garamond", Garamond, Baskerville, "Times New Roman", serif',
-  },
-];
-
-// --------------------------------------------------------
 // Resolvers
 // --------------------------------------------------------
 
@@ -402,9 +339,4 @@ export function getFormTheme(themeId?: string, isDark: boolean = false): FormThe
     primary: colors.primary,
     colors,
   };
-}
-
-export function getFontOption(fontId?: string): FontOption {
-  const found = BUILDER_FONTS.find((f) => f.id === fontId);
-  return found ?? BUILDER_FONTS[0];
 }
