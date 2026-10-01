@@ -10,7 +10,7 @@ import {
   Sun,
   Moon,
   ArrowRight,
-  Layers,
+  Eye,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { FormWithSections } from "@/lib/api/forms";
@@ -20,6 +20,8 @@ import { TypeformInput } from "./typeform-input";
 import { FormLoadingScreen } from "./form-loading-screen";
 import { validateQuestionAnswer } from "@/lib/validations/question-validator";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Kbd } from "@/components/ui/kbd";
 
 interface FormViewerProps {
   form: FormWithSections;
@@ -290,12 +292,16 @@ export function FormViewer({ form, isPreview = false }: FormViewerProps) {
   const formattedDeadline = React.useMemo(() => {
     if (!form.deadline) return null;
     try {
-      return new Date(form.deadline).toLocaleString([], {
+      const d = new Date(form.deadline);
+      if (isNaN(d.getTime())) {
+        return typeof form.deadline === "string" && form.deadline.trim() ? form.deadline : null;
+      }
+      return d.toLocaleString([], {
         dateStyle: "medium",
         timeStyle: "short",
       });
     } catch {
-      return null;
+      return typeof form.deadline === "string" && form.deadline.trim() ? form.deadline : null;
     }
   }, [form.deadline]);
 
@@ -310,27 +316,32 @@ export function FormViewer({ form, isPreview = false }: FormViewerProps) {
         }}
       >
         <div
-          className="max-w-md w-full rounded-2xl border p-8 text-center shadow-lg"
+          className="max-w-md w-full rounded-2xl border p-8 text-center shadow-xs"
           style={{
             backgroundColor: theme.colors.cardBg,
             borderColor: theme.colors.cardBorder,
           }}
         >
-          <h1 className="text-2xl font-bold tracking-tight">{form.title || "Form"}</h1>
-          <p className="mt-2 text-sm text-muted-foreground leading-relaxed">
+          <h1 className="font-heading text-2xl font-bold tracking-tight">{form.title || "Form"}</h1>
+          <p
+            className="mt-2 text-sm leading-relaxed"
+            style={{ color: theme.colors.cardMuted }}
+          >
             {form.description || "This form does not contain any questions yet."}
           </p>
           {isPreview && (
-            <div
-              className="mt-6 inline-flex items-center gap-2 rounded-full px-3 py-1 text-xs font-medium border"
+            <Badge
+              variant="secondary"
+              className="mt-6 gap-1.5 font-medium text-xs rounded-full px-3 py-1"
               style={{
                 backgroundColor: `color-mix(in oklch, ${theme.colors.primary} 12%, transparent)`,
-                borderColor: `color-mix(in oklch, ${theme.colors.primary} 30%, transparent)`,
+                borderColor: `color-mix(in oklch, ${theme.colors.primary} 25%, transparent)`,
                 color: theme.colors.primary,
               }}
             >
+              <Eye className="size-3" />
               Preview Mode
-            </div>
+            </Badge>
           )}
         </div>
       </div>
@@ -362,7 +373,7 @@ export function FormViewer({ form, isPreview = false }: FormViewerProps) {
         <div className="w-full max-w-lg flex flex-col items-center my-auto py-12 px-6">
           {/* Headline */}
           <h2
-            className="text-3xl sm:text-4xl md:text-5xl font-extrabold tracking-tight"
+            className="font-heading text-3xl sm:text-4xl md:text-5xl font-extrabold tracking-tight"
             style={{ color: theme.colors.cardText }}
           >
             {isPreview ? "Preview Completed" : "Thank you!"}
@@ -371,9 +382,7 @@ export function FormViewer({ form, isPreview = false }: FormViewerProps) {
           {/* Reassuring description */}
           <p
             className="mt-3 text-base sm:text-lg leading-relaxed max-w-md font-normal"
-            style={{
-              color: isDark ? "rgba(255, 255, 255, 0.72)" : "rgba(15, 23, 42, 0.72)",
-            }}
+            style={{ color: theme.colors.cardMuted }}
           >
             {isPreview
               ? "You have completed all questions in preview mode."
@@ -391,7 +400,7 @@ export function FormViewer({ form, isPreview = false }: FormViewerProps) {
               setCurrentError(null);
               setAnswers({});
             }}
-            className="mt-8 px-7 h-11 rounded-full text-sm font-semibold cursor-pointer transition-all duration-150 hover:opacity-90 active:scale-[0.98] shadow-sm"
+            className="mt-8 px-6 h-10 rounded-xl text-sm font-semibold cursor-pointer transition-all duration-150 hover:opacity-90 active:scale-[0.98] shadow-xs"
             style={{
               backgroundColor: theme.colors.primary,
               color: theme.colors.primaryForeground,
@@ -404,17 +413,13 @@ export function FormViewer({ form, isPreview = false }: FormViewerProps) {
         {/* Footer subtle brand */}
         <footer className="fixed bottom-6 left-0 right-0 text-center pointer-events-none select-none">
           <span
-            className="text-xs font-medium tracking-wider"
-            style={{
-              color: isDark ? "rgba(255, 255, 255, 0.4)" : "rgba(15, 23, 42, 0.4)",
-            }}
+            className="text-xs font-medium tracking-wide"
+            style={{ color: theme.colors.cardMuted }}
           >
             powered by{" "}
             <strong
-              className="font-bold tracking-tight"
-              style={{
-                color: isDark ? "rgba(255, 255, 255, 0.8)" : "rgba(15, 23, 42, 0.8)",
-              }}
+              className="font-semibold tracking-tight"
+              style={{ color: theme.colors.cardText }}
             >
               convia
             </strong>
@@ -443,7 +448,7 @@ export function FormViewer({ form, isPreview = false }: FormViewerProps) {
       }}
     >
       {/* ── 1. Top Global Progress Bar ────────────────────────────── */}
-      <div className="fixed top-0 left-0 right-0 z-50 h-[2px] bg-black/5 dark:bg-white/5">
+      <div className="fixed top-0 left-0 right-0 z-50 h-[3px] bg-black/5 dark:bg-white/5">
         <div
           className="h-full transition-all duration-300 ease-out"
           style={{
@@ -453,55 +458,67 @@ export function FormViewer({ form, isPreview = false }: FormViewerProps) {
         />
       </div>
 
-      {/* ── 2. Top Header Bar (Clean, Airy, Borderless) ────────────── */}
-      <header className="relative z-40 flex h-14 shrink-0 items-center justify-between px-6 sm:px-12 backdrop-blur-md transition-colors">
-        {/* Left: Preview Indicator if applicable (no convia brand here) */}
+      {/* ── 2. Top Header Bar (Clean, Borderless, Seamless) ────────────── */}
+      <header
+        className="sticky top-0 z-40 flex h-14 shrink-0 items-center justify-between px-4 sm:px-8 backdrop-blur-md transition-colors"
+        style={{
+          backgroundColor: `color-mix(in oklch, ${theme.colors.canvasBg} 85%, transparent)`,
+        }}
+      >
+        {/* Left: Preview Indicator if applicable */}
         <div className="flex items-center gap-3">
           {isPreview && (
-            <span
-              className="text-[11px] font-semibold px-2.5 py-0.5 rounded-full border shadow-2xs"
+            <Badge
+              variant="secondary"
+              className="gap-1.5 font-medium text-xs rounded-full px-2.5 py-0.5"
               style={{
-                backgroundColor: isDark ? "rgba(255, 255, 255, 0.08)" : "rgba(0, 0, 0, 0.06)",
-                borderColor: isDark ? "rgba(255, 255, 255, 0.16)" : "rgba(0, 0, 0, 0.12)",
-                color: theme.colors.cardText,
+                backgroundColor: `color-mix(in oklch, ${theme.colors.primary} 12%, transparent)`,
+                borderColor: `color-mix(in oklch, ${theme.colors.primary} 25%, transparent)`,
+                color: theme.colors.primary,
               }}
             >
+              <Eye className="size-3" />
               Preview
-            </span>
+            </Badge>
           )}
         </div>
 
-        {/* Right: Section & Question Indicator + Monochrome Theme Mode Toggle */}
-        <div className="flex items-center gap-4">
+        {/* Right: Section & Question Indicator + Theme Mode Toggle */}
+        <div className="flex items-center gap-3">
           <div
-            className="flex items-center gap-2 text-xs font-mono font-medium"
-            style={{
-              color: isDark ? "rgba(255, 255, 255, 0.7)" : "rgba(15, 23, 42, 0.7)",
-            }}
+            className="flex items-center gap-2 text-xs font-mono font-medium select-none"
+            style={{ color: theme.colors.cardMuted }}
           >
             {currentItem.totalSections > 1 && (
               <>
                 <span>
-                  Section <strong style={{ color: theme.colors.cardText }}>{currentItem.sectionIndex + 1}</strong>
-                  <span className="mx-0.5" style={{ color: isDark ? "rgba(255, 255, 255, 0.4)" : "rgba(0, 0, 0, 0.4)" }}>/</span>
+                  Section{" "}
+                  <strong className="font-semibold" style={{ color: theme.colors.cardText }}>
+                    {currentItem.sectionIndex + 1}
+                  </strong>
+                  <span className="mx-0.5 opacity-40">/</span>
                   {currentItem.totalSections}
                 </span>
-                <span style={{ color: isDark ? "rgba(255, 255, 255, 0.3)" : "rgba(0, 0, 0, 0.3)" }}>•</span>
+                <span className="opacity-40">•</span>
               </>
             )}
             <span>
-              Question <strong style={{ color: theme.colors.cardText }}>{currentIndex + 1}</strong>
-              <span className="mx-0.5" style={{ color: isDark ? "rgba(255, 255, 255, 0.4)" : "rgba(0, 0, 0, 0.4)" }}>/</span>
+              Question{" "}
+              <strong className="font-semibold" style={{ color: theme.colors.cardText }}>
+                {currentIndex + 1}
+              </strong>
+              <span className="mx-0.5 opacity-40">/</span>
               {totalQuestions}
             </span>
           </div>
 
-          <button
-            type="button"
+          <Button
+            variant="ghost"
+            size="icon-sm"
             onClick={() => setIsDark((prev) => !prev)}
-            className="p-1.5 rounded-lg transition-colors cursor-pointer hover:bg-black/5 dark:hover:bg-white/10"
+            className="size-8 rounded-lg cursor-pointer transition-colors hover:bg-black/5 dark:hover:bg-white/10"
             style={{
-              color: isDark ? "rgba(255, 255, 255, 0.8)" : "rgba(15, 23, 42, 0.8)",
+              color: theme.colors.cardText,
             }}
             aria-label="Toggle dark/light mode"
             title="Toggle theme (D)"
@@ -511,21 +528,21 @@ export function FormViewer({ form, isPreview = false }: FormViewerProps) {
             ) : (
               <Moon className="size-4" />
             )}
-          </button>
+          </Button>
         </div>
       </header>
 
       {/* ── 3. Main Stage (Centered Content, High Typography) ──────── */}
-      <main className="flex flex-1 flex-col items-center justify-center px-6 sm:px-12 pt-4 sm:pt-6 pb-8">
-        <div className="w-full max-w-2xl">
+      <main className="flex flex-1 flex-col items-center justify-center px-4 sm:px-8 py-8 sm:py-12">
+        <div className="w-full max-w-2xl mx-auto">
           {/* ────────────────────────────────────────────────────────── */}
           {/* FIRST PAGE HERO: Left-Aligned Form Title & Description      */}
           {/* ────────────────────────────────────────────────────────── */}
           {isFirstPage && (
-            <div className="mb-7 text-left">
-              <div className="flex flex-col sm:flex-row sm:items-baseline justify-between gap-2 sm:gap-6">
+            <div className="mb-8 text-left">
+              <div className="flex flex-col sm:flex-row sm:items-baseline justify-between gap-2 sm:gap-4">
                 <h1
-                  className="text-2xl sm:text-3xl md:text-4xl font-bold tracking-tight text-left leading-tight"
+                  className="font-heading text-2xl sm:text-3xl md:text-4xl font-bold tracking-tight text-left leading-tight"
                   style={{ color: theme.colors.cardText }}
                 >
                   {form.title || "Untitled Form"}
@@ -533,20 +550,21 @@ export function FormViewer({ form, isPreview = false }: FormViewerProps) {
 
                 {(estimatedMinutes || formattedDeadline) && (
                   <div
-                    className="flex items-center gap-3 text-xs sm:text-sm font-medium shrink-0 pt-0.5 select-none"
-                    style={{
-                      color: isDark ? "rgba(255, 255, 255, 0.6)" : "rgba(15, 23, 42, 0.6)",
-                    }}
+                    className="flex flex-wrap items-center gap-3 sm:gap-4 text-xs sm:text-sm font-medium select-none shrink-0 pt-1"
+                    style={{ color: theme.colors.cardMuted }}
                   >
                     {estimatedMinutes && (
-                      <span className="flex items-center gap-1.5">
-                        <Clock className="size-3.5" style={{ color: theme.colors.primary }} />
+                      <span className="inline-flex items-center gap-1.5">
+                        <Clock className="size-3.5 shrink-0" style={{ color: theme.colors.primary }} />
                         <span>~{estimatedMinutes} min</span>
                       </span>
                     )}
+                    {estimatedMinutes && formattedDeadline && (
+                      <span className="opacity-30 select-none">•</span>
+                    )}
                     {formattedDeadline && (
-                      <span className="flex items-center gap-1.5">
-                        <Calendar className="size-3.5 opacity-70" />
+                      <span className="inline-flex items-center gap-1.5">
+                        <Calendar className="size-3.5 shrink-0 opacity-70" />
                         <span>Closes {formattedDeadline}</span>
                       </span>
                     )}
@@ -554,12 +572,18 @@ export function FormViewer({ form, isPreview = false }: FormViewerProps) {
                 )}
               </div>
 
+              {/* Subtle HR below title */}
+              <div
+                className="my-3.5 sm:my-4 border-t"
+                style={{
+                  borderColor: `color-mix(in oklch, ${theme.colors.cardBorder} 60%, transparent)`,
+                }}
+              />
+
               {form.description && (
                 <p
-                  className="mt-2.5 text-sm sm:text-base leading-relaxed max-w-xl font-normal"
-                  style={{
-                    color: isDark ? "rgba(255, 255, 255, 0.72)" : "rgba(15, 23, 42, 0.72)",
-                  }}
+                  className="text-sm sm:text-base leading-relaxed max-w-xl font-normal"
+                  style={{ color: theme.colors.cardMuted }}
                 >
                   {form.description}
                 </p>
@@ -588,10 +612,10 @@ export function FormViewer({ form, isPreview = false }: FormViewerProps) {
               if (!hasRealTitle && !hasDesc) return null;
 
               return (
-                <div className="mb-5 text-left">
+                <div className="mb-6 text-left">
                   {currentItem.totalSections > 1 && (
                     <span
-                      className="text-xs font-mono font-bold tracking-wider uppercase"
+                      className="text-xs font-mono font-semibold uppercase tracking-wider block mb-1.5"
                       style={{ color: theme.colors.primary }}
                     >
                       Section {currentItem.sectionIndex + 1}
@@ -599,7 +623,7 @@ export function FormViewer({ form, isPreview = false }: FormViewerProps) {
                   )}
                   {hasRealTitle && (
                     <h3
-                      className="text-xl sm:text-2xl font-bold tracking-tight mt-1"
+                      className="font-heading text-lg sm:text-xl font-bold tracking-tight mt-1"
                       style={{ color: theme.colors.cardText }}
                     >
                       {rawTitle}
@@ -607,10 +631,8 @@ export function FormViewer({ form, isPreview = false }: FormViewerProps) {
                   )}
                   {hasDesc && (
                     <p
-                      className="mt-1.5 text-sm leading-relaxed font-normal"
-                      style={{
-                        color: isDark ? "rgba(255, 255, 255, 0.72)" : "rgba(15, 23, 42, 0.72)",
-                      }}
+                      className="mt-1 text-xs sm:text-sm leading-relaxed font-normal"
+                      style={{ color: theme.colors.cardMuted }}
                     >
                       {rawDesc}
                     </p>
@@ -623,7 +645,7 @@ export function FormViewer({ form, isPreview = false }: FormViewerProps) {
             {isHeading ? (
               <div className="mb-6 text-left">
                 <h2
-                  className="text-xl sm:text-2xl md:text-3xl font-bold tracking-tight"
+                  className="font-heading text-xl sm:text-2xl md:text-3xl font-bold tracking-tight"
                   style={{ color: theme.colors.cardText }}
                 >
                   {currentItem.question.label || "Untitled Section"}
@@ -631,9 +653,7 @@ export function FormViewer({ form, isPreview = false }: FormViewerProps) {
                 {currentItem.question.description && (
                   <p
                     className="mt-2 text-sm sm:text-base leading-relaxed font-normal"
-                    style={{
-                      color: isDark ? "rgba(255, 255, 255, 0.72)" : "rgba(15, 23, 42, 0.72)",
-                    }}
+                    style={{ color: theme.colors.cardMuted }}
                   >
                     {currentItem.question.description}
                   </p>
@@ -643,11 +663,11 @@ export function FormViewer({ form, isPreview = false }: FormViewerProps) {
               <div className="mb-4 text-left">
                 {/* Question Title */}
                 <h2
-                  className="text-xl sm:text-2xl md:text-3xl font-bold tracking-tight leading-snug flex items-start gap-2.5"
+                  className="font-heading text-xl sm:text-2xl md:text-3xl font-semibold tracking-tight leading-snug flex items-start gap-3"
                   style={{ color: theme.colors.cardText }}
                 >
                   <span
-                    className="font-mono text-lg sm:text-xl pt-0.5 shrink-0 font-medium"
+                    className="font-mono text-base sm:text-lg pt-0.5 shrink-0 font-semibold select-none"
                     style={{ color: theme.colors.primary }}
                   >
                     {currentIndex + 1} ➔
@@ -655,7 +675,7 @@ export function FormViewer({ form, isPreview = false }: FormViewerProps) {
                   <span>
                     {currentItem.question.label || "Untitled Question"}
                     {currentItem.question.required && (
-                      <span className="ml-1.5 text-red-500 font-bold" title="Required">
+                      <span className="ml-1 text-destructive font-bold" title="Required">
                         *
                       </span>
                     )}
@@ -665,10 +685,8 @@ export function FormViewer({ form, isPreview = false }: FormViewerProps) {
                 {/* Question Description */}
                 {currentItem.question.description && (
                   <p
-                    className="mt-2 text-sm sm:text-base pl-6 sm:pl-7 leading-relaxed font-normal"
-                    style={{
-                      color: isDark ? "rgba(255, 255, 255, 0.72)" : "rgba(15, 23, 42, 0.72)",
-                    }}
+                    className="mt-1.5 text-sm sm:text-base pl-7 leading-relaxed font-normal"
+                    style={{ color: theme.colors.cardMuted }}
                   >
                     {currentItem.question.description}
                   </p>
@@ -678,7 +696,7 @@ export function FormViewer({ form, isPreview = false }: FormViewerProps) {
 
             {/* Input Component (null for headings) */}
             {!isHeading && (
-              <div className="mt-7 pl-0 sm:pl-7">
+              <div className="mt-6 sm:mt-7 pl-0 sm:pl-7">
                 <TypeformInput
                   key={currentItem.question.id}
                   question={currentItem.question}
@@ -693,12 +711,7 @@ export function FormViewer({ form, isPreview = false }: FormViewerProps) {
                 {/* Validation Error Message */}
                 {currentError && (
                   <div
-                    className="mt-3 flex items-center gap-2 rounded-lg px-3 py-2 text-xs sm:text-sm font-medium border"
-                    style={{
-                      backgroundColor: "oklch(0.627 0.22 29 / 0.1)",
-                      borderColor: "oklch(0.627 0.22 29 / 0.3)",
-                      color: "oklch(0.627 0.22 29)",
-                    }}
+                    className="mt-3 flex items-center gap-2 rounded-lg border border-destructive/30 bg-destructive/10 px-3 py-2 text-xs sm:text-sm font-medium text-destructive"
                     role="alert"
                   >
                     <AlertCircle className="size-4 shrink-0" />
@@ -709,11 +722,11 @@ export function FormViewer({ form, isPreview = false }: FormViewerProps) {
             )}
 
             {/* ── Action Row (Directly below input, clean & natural) ── */}
-            <div className="mt-8 flex items-center gap-4 pl-0 sm:pl-7">
+            <div className="mt-7 sm:mt-8 flex items-center gap-4 pl-0 sm:pl-7">
               <Button
                 onClick={() => handleNext()}
                 size="default"
-                className="font-semibold text-sm sm:text-base px-6 h-11 shadow-none rounded-xl cursor-pointer transition-all duration-150 hover:scale-[1.02] active:scale-[0.98] flex items-center gap-2"
+                className="font-medium text-sm sm:text-base px-5 h-10 shadow-xs rounded-xl cursor-pointer transition-all duration-150 hover:opacity-90 active:scale-[0.98] flex items-center gap-2"
                 style={{
                   backgroundColor: theme.colors.primary,
                   color: theme.colors.primaryForeground,
@@ -730,89 +743,83 @@ export function FormViewer({ form, isPreview = false }: FormViewerProps) {
                 <ArrowRight className="size-4" />
               </Button>
 
-              <span
-                className="text-xs font-mono font-medium"
-                style={{
-                  color: isDark ? "rgba(255, 255, 255, 0.6)" : "rgba(15, 23, 42, 0.6)",
-                }}
+              <div
+                className="flex items-center gap-1.5 text-xs select-none"
+                style={{ color: theme.colors.cardMuted }}
               >
-                press{" "}
-                <strong
-                  className="font-bold"
-                  style={{
-                    color: isDark ? "#ffffff" : "#0f172a",
-                  }}
-                >
-                  {isMultiline ? "Ctrl + Enter" : "Enter ↵"}
-                </strong>
-              </span>
+                <span>press</span>
+                {isMultiline ? (
+                  <span className="flex items-center gap-1">
+                    <Kbd className="text-[10px] px-1.5 py-0.5">Ctrl</Kbd>
+                    <span>+</span>
+                    <Kbd className="text-[10px] px-1.5 py-0.5">Enter</Kbd>
+                  </span>
+                ) : (
+                  <Kbd className="text-[10px] px-1.5 py-0.5">Enter ↵</Kbd>
+                )}
+              </div>
             </div>
           </div>
         </div>
       </main>
 
       {/* ── 4. Bottom Subtle Branding ─────────────────────────────── */}
-      <footer className="w-full py-3 sm:py-3.5 px-6 sm:px-12 text-center pointer-events-none select-none">
+      <footer className="w-full py-4 px-6 text-center pointer-events-none select-none">
         <span
-          className="text-xs font-medium tracking-wider"
-          style={{
-            color: isDark ? "rgba(255, 255, 255, 0.5)" : "rgba(15, 23, 42, 0.5)",
-          }}
+          className="text-xs font-medium tracking-wide"
+          style={{ color: theme.colors.cardMuted }}
         >
           powered by{" "}
           <strong
-            className="font-bold tracking-tight"
-            style={{
-              color: isDark ? "rgba(255, 255, 255, 0.9)" : "rgba(15, 23, 42, 0.9)",
-            }}
+            className="font-semibold tracking-tight"
+            style={{ color: theme.colors.cardText }}
           >
             convia
           </strong>
         </span>
       </footer>
 
-      {/* ── 5. Bottom-Right Floating Navigation Dock (High Visibility, Bold, No Shadow) ─ */}
+      {/* ── 5. Bottom-Right Floating Navigation Dock ─ */}
       <div
-        className="fixed bottom-6 right-6 z-40 flex items-center rounded-xl border transition-colors shadow-none"
+        className="fixed bottom-6 right-6 z-40 inline-flex items-center rounded-xl border p-1 shadow-sm backdrop-blur-md transition-colors"
         style={{
-          backgroundColor: isDark ? "#22252a" : "#ffffff",
-          borderColor: isDark ? "rgba(255, 255, 255, 0.22)" : "rgba(0, 0, 0, 0.18)",
+          backgroundColor: `color-mix(in oklch, ${theme.colors.cardBg} 92%, transparent)`,
+          borderColor: theme.colors.cardBorder,
         }}
       >
-        <button
-          type="button"
+        <Button
+          variant="ghost"
+          size="icon-sm"
           onClick={handlePrevious}
           disabled={currentIndex === 0}
-          className="flex size-9 sm:size-10 items-center justify-center rounded-l-xl transition-colors cursor-pointer hover:bg-black/5 dark:hover:bg-white/10 disabled:opacity-25 disabled:cursor-not-allowed"
-          style={{
-            color: isDark ? "#ffffff" : "#0f172a",
-          }}
+          className="size-8 rounded-lg cursor-pointer transition-colors disabled:opacity-25 disabled:pointer-events-none hover:bg-black/5 dark:hover:bg-white/10 flex items-center justify-center p-0"
+          style={{ color: theme.colors.cardText }}
           aria-label="Previous question"
           title="Previous question (↑)"
         >
-          <ChevronUp className="size-5 stroke-[2.5]" />
-        </button>
+          <ChevronUp className="size-4 shrink-0 stroke-[2.5]" />
+        </Button>
 
         <div
-          className="w-px h-5"
+          className="h-3.5 w-px mx-0.5 shrink-0 self-center"
           style={{
-            backgroundColor: isDark ? "rgba(255, 255, 255, 0.22)" : "rgba(0, 0, 0, 0.18)",
+            backgroundColor: `color-mix(in oklch, ${theme.colors.cardBorder} 80%, transparent)`,
           }}
+          aria-hidden="true"
         />
 
-        <button
-          type="button"
+        <Button
+          variant="ghost"
+          size="icon-sm"
           onClick={() => handleNext()}
           disabled={currentIndex === totalQuestions - 1}
-          className="flex size-9 sm:size-10 items-center justify-center rounded-r-xl transition-colors cursor-pointer hover:bg-black/5 dark:hover:bg-white/10 disabled:opacity-25 disabled:cursor-not-allowed"
-          style={{
-            color: isDark ? "#ffffff" : "#0f172a",
-          }}
+          className="size-8 rounded-lg cursor-pointer transition-colors disabled:opacity-25 disabled:pointer-events-none hover:bg-black/5 dark:hover:bg-white/10 flex items-center justify-center p-0"
+          style={{ color: theme.colors.cardText }}
           aria-label="Next question"
           title="Next question (↓)"
         >
-          <ChevronDown className="size-5 stroke-[2.5]" />
-        </button>
+          <ChevronDown className="size-4 shrink-0 stroke-[2.5]" />
+        </Button>
       </div>
     </div>
   );

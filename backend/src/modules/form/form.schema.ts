@@ -1,4 +1,4 @@
-﻿
+
 import { z } from "zod";
 
 // ---------------------------------------------------------------------------
@@ -20,9 +20,17 @@ export const createFormSchema = z.object({
     .optional(),
   themeId: z.string().optional(),
   deadline: z
-    .string()
-    .datetime({ offset: true, message: "deadline must be a valid UTC datetime string" })
-    .nullable()
+    .preprocess((val) => {
+      if (val === undefined) return undefined;
+      if (val === "" || val === null) return null;
+      if (typeof val === "string") {
+        const d = new Date(val);
+        if (!isNaN(d.getTime())) {
+          return d.toISOString();
+        }
+      }
+      return val;
+    }, z.string().datetime({ offset: true, message: "deadline must be a valid UTC datetime string" }).nullable())
     .optional(),
 });
 

@@ -49,15 +49,31 @@ export function FormSettingsPanel() {
     updateForm({ slug: formatted });
   };
 
+  // Helper to format ISO or Date string into local YYYY-MM-DDTHH:mm for datetime-local input
+  const formatToDatetimeLocal = (isoStr?: string | null): string => {
+    if (!isoStr) return "";
+    const d = new Date(isoStr);
+    if (isNaN(d.getTime())) return "";
+    const pad = (n: number) => n.toString().padStart(2, "0");
+    const year = d.getFullYear();
+    const month = pad(d.getMonth() + 1);
+    const day = pad(d.getDate());
+    const hours = pad(d.getHours());
+    const minutes = pad(d.getMinutes());
+    return `${year}-${month}-${day}T${hours}:${minutes}`;
+  };
+
   const hasDeadline = Boolean(form.deadline);
 
   const handleDeadlineToggle = (checked: boolean) => {
     if (!checked) {
       updateForm({ deadline: null });
     } else {
-      const nextWeek = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
-      const iso = nextWeek.toISOString().slice(0, 16);
-      updateForm({ deadline: iso });
+      // Default to 7 days from now at end of day (23:59)
+      const nextWeek = new Date();
+      nextWeek.setDate(nextWeek.getDate() + 7);
+      nextWeek.setHours(23, 59, 0, 0);
+      updateForm({ deadline: nextWeek.toISOString() });
     }
   };
 
@@ -121,16 +137,31 @@ export function FormSettingsPanel() {
         </div>
 
         {hasDeadline && (
-          <div className="flex flex-col gap-1.5 pl-1">
+          <div className="flex flex-col gap-2 pl-1">
             <div className="flex items-center gap-2">
-              <Calendar className="size-4 text-muted-foreground" />
+              <Calendar className="size-4 text-muted-foreground shrink-0" />
               <Input
                 type="datetime-local"
-                value={form.deadline ?? ""}
-                onChange={(e) => updateForm({ deadline: e.target.value })}
+                value={formatToDatetimeLocal(form.deadline)}
+                onChange={(e) => {
+                  const val = e.target.value;
+                  if (!val || !val.trim()) {
+                    updateForm({ deadline: null });
+                  } else {
+                    const d = new Date(val);
+                    if (!isNaN(d.getTime())) {
+                      updateForm({ deadline: d.toISOString() });
+                    }
+                  }
+                }}
                 className="h-9 text-xs font-mono bg-background"
               />
             </div>
+            {form.deadline && (
+              <p className="text-[11px] text-muted-foreground pl-6">
+                Closes {new Date(form.deadline).toLocaleString([], { dateStyle: "medium", timeStyle: "short" })}
+              </p>
+            )}
           </div>
         )}
       </SettingsSection>

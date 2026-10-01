@@ -55,7 +55,7 @@ function RatingInput({
   const [hoverRating, setHoverRating] = React.useState(0);
 
   return (
-    <div className="flex items-center gap-2 sm:gap-2.5 py-1.5">
+    <div className="flex items-center gap-1.5 sm:gap-2 py-1">
       {Array.from({ length: max }, (_, i) => i + 1).map((star) => {
         const isFilled = star <= (hoverRating || currentRating);
         return (
@@ -69,12 +69,12 @@ function RatingInput({
               onChange(star);
               setTimeout(() => onSubmit?.(star), 180);
             }}
-            className="group p-1.5 transition-transform duration-150 hover:scale-125 cursor-pointer focus:outline-none"
+            className="group p-1.5 rounded-lg transition-transform duration-150 hover:scale-115 active:scale-95 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
             aria-label={`${star} star`}
           >
             <Star
               className={cn(
-                "size-8 sm:size-9 transition-colors duration-150",
+                "size-7 sm:size-8 transition-colors duration-150",
                 isFilled ? "fill-current" : "fill-none"
               )}
               style={{
@@ -123,10 +123,9 @@ export function TypeformInput({
   const numValue = typeof value === "number" ? value : "";
 
   // Dynamic high-contrast border & background tokens
-  const idleBorder = isDark ? "rgba(255, 255, 255, 0.2)" : "rgba(0, 0, 0, 0.18)";
-  const idleBg = isDark ? "rgba(255, 255, 255, 0.05)" : "rgba(0, 0, 0, 0.03)";
-  const placeholderColor = isDark ? "rgba(255, 255, 255, 0.45)" : "rgba(0, 0, 0, 0.4)";
-
+  const idleBorder = isDark ? "rgba(255, 255, 255, 0.12)" : "rgba(0, 0, 0, 0.12)";
+  const idleBg = isDark ? "rgba(255, 255, 255, 0.03)" : "rgba(0, 0, 0, 0.02)";
+  const placeholderColor = isDark ? "rgba(255, 255, 255, 0.4)" : "rgba(15, 23, 42, 0.4)";
 
   switch (question.type) {
     case "text":
@@ -159,7 +158,7 @@ export function TypeformInput({
               }
             }}
             placeholder={question.placeholder || "Type your answer here…"}
-            className="w-full bg-transparent px-0 py-3 text-xl sm:text-2xl font-normal outline-none transition-colors duration-200 border-b-2"
+            className="w-full bg-transparent px-0 py-2.5 text-lg sm:text-xl font-normal outline-none transition-colors duration-200 border-b-2 placeholder:text-muted-foreground/50"
             style={{
               color: theme.colors.cardText,
               borderColor: hasError
@@ -197,7 +196,7 @@ export function TypeformInput({
               }
             }}
             placeholder={question.placeholder || "0"}
-            className="w-full bg-transparent px-0 py-3 text-xl sm:text-2xl font-normal outline-none transition-colors duration-200 border-b-2"
+            className="w-full bg-transparent px-0 py-2.5 text-lg sm:text-xl font-normal outline-none transition-colors duration-200 border-b-2 placeholder:text-muted-foreground/50"
             style={{
               color: theme.colors.cardText,
               borderColor: hasError
@@ -235,7 +234,7 @@ export function TypeformInput({
                 ? "Write your long-form response here…"
                 : "Type your answer here…")
             }
-            className="w-full resize-y rounded-2xl border-2 p-3.5 sm:p-4 text-xl sm:text-2xl font-normal leading-relaxed outline-none transition-colors duration-200 min-h-[140px] sm:min-h-[160px] max-h-[280px] sm:max-h-[320px]"
+            className="w-full resize-y rounded-xl border p-3.5 sm:p-4 text-base sm:text-lg font-normal leading-relaxed outline-none transition-all min-h-[120px] sm:min-h-[140px] max-h-[260px] shadow-xs focus-visible:ring-2 focus-visible:ring-primary/40 placeholder:text-muted-foreground/50"
             style={{
               backgroundColor: idleBg,
               borderColor: hasError
@@ -247,8 +246,8 @@ export function TypeformInput({
             }}
           />
           <div
-            className="mt-2.5 text-xs font-mono flex items-center justify-between"
-            style={{ color: isDark ? "rgba(255, 255, 255, 0.6)" : "rgba(15, 23, 42, 0.6)" }}
+            className="mt-2 text-xs text-muted-foreground flex items-center justify-between"
+            style={{ color: theme.colors.cardMuted }}
           >
             <span className="flex items-center gap-1">
               <Kbd className="text-[10px] px-1 py-0.5">Shift</Kbd> + <Kbd className="text-[10px] px-1 py-0.5">Enter</Kbd> for new line
@@ -270,7 +269,7 @@ export function TypeformInput({
             onChange(val);
             setTimeout(() => onSubmit?.(val), 180);
           }}
-          className="w-full space-y-2.5"
+          className="w-full space-y-2"
         >
           {options.map((opt, idx) => {
             const letter = OPTION_LETTERS[idx] || `${idx + 1}`;
@@ -294,12 +293,12 @@ export function TypeformInput({
                   }
                 }}
                 className={cn(
-                  "group flex w-full items-center justify-between gap-3 rounded-2xl border-2 px-4 sm:px-5 py-3 text-left transition-all duration-150 cursor-pointer select-none outline-none focus-visible:ring-2 focus-visible:ring-primary/50",
-                  isSelected && "shadow-sm scale-[1.008]"
+                  "group flex w-full items-center justify-between gap-3 rounded-xl border px-3.5 sm:px-4 py-2.5 sm:py-3 text-left transition-all duration-150 cursor-pointer select-none outline-none focus-visible:ring-2 focus-visible:ring-primary/50 shadow-xs",
+                  isSelected && "shadow-xs scale-[1.005]"
                 )}
                 style={{
                   backgroundColor: isSelected
-                    ? `color-mix(in oklch, ${theme.colors.primary} 14%, transparent)`
+                    ? `color-mix(in oklch, ${theme.colors.primary} 12%, transparent)`
                     : idleBg,
                   borderColor: isSelected ? theme.colors.primary : idleBorder,
                   color: theme.colors.cardText,
@@ -307,18 +306,16 @@ export function TypeformInput({
               >
                 <div className="flex items-center gap-3">
                   <span
-                    className="flex size-6.5 shrink-0 items-center justify-center rounded-lg border text-xs font-bold transition-colors"
+                    className="flex size-6 shrink-0 items-center justify-center rounded-md border text-xs font-mono font-semibold transition-colors"
                     style={{
                       backgroundColor: isSelected
                         ? theme.colors.primary
                         : isDark
                         ? "rgba(255, 255, 255, 0.08)"
-                        : "rgba(0, 0, 0, 0.06)",
+                        : "rgba(0, 0, 0, 0.05)",
                       borderColor: isSelected
                         ? theme.colors.primary
-                        : isDark
-                        ? "rgba(255, 255, 255, 0.2)"
-                        : "rgba(0, 0, 0, 0.16)",
+                        : idleBorder,
                       color: isSelected
                         ? theme.colors.primaryForeground
                         : theme.colors.cardText,
@@ -326,13 +323,13 @@ export function TypeformInput({
                   >
                     {letter}
                   </span>
-                  <span className="text-base font-medium">{opt.label}</span>
+                  <span className="text-sm sm:text-base font-medium">{opt.label}</span>
                 </div>
                 <RadioGroupItem
                   value={opt.label}
                   id={`radio-${question.id}-${idx}`}
                   tabIndex={-1}
-                  className="size-5 shrink-0 pointer-events-none"
+                  className="size-4 shrink-0 pointer-events-none"
                   style={{
                     borderColor: isSelected ? theme.colors.primary : idleBorder,
                     backgroundColor: isSelected ? theme.colors.primary : "transparent",
@@ -358,7 +355,7 @@ export function TypeformInput({
       };
 
       return (
-        <div className="w-full space-y-2.5">
+        <div className="w-full space-y-2">
           {options.map((opt, idx) => {
             const letter = OPTION_LETTERS[idx] || `${idx + 1}`;
             const isSelected = arrValue.includes(opt.label);
@@ -377,12 +374,12 @@ export function TypeformInput({
                   }
                 }}
                 className={cn(
-                  "group flex w-full items-center justify-between gap-3 rounded-2xl border-2 px-4 sm:px-5 py-3 text-left transition-all duration-150 cursor-pointer select-none outline-none focus-visible:ring-2 focus-visible:ring-primary/50",
-                  isSelected && "shadow-sm scale-[1.008]"
+                  "group flex w-full items-center justify-between gap-3 rounded-xl border px-3.5 sm:px-4 py-2.5 sm:py-3 text-left transition-all duration-150 cursor-pointer select-none outline-none focus-visible:ring-2 focus-visible:ring-primary/50 shadow-xs",
+                  isSelected && "shadow-xs scale-[1.005]"
                 )}
                 style={{
                   backgroundColor: isSelected
-                    ? `color-mix(in oklch, ${theme.colors.primary} 14%, transparent)`
+                    ? `color-mix(in oklch, ${theme.colors.primary} 12%, transparent)`
                     : idleBg,
                   borderColor: isSelected ? theme.colors.primary : idleBorder,
                   color: theme.colors.cardText,
@@ -390,18 +387,16 @@ export function TypeformInput({
               >
                 <div className="flex items-center gap-3">
                   <span
-                    className="flex size-6.5 shrink-0 items-center justify-center rounded-lg border text-xs font-bold transition-colors"
+                    className="flex size-6 shrink-0 items-center justify-center rounded-md border text-xs font-mono font-semibold transition-colors"
                     style={{
                       backgroundColor: isSelected
                         ? theme.colors.primary
                         : isDark
                         ? "rgba(255, 255, 255, 0.08)"
-                        : "rgba(0, 0, 0, 0.06)",
+                        : "rgba(0, 0, 0, 0.05)",
                       borderColor: isSelected
                         ? theme.colors.primary
-                        : isDark
-                        ? "rgba(255, 255, 255, 0.2)"
-                        : "rgba(0, 0, 0, 0.16)",
+                        : idleBorder,
                       color: isSelected
                         ? theme.colors.primaryForeground
                         : theme.colors.cardText,
@@ -409,12 +404,12 @@ export function TypeformInput({
                   >
                     {letter}
                   </span>
-                  <span className="text-base font-medium">{opt.label}</span>
+                  <span className="text-sm sm:text-base font-medium">{opt.label}</span>
                 </div>
                 <Checkbox
                   checked={isSelected}
                   tabIndex={-1}
-                  className="pointer-events-none size-5 shrink-0 rounded-md"
+                  className="pointer-events-none size-4 shrink-0 rounded-sm"
                   style={{
                     borderColor: isSelected ? theme.colors.primary : idleBorder,
                     backgroundColor: isSelected ? theme.colors.primary : "transparent",
@@ -442,7 +437,7 @@ export function TypeformInput({
           >
             <SelectTrigger
               id={`q-input-${question.id}`}
-              className="w-full !h-auto min-h-[52px] rounded-2xl border-2 px-4 py-3 text-base sm:text-lg font-medium cursor-pointer shadow-none focus-visible:ring-0 [&>svg]:size-5 [&>svg]:opacity-75 [&>svg]:text-current transition-colors"
+              className="w-full h-11 sm:h-12 rounded-xl border px-3.5 sm:px-4 py-2 text-sm sm:text-base font-medium cursor-pointer shadow-xs focus-visible:ring-2 focus-visible:ring-primary/40 [&>svg]:size-4 [&>svg]:opacity-70 [&>svg]:text-current transition-colors"
               style={{
                 backgroundColor: idleBg,
                 borderColor: hasError
@@ -458,7 +453,7 @@ export function TypeformInput({
             <SelectContent
               position="popper"
               sideOffset={6}
-              className="w-[var(--radix-select-trigger-width)] min-w-[240px] max-h-64 rounded-2xl border-2 p-1.5 shadow-2xl backdrop-blur-xl z-[100] [&_[data-slot=select-item]_svg]:text-[var(--theme-primary)]"
+              className="w-[var(--radix-select-trigger-width)] min-w-[240px] max-h-64 rounded-xl border p-1 shadow-lg backdrop-blur-md z-[100] [&_[data-slot=select-item]_svg]:text-[var(--theme-primary)]"
               style={{
                 backgroundColor: theme.colors.cardBg,
                 borderColor: theme.colors.cardBorder,
@@ -469,8 +464,8 @@ export function TypeformInput({
             >
               {options.length === 0 ? (
                 <div
-                  className="py-3 px-4 text-sm text-center font-medium opacity-60"
-                  style={{ color: theme.colors.cardText }}
+                  className="py-3 px-4 text-sm text-center font-medium text-muted-foreground"
+                  style={{ color: theme.colors.cardMuted }}
                 >
                   No options available
                 </div>
@@ -482,15 +477,15 @@ export function TypeformInput({
                       key={opt.id || `${opt.label}-${idx}`}
                       value={opt.label}
                       className={cn(
-                        "rounded-xl px-3.5 py-2.5 text-base font-medium cursor-pointer transition-colors focus:bg-transparent data-[highlighted]:bg-[var(--item-hover-bg)]",
+                        "rounded-lg px-3 py-2 text-sm sm:text-base font-medium cursor-pointer transition-colors focus:bg-transparent data-[highlighted]:bg-[var(--item-hover-bg)]",
                         isSelected && "font-semibold"
                       )}
                       style={{
                         color: theme.colors.cardText,
                         backgroundColor: isSelected
-                          ? `color-mix(in oklch, ${theme.colors.primary} 16%, transparent)`
+                          ? `color-mix(in oklch, ${theme.colors.primary} 14%, transparent)`
                           : undefined,
-                        "--item-hover-bg": `color-mix(in oklch, ${theme.colors.primary} 12%, transparent)`,
+                        "--item-hover-bg": `color-mix(in oklch, ${theme.colors.primary} 10%, transparent)`,
                       } as React.CSSProperties}
                     >
                       {opt.label}
@@ -506,7 +501,7 @@ export function TypeformInput({
 
     case "yes_no": {
       return (
-        <div className="grid grid-cols-2 gap-3.5 w-full max-w-sm">
+        <div className="grid grid-cols-2 gap-3 w-full max-w-xs">
           <button
             type="button"
             id={`yes-btn-${question.id}`}
@@ -515,37 +510,35 @@ export function TypeformInput({
               setTimeout(() => onSubmit?.("yes"), 180);
             }}
             className={cn(
-              "group flex items-center justify-center gap-3 rounded-2xl border-2 py-3.5 px-5 text-center transition-all duration-150 cursor-pointer",
-              strValue === "yes" && "shadow-sm scale-[1.02]"
+              "group flex items-center justify-center gap-2.5 rounded-xl border py-2.5 sm:py-3 px-4 text-center transition-all duration-150 cursor-pointer shadow-xs",
+              strValue === "yes" && "scale-[1.01]"
             )}
             style={{
               backgroundColor:
                 strValue === "yes"
-                  ? `color-mix(in oklch, ${theme.colors.primary} 16%, transparent)`
+                  ? `color-mix(in oklch, ${theme.colors.primary} 14%, transparent)`
                   : idleBg,
               borderColor: strValue === "yes" ? theme.colors.primary : idleBorder,
               color: theme.colors.cardText,
             }}
           >
             <span
-              className="flex size-6.5 shrink-0 items-center justify-center rounded-lg border text-xs font-bold"
+              className="flex size-6 shrink-0 items-center justify-center rounded-md border text-xs font-mono font-semibold"
               style={{
                 backgroundColor: strValue === "yes"
                   ? theme.colors.primary
                   : isDark
                   ? "rgba(255, 255, 255, 0.08)"
-                  : "rgba(0, 0, 0, 0.06)",
+                  : "rgba(0, 0, 0, 0.05)",
                 borderColor: strValue === "yes"
                   ? theme.colors.primary
-                  : isDark
-                  ? "rgba(255, 255, 255, 0.2)"
-                  : "rgba(0, 0, 0, 0.16)",
+                  : idleBorder,
                 color: strValue === "yes" ? theme.colors.primaryForeground : theme.colors.cardText,
               }}
             >
               Y
             </span>
-            <span className="text-xl font-bold">Yes</span>
+            <span className="text-base sm:text-lg font-semibold">Yes</span>
           </button>
 
           <button
@@ -556,37 +549,35 @@ export function TypeformInput({
               setTimeout(() => onSubmit?.("no"), 180);
             }}
             className={cn(
-              "group flex items-center justify-center gap-3 rounded-2xl border-2 py-3.5 px-5 text-center transition-all duration-150 cursor-pointer",
-              strValue === "no" && "shadow-sm scale-[1.02]"
+              "group flex items-center justify-center gap-2.5 rounded-xl border py-2.5 sm:py-3 px-4 text-center transition-all duration-150 cursor-pointer shadow-xs",
+              strValue === "no" && "scale-[1.01]"
             )}
             style={{
               backgroundColor:
                 strValue === "no"
-                  ? `color-mix(in oklch, ${theme.colors.primary} 16%, transparent)`
+                  ? `color-mix(in oklch, ${theme.colors.primary} 14%, transparent)`
                   : idleBg,
               borderColor: strValue === "no" ? theme.colors.primary : idleBorder,
               color: theme.colors.cardText,
             }}
           >
             <span
-              className="flex size-6.5 shrink-0 items-center justify-center rounded-lg border text-xs font-bold"
+              className="flex size-6 shrink-0 items-center justify-center rounded-md border text-xs font-mono font-semibold"
               style={{
                 backgroundColor: strValue === "no"
                   ? theme.colors.primary
                   : isDark
                   ? "rgba(255, 255, 255, 0.08)"
-                  : "rgba(0, 0, 0, 0.06)",
+                  : "rgba(0, 0, 0, 0.05)",
                 borderColor: strValue === "no"
                   ? theme.colors.primary
-                  : isDark
-                  ? "rgba(255, 255, 255, 0.2)"
-                  : "rgba(0, 0, 0, 0.16)",
+                  : idleBorder,
                 color: strValue === "no" ? theme.colors.primaryForeground : theme.colors.cardText,
               }}
             >
               N
             </span>
-            <span className="text-xl font-bold">No</span>
+            <span className="text-base sm:text-lg font-semibold">No</span>
           </button>
         </div>
       );
@@ -613,10 +604,10 @@ export function TypeformInput({
 
       if (range.length > 10) {
         return (
-          <div className="w-full max-w-md py-3 space-y-4">
+          <div className="w-full max-w-md py-2 space-y-3">
             <div className="flex items-center justify-between text-base font-bold" style={{ color: theme.colors.cardText }}>
-              <span className="text-2xl font-mono">{currentVal ?? min}</span>
-              <span className="text-xs font-mono font-medium opacity-70">Range: {min} – {max}</span>
+              <span className="text-xl font-mono">{currentVal ?? min}</span>
+              <span className="text-xs font-mono font-medium text-muted-foreground">Range: {min} – {max}</span>
             </div>
             <Slider
               value={[currentVal ?? min]}
@@ -628,8 +619,8 @@ export function TypeformInput({
             />
             {(question.validation?.minLabel || question.validation?.maxLabel) && (
               <div
-                className="flex justify-between text-xs font-semibold"
-                style={{ color: isDark ? "rgba(255, 255, 255, 0.65)" : "rgba(15, 23, 42, 0.65)" }}
+                className="flex justify-between text-xs font-medium text-muted-foreground"
+                style={{ color: theme.colors.cardMuted }}
               >
                 <span>{question.validation.minLabel ?? `${min}`}</span>
                 <span>{question.validation.maxLabel ?? `${max}`}</span>
@@ -654,8 +645,8 @@ export function TypeformInput({
                     setTimeout(() => onSubmit?.(num), 180);
                   }}
                   className={cn(
-                    "flex size-10 sm:size-12 items-center justify-center rounded-xl border-2 text-base font-bold transition-all duration-150 cursor-pointer",
-                    isSelected && "scale-105 shadow-md"
+                    "flex size-9 sm:size-10 items-center justify-center rounded-lg border text-sm sm:text-base font-semibold transition-all duration-150 cursor-pointer shadow-xs",
+                    isSelected && "scale-105 shadow-sm"
                   )}
                   style={{
                     backgroundColor: isSelected ? theme.colors.primary : idleBg,
@@ -670,8 +661,8 @@ export function TypeformInput({
           </div>
           {(question.validation?.minLabel || question.validation?.maxLabel) && (
             <div
-              className="flex justify-between text-xs px-1 pt-1 font-semibold"
-              style={{ color: isDark ? "rgba(255, 255, 255, 0.65)" : "rgba(15, 23, 42, 0.65)" }}
+              className="flex justify-between text-xs px-1 pt-1 font-medium text-muted-foreground"
+              style={{ color: theme.colors.cardMuted }}
             >
               <span>{question.validation.minLabel ?? `${min}`}</span>
               <span>{question.validation.maxLabel ?? `${max}`}</span>
@@ -705,7 +696,7 @@ export function TypeformInput({
                 onSubmit?.(strValue);
               }
             }}
-            className="w-full rounded-2xl border-2 px-4 py-3 text-lg sm:text-xl font-normal outline-none transition-colors duration-200 cursor-pointer min-h-[52px]"
+            className="w-full h-11 sm:h-12 rounded-xl border px-3.5 sm:px-4 py-2 text-base font-normal outline-none transition-colors duration-200 cursor-pointer shadow-xs focus-visible:ring-2 focus-visible:ring-primary/40"
             style={{
               backgroundColor: idleBg,
               borderColor: hasError
@@ -738,7 +729,7 @@ export function TypeformInput({
                 onSubmit?.(strValue);
               }
             }}
-            className="w-full rounded-2xl border-2 px-4 py-3 text-lg font-normal outline-none transition-colors duration-200"
+            className="w-full h-11 sm:h-12 rounded-xl border px-3.5 sm:px-4 py-2 text-base font-normal outline-none transition-colors duration-200 shadow-xs focus-visible:ring-2 focus-visible:ring-primary/40"
             style={{
               backgroundColor: idleBg,
               borderColor: hasError
@@ -771,7 +762,7 @@ export function TypeformInput({
                 onSubmit?.(strValue);
               }
             }}
-            className="w-full rounded-2xl border-2 px-4 py-3 text-lg font-normal outline-none transition-colors duration-200"
+            className="w-full h-11 sm:h-12 rounded-xl border px-3.5 sm:px-4 py-2 text-base font-normal outline-none transition-colors duration-200 shadow-xs focus-visible:ring-2 focus-visible:ring-primary/40"
             style={{
               backgroundColor: idleBg,
               borderColor: hasError
@@ -792,23 +783,23 @@ export function TypeformInput({
         <div className="w-full max-w-md">
           {strValue ? (
             <div
-              className="flex items-center justify-between rounded-2xl border-2 p-5"
+              className="flex items-center justify-between rounded-xl border p-3.5 sm:p-4 shadow-xs"
               style={{
                 backgroundColor: `color-mix(in oklch, ${theme.colors.primary} 8%, transparent)`,
                 borderColor: theme.colors.primary,
               }}
             >
               <div className="flex items-center gap-3 truncate mr-3">
-                <FileIcon className="size-5.5 shrink-0" style={{ color: theme.colors.primary }} />
-                <span className="font-semibold text-sm truncate" style={{ color: theme.colors.cardText }}>
+                <FileIcon className="size-5 shrink-0" style={{ color: theme.colors.primary }} />
+                <span className="font-medium text-sm truncate" style={{ color: theme.colors.cardText }}>
                   {strValue}
                 </span>
               </div>
               <button
                 type="button"
                 onClick={() => onChange("")}
-                className="rounded-full p-1.5 hover:bg-black/5 dark:hover:bg-white/10 transition-colors cursor-pointer shrink-0"
-                style={{ color: isDark ? "rgba(255, 255, 255, 0.7)" : "rgba(15, 23, 42, 0.7)" }}
+                className="rounded-lg p-1.5 hover:bg-black/5 dark:hover:bg-white/10 transition-colors cursor-pointer shrink-0"
+                style={{ color: theme.colors.cardMuted }}
                 aria-label="Remove uploaded file"
               >
                 <X className="size-4" />
@@ -817,22 +808,22 @@ export function TypeformInput({
           ) : (
             <label
               htmlFor={`file-upload-${question.id}`}
-              className="flex flex-col items-center justify-center rounded-2xl border-2 border-dashed p-7 text-center transition-all duration-200 cursor-pointer"
+              className="flex flex-col items-center justify-center rounded-xl border border-dashed p-6 text-center transition-all duration-150 cursor-pointer hover:bg-black/[0.02] dark:hover:bg-white/[0.02]"
               style={{
                 backgroundColor: idleBg,
                 borderColor: idleBorder,
               }}
             >
               <Upload
-                className="size-7 mb-2 opacity-75"
+                className="size-6 mb-2 opacity-70"
                 style={{ color: theme.colors.primary }}
               />
               <p className="text-sm font-semibold" style={{ color: theme.colors.cardText }}>
                 Click to choose a file or drag & drop
               </p>
               <p
-                className="text-xs mt-1 font-medium"
-                style={{ color: isDark ? "rgba(255, 255, 255, 0.6)" : "rgba(15, 23, 42, 0.6)" }}
+                className="text-xs mt-1 text-muted-foreground"
+                style={{ color: theme.colors.cardMuted }}
               >
                 {question.validation?.allowedExtensions
                   ? `Supported: ${question.validation.allowedExtensions}`
@@ -870,7 +861,7 @@ export function TypeformInput({
           onBlur={() => setIsFocused(false)}
           onChange={(e) => onChange(e.target.value)}
           placeholder={question.placeholder || "Type your answer…"}
-          className="w-full bg-transparent px-1 py-3 text-xl font-normal outline-none border-b-2"
+          className="w-full bg-transparent px-0 py-2.5 text-lg sm:text-xl font-normal outline-none border-b-2 placeholder:text-muted-foreground/50 transition-colors"
           style={{
             borderColor: isFocused || strValue ? theme.colors.primary : idleBorder,
             color: theme.colors.cardText,

@@ -39,18 +39,18 @@ function FormPageContent() {
 
     return (
       <div className="flex min-h-screen flex-col items-center justify-center bg-background p-6 text-center">
-        <div className="w-full max-w-md rounded-3xl border border-border/80 bg-card p-8 shadow-sm">
-          <div className="mx-auto mb-4 flex size-14 items-center justify-center rounded-2xl bg-destructive/10 text-destructive">
+        <div className="w-full max-w-md rounded-2xl border border-border bg-card p-6 sm:p-8 shadow-xs">
+          <div className="mx-auto mb-4 flex size-12 items-center justify-center rounded-xl bg-destructive/10 text-destructive">
             {isDeadlinePassed ? (
-              <Clock className="size-7" />
+              <Clock className="size-6" />
             ) : isForbidden ? (
-              <Lock className="size-7" />
+              <Lock className="size-6" />
             ) : (
-              <AlertCircle className="size-7" />
+              <AlertCircle className="size-6" />
             )}
           </div>
 
-          <h1 className="text-2xl font-bold tracking-tight text-foreground">
+          <h1 className="font-heading text-xl sm:text-2xl font-bold tracking-tight text-foreground">
             {isDeadlinePassed
               ? "Form Submission Closed"
               : isForbidden
@@ -67,7 +67,7 @@ function FormPageContent() {
           </p>
 
           <div className="mt-6 flex justify-center gap-3">
-            <Button asChild variant="outline">
+            <Button asChild variant="outline" size="sm">
               <Link href="/">Back to Home</Link>
             </Button>
           </div>

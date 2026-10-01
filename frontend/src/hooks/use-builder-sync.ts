@@ -45,6 +45,14 @@ export function useBuilderSync(): { saveState: SaveState; save: () => void } {
 
     setSaveState("saving");
 
+    let normalizedDeadline: string | null = null;
+    if (form.deadline) {
+      const d = new Date(form.deadline);
+      if (!isNaN(d.getTime())) {
+        normalizedDeadline = d.toISOString();
+      }
+    }
+
     try {
       await Promise.all([
         updateForm(form.id, {
@@ -52,7 +60,7 @@ export function useBuilderSync(): { saveState: SaveState; save: () => void } {
           description: form.description,
           slug: form.slug ?? undefined,
           themeId: form.themeId,
-          deadline: form.deadline ?? null,
+          deadline: normalizedDeadline,
         }),
         saveBuilderState(form.id, {
           sections: sections.map((s) => ({
