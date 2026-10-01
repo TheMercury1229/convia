@@ -19,7 +19,19 @@ import {
   Inbox,
   Percent,
   Clock,
+  Download,
+  FileSpreadsheet,
+  FileJson,
+  BarChart2,
 } from "lucide-react";
+
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { exportFormAsCsv, exportFormAsJson } from "@/lib/export-responses";
 
 import {
   Table,
@@ -98,6 +110,25 @@ export function ResponsesView({
 
   const totalAnswerable = allQuestions.length || 1;
 
+  // Reliable helper to resolve completion rate for any response (uses backend value, with client-side fallback)
+  const getResponseCompletionRate = React.useCallback(
+    (r: FormResponse) => {
+      if (typeof r.completionRate === "number") {
+        return r.completionRate;
+      }
+      if (allQuestions.length === 0) return 100;
+      const answered = (r.answers || []).filter(
+        (a) =>
+          a.value !== null &&
+          a.value !== undefined &&
+          a.value !== "" &&
+          !(Array.isArray(a.value) && a.value.length === 0)
+      ).length;
+      return Math.min(100, Math.round((answered / allQuestions.length) * 100));
+    },
+    [allQuestions.length]
+  );
+
   // Derived metrics for summary cards
   const stats = React.useMemo(() => {
     const total = responses.length;
@@ -112,7 +143,7 @@ export function ResponsesView({
       };
     }
 
-    const completedCount = responses.filter((r) => (r.completionRate ?? 100) >= 100).length;
+    const completedCount = responses.filter((r) => getResponseCompletionRate(r) >= 100).length;
     const partialCount = total - completedCount;
     const completionRate = Math.round((completedCount / total) * 100);
 
@@ -132,7 +163,7 @@ export function ResponsesView({
       avgCompletionTime: "2m 14s",
       lastSubmission,
     };
-  }, [responses]);
+  }, [responses, getResponseCompletionRate]);
 
   // Handle in-column header sort toggle
   const handleSort = (column: SortColumn) => {
@@ -151,7 +182,7 @@ export function ResponsesView({
   const filteredResponses = React.useMemo(() => {
     return responses
       .filter((r) => {
-        const isComp = (r.completionRate ?? 100) >= 100;
+        const isComp = getResponseCompletionRate(r) >= 100;
         if (statusFilter === "completed" && !isComp) return false;
         if (statusFilter === "partial" && isComp) return false;
 
@@ -175,7 +206,7 @@ export function ResponsesView({
         if (sortColumn === "submittedAt") {
           diff = new Date(a.submittedAt).getTime() - new Date(b.submittedAt).getTime();
         } else if (sortColumn === "completion") {
-          diff = (a.completionRate ?? 0) - (b.completionRate ?? 0);
+          diff = getResponseCompletionRate(a) - getResponseCompletionRate(b);
         } else if (sortColumn === "respondent") {
           const nameA = a.answers?.find((ans) => ans.value && typeof ans.value === "string")?.value as string || "";
           const nameB = b.answers?.find((ans) => ans.value && typeof ans.value === "string")?.value as string || "";
@@ -216,13 +247,30 @@ export function ResponsesView({
         {/* ------------------------------------------------------------------ */}
         <div className="flex items-center justify-between gap-4 border-b border-border/50 pb-5">
           <div className="flex items-center gap-3">
-            <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-foreground">
+            <h1 className="font-heading text-xl sm:text-2xl font-bold tracking-tight text-foreground">
               {form.title}
             </h1>
           </div>
 
           {/* Muted Icon Actions */}
           <div className="flex items-center gap-1">
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  asChild
+                  variant="ghost"
+                  size="icon"
+                  className="size-8.5 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted/60 transition-colors"
+                >
+                  <Link href={`/analytics?form=${encodeURIComponent(form.slug || form.id)}`}>
+                    <BarChart2 className="size-4" />
+                    <span className="sr-only">View analytics</span>
+                  </Link>
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>View form analytics</TooltipContent>
+            </Tooltip>
+
             <Tooltip>
               <TooltipTrigger asChild>
                 <Button
@@ -275,6 +323,42 @@ export function ResponsesView({
               </TooltipTrigger>
               <TooltipContent>{copiedLink ? "Link copied!" : "Copy share link"}</TooltipContent>
             </Tooltip>
+
+            {/* Export Dropdown */}
+            <DropdownMenu>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <DropdownMenuTrigger asChild>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="size-8.5 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted/60 transition-colors"
+                      id="export-responses-btn"
+                    >
+                      <Download className="size-4" />
+                      <span className="sr-only">Export responses</span>
+                    </Button>
+                  </DropdownMenuTrigger>
+                </TooltipTrigger>
+                <TooltipContent>Export responses</TooltipContent>
+              </Tooltip>
+              <DropdownMenuContent align="end" className="w-44">
+                <DropdownMenuItem
+                  onClick={() => exportFormAsCsv(form, responses)}
+                  className="cursor-pointer gap-2"
+                >
+                  <FileSpreadsheet className="size-4 text-muted-foreground" />
+                  <span>Export as CSV</span>
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  onClick={() => exportFormAsJson(form, responses)}
+                  className="cursor-pointer gap-2"
+                >
+                  <FileJson className="size-4 text-muted-foreground" />
+                  <span>Export as JSON</span>
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
 
             {onRefresh && (
               <Tooltip>
@@ -479,7 +563,8 @@ export function ResponsesView({
               ) : (
                 paginatedResponses.map((item, idx) => {
                   const globalIndex = (currentPage - 1) * pageSize + idx;
-                  const isCompleted = (item.completionRate ?? 100) >= 100;
+                  const rate = getResponseCompletionRate(item);
+                  const isCompleted = rate >= 100;
                   const submittedDate = item.submittedAt
                     ? new Date(item.submittedAt)
                     : new Date();
@@ -496,7 +581,11 @@ export function ResponsesView({
 
                   const displayName = emailAnswer || firstAnswer || "Anonymous Respondent";
                   const answeredCount = item.answers?.filter(
-                    (a) => a.value !== null && a.value !== undefined && a.value !== ""
+                    (a) =>
+                      a.value !== null &&
+                      a.value !== undefined &&
+                      a.value !== "" &&
+                      !(Array.isArray(a.value) && a.value.length === 0)
                   ).length ?? 0;
 
                   return (
@@ -524,10 +613,10 @@ export function ResponsesView({
                               }`}
                           />
                           <span className="font-mono text-xs font-semibold text-foreground">
-                            {item.completionRate ?? 100}%
+                            {rate}%
                           </span>
                           <span className="text-[11px] text-muted-foreground font-mono">
-                            ({answeredCount}/{totalAnswerable})
+                            ({answeredCount}/{allQuestions.length})
                           </span>
                         </div>
                       </TableCell>

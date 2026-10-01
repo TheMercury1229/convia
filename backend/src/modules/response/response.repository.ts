@@ -42,7 +42,31 @@ export const findFullResponseById = async (id: string) => {
     .from(answer)
     .where(eq(answer.responseId, id));
 
-  return { ...responseRow, answers };
+  const formQuestions = await db
+    .select({
+      id: question.id,
+      isRequired: question.isRequired,
+    })
+    .from(question)
+    .where(and(eq(question.formId, responseRow.formId), ne(question.type, "heading")));
+
+  const totalQuestions = formQuestions.length;
+  let answeredCount = 0;
+  for (const a of answers) {
+    const isAnswered =
+      a.value !== null &&
+      a.value !== undefined &&
+      a.value !== "" &&
+      !(Array.isArray(a.value) && a.value.length === 0);
+    if (isAnswered) answeredCount++;
+  }
+
+  const completionRate =
+    totalQuestions === 0
+      ? 100
+      : Math.min(100, Math.round((answeredCount / totalQuestions) * 100));
+
+  return { ...responseRow, answers, completionRate };
 };
 
 /**
@@ -50,6 +74,17 @@ export const findFullResponseById = async (id: string) => {
  */
 export const findAllResponsesForForm = async (formId: string) => {
   const responses = await findResponsesByFormId(formId);
+
+  // Fetch answerable questions for this form to compute completion rate
+  const formQuestions = await db
+    .select({
+      id: question.id,
+      isRequired: question.isRequired,
+    })
+    .from(question)
+    .where(and(eq(question.formId, formId), ne(question.type, "heading")));
+
+  const totalQuestions = formQuestions.length;
 
   const result = await Promise.all(
     responses.map(async (r) => {
@@ -63,7 +98,23 @@ export const findAllResponsesForForm = async (formId: string) => {
         })
         .from(answer)
         .where(eq(answer.responseId, r.id));
-      return { ...r, answers };
+
+      let answeredCount = 0;
+      for (const a of answers) {
+        const isAnswered =
+          a.value !== null &&
+          a.value !== undefined &&
+          a.value !== "" &&
+          !(Array.isArray(a.value) && a.value.length === 0);
+        if (isAnswered) answeredCount++;
+      }
+
+      const completionRate =
+        totalQuestions === 0
+          ? 100
+          : Math.min(100, Math.round((answeredCount / totalQuestions) * 100));
+
+      return { ...r, answers, completionRate };
     }),
   );
 

@@ -64,11 +64,11 @@ export function ProfileTab() {
 
   const initials = user?.name
     ? user.name
-        .split(" ")
-        .map((n) => n[0])
-        .join("")
-        .slice(0, 2)
-        .toUpperCase()
+      .split(" ")
+      .map((n) => n[0])
+      .join("")
+      .slice(0, 2)
+      .toUpperCase()
     : "U"
 
   // Handle avatar upload to ImageKit & update profile via authClient
@@ -283,7 +283,7 @@ export function ProfileTab() {
               )}
             </Button>
             <p className="text-xs text-muted-foreground">
-              PNG, JPG, or WebP. Max 5MB. Powered by ImageKit.
+              PNG, JPG, or WebP. Max 5MB.
             </p>
           </div>
         </div>

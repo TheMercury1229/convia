@@ -11,6 +11,7 @@ import {
   type CreateFormPayload,
   type UpdateFormPayload,
 } from "@/lib/api/forms";
+import { authClient } from "@/lib/auth-client";
 import { toast } from "sonner";
 
 // ---------------------------------------------------------------------------
@@ -19,7 +20,10 @@ import { toast } from "sonner";
 
 export const formKeys = {
   all: ["forms"] as const,
-  lists: () => [...formKeys.all, "list"] as const,
+  lists: (orgId?: string) =>
+    orgId
+      ? ([...formKeys.all, "list", orgId] as const)
+      : ([...formKeys.all, "list"] as const),
   detail: (id: string) => [...formKeys.all, "detail", id] as const,
   public: (slug: string) => [...formKeys.all, "public", slug] as const,
 };
@@ -30,9 +34,13 @@ export const formKeys = {
 
 /** Fetch all forms for the current org */
 export function useForms() {
+  const { data: activeOrg } = authClient.useActiveOrganization();
+  const orgId = activeOrg?.id;
+
   return useQuery({
-    queryKey: formKeys.lists(),
+    queryKey: formKeys.lists(orgId),
     queryFn: listForms,
+    enabled: !!orgId,
   });
 }
 

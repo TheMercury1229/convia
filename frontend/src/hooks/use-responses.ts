@@ -6,11 +6,15 @@ import {
   deleteResponse,
   getAllOrgResponses,
 } from "@/lib/api/responses";
+import { authClient } from "@/lib/auth-client";
 import { toast } from "sonner";
 
 export const responseKeys = {
   all: ["responses"] as const,
-  orgAll: () => [...responseKeys.all, "org"] as const,
+  orgAll: (orgId?: string) =>
+    orgId
+      ? ([...responseKeys.all, "org", orgId] as const)
+      : ([...responseKeys.all, "org"] as const),
   formResponses: (formId: string) => [...responseKeys.all, "form", formId] as const,
   completionRate: (formId: string) => [...responseKeys.all, "completion", formId] as const,
   detail: (id: string) => [...responseKeys.all, "detail", id] as const,
@@ -18,9 +22,13 @@ export const responseKeys = {
 
 /** Fetch all responses across all forms in the active organisation */
 export function useAllOrgResponses() {
+  const { data: activeOrg } = authClient.useActiveOrganization();
+  const orgId = activeOrg?.id;
+
   return useQuery({
-    queryKey: responseKeys.orgAll(),
+    queryKey: responseKeys.orgAll(orgId),
     queryFn: () => getAllOrgResponses(),
+    enabled: !!orgId,
   });
 }
 

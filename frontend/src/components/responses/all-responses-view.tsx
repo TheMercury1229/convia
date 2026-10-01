@@ -52,6 +52,7 @@ import type { Form, ApiQuestion } from "@/lib/api/forms";
 import type { OrgResponseItem, OrgResponseMetrics } from "@/lib/api/responses";
 import { useForm } from "@/hooks/use-forms";
 import { ResponseDetailDialog } from "./response-detail-dialog";
+import { PageHeading } from "@/components/dashboard/page-heading";
 
 interface AllResponsesViewProps {
   responses: OrgResponseItem[];
@@ -131,7 +132,7 @@ export function AllResponsesView({
       }
 
       // 2. Status Filter
-      const isCompleted = (item.completionRate ?? 100) >= 100;
+      const isCompleted = (item.completionRate ?? 0) >= 100;
       if (statusFilter === "completed" && !isCompleted) return false;
       if (statusFilter === "partial" && isCompleted) return false;
 
@@ -161,7 +162,7 @@ export function AllResponsesView({
       } else if (sortColumn === "respondent") {
         comparison = getDisplayName(a).localeCompare(getDisplayName(b));
       } else if (sortColumn === "completion") {
-        comparison = (a.completionRate ?? 100) - (b.completionRate ?? 100);
+        comparison = (a.completionRate ?? 0) - (b.completionRate ?? 0);
       } else if (sortColumn === "submittedAt") {
         const dateA = a.submittedAt ? new Date(a.submittedAt).getTime() : 0;
         const dateB = b.submittedAt ? new Date(b.submittedAt).getTime() : 0;
@@ -200,18 +201,11 @@ export function AllResponsesView({
         {/* ------------------------------------------------------------------ */}
         {/* Header: Clean Title and Action Icons with Tooltips                 */}
         {/* ------------------------------------------------------------------ */}
-        <div className="flex items-center justify-between gap-4 pb-1">
-          <div>
-            <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-foreground">
-              All Responses
-            </h1>
-            <p className="text-xs sm:text-sm text-muted-foreground mt-0.5">
-              Consolidated submissions across all forms in your organisation.
-            </p>
-          </div>
-
-          <div className="flex items-center gap-1">
-            {onRefresh && (
+        <PageHeading
+          title="All Responses"
+          description="Consolidated submissions across all forms in your organisation."
+          actions={
+            onRefresh && (
               <Tooltip>
                 <TooltipTrigger asChild>
                   <Button
@@ -227,9 +221,9 @@ export function AllResponsesView({
                 </TooltipTrigger>
                 <TooltipContent>Refresh data</TooltipContent>
               </Tooltip>
-            )}
-          </div>
-        </div>
+            )
+          }
+        />
 
         {/* ------------------------------------------------------------------ */}
         {/* Table Controls (Search, Form Filter, Status Filter)                */}
@@ -360,7 +354,7 @@ export function AllResponsesView({
                 </TableRow>
               ) : (
                 paginatedResponses.map((item) => {
-                  const isCompleted = (item.completionRate ?? 100) >= 100;
+                  const isCompleted = (item.completionRate ?? 0) >= 100;
                   const submittedDate = item.submittedAt
                     ? new Date(item.submittedAt)
                     : new Date();
@@ -400,7 +394,7 @@ export function AllResponsesView({
                             }`}
                           />
                           <span className="font-mono text-xs font-semibold text-foreground">
-                            {item.completionRate ?? 100}%
+                            {item.completionRate ?? 0}%
                           </span>
                         </div>
                       </TableCell>

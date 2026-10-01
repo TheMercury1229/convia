@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { useQueryClient } from "@tanstack/react-query";
 import { Loader2 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -44,6 +45,10 @@ export function CreateOrgDialog({
   onSuccess,
 }: CreateOrgDialogProps) {
   const router = useRouter();
+  const queryClient = useQueryClient();
+  const { refetch: refetchActiveOrg } = authClient.useActiveOrganization();
+  const { refetch: refetchOrgs } = authClient.useListOrganizations();
+
   const [orgName, setOrgName] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -72,6 +77,13 @@ export function CreateOrgDialog({
           organizationId: res.data.id,
         });
       }
+
+      // Reset queries and refetch active org so dashboard immediately updates
+      await Promise.allSettled([
+        refetchActiveOrg?.(),
+        refetchOrgs?.(),
+        queryClient.resetQueries(),
+      ]);
 
       toast.success("Organisation created!");
       setOrgName("");

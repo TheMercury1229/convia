@@ -2,7 +2,8 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { ChevronsUpDown, Check, PlusCircle } from "lucide-react";
+import { useQueryClient } from "@tanstack/react-query";
+import { ChevronsUpDown, Check, PlusCircle, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 
 import {
@@ -26,32 +27,50 @@ import { authClient } from "@/lib/auth-client";
 export function OrgSwitcher() {
   const { isMobile } = useSidebar();
   const router = useRouter();
+  const queryClient = useQueryClient();
 
-  const { data: orgs, isPending: orgsLoading } = authClient.useListOrganizations();
-  const { data: activeOrg } = authClient.useActiveOrganization();
+  const { data: orgs, isPending: orgsLoading, refetch: refetchOrgs } =
+    authClient.useListOrganizations();
+  const { data: activeOrg, refetch: refetchActiveOrg } =
+    authClient.useActiveOrganization();
 
   const [openCreateDialog, setOpenCreateDialog] = useState(false);
+  const [isSwitching, setIsSwitching] = useState(false);
 
   // Auto-activate the first organisation if user has organisations but none is set active
   useEffect(() => {
     if (!activeOrg?.id && orgs && orgs.length > 0) {
       authClient.organization
         .setActive({ organizationId: orgs[0].id })
-        .then(() => {
+        .then(async () => {
+          await Promise.allSettled([
+            refetchActiveOrg?.(),
+            refetchOrgs?.(),
+            queryClient.resetQueries(),
+          ]);
           router.refresh();
         })
         .catch(() => {});
     }
-  }, [activeOrg, orgs, router]);
+  }, [activeOrg, orgs, router, queryClient, refetchActiveOrg, refetchOrgs]);
 
   const handleSwitch = async (orgId: string) => {
-    if (activeOrg?.id === orgId) return;
+    if (activeOrg?.id === orgId || isSwitching) return;
+    setIsSwitching(true);
     try {
       await authClient.organization.setActive({ organizationId: orgId });
       toast.success("Switched organisation");
+      // Refetch Better Auth state and reset React Query queries so cache clears and active queries refetch immediately
+      await Promise.allSettled([
+        refetchActiveOrg?.(),
+        refetchOrgs?.(),
+        queryClient.resetQueries(),
+      ]);
       router.refresh();
     } catch {
       toast.error("Failed to switch organisation. Please try again.");
+    } finally {
+      setIsSwitching(false);
     }
   };
 
@@ -83,7 +102,11 @@ export function OrgSwitcher() {
                     </span>
                   )}
                 </div>
-                <ChevronsUpDown className="ml-auto size-4 shrink-0 opacity-50" />
+                {isSwitching ? (
+                  <Loader2 className="ml-auto size-4 shrink-0 animate-spin text-primary" />
+                ) : (
+                  <ChevronsUpDown className="ml-auto size-4 shrink-0 opacity-50" />
+                )}
               </SidebarMenuButton>
             </DropdownMenuTrigger>
 

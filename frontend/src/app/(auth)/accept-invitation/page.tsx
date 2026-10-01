@@ -2,6 +2,7 @@
 
 import React, { Suspense, useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
+import { useQueryClient } from "@tanstack/react-query";
 import Link from "next/link";
 import { toast } from "sonner";
 import { CheckCircle2, XCircle, Building2, User, Shield, Loader2, LogOut } from "lucide-react";
@@ -21,6 +22,7 @@ interface InvitationData {
 
 function AcceptInvitationContent() {
   const router = useRouter();
+  const queryClient = useQueryClient();
   const searchParams = useSearchParams();
   const invitationId = searchParams.get("id");
 
@@ -101,6 +103,7 @@ function AcceptInvitationContent() {
         await authClient.organization.setActive({
           organizationId: invitation.organizationId,
         });
+        await queryClient.resetQueries();
       }
 
       router.push("/home");

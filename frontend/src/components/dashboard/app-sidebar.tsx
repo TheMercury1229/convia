@@ -7,6 +7,7 @@ import {
   Home,
   FileText,
   Inbox,
+  BarChart3,
   User,
   Settings2,
 } from "lucide-react";
@@ -35,6 +36,7 @@ const mainNavItems = [
   { title: "Home", href: "/home", icon: Home },
   { title: "My Forms", href: "/my-forms", icon: FileText },
   { title: "Responses", href: "/responses", icon: Inbox },
+  { title: "Analytics", href: "/analytics", icon: BarChart3 },
   { title: "Profile", href: "/profile", icon: User },
 ];
 

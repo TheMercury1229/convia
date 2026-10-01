@@ -99,7 +99,23 @@ export function ResponseDetailDialog({
 
   if (!response) return null;
 
-  const isCompleted = (response.completionRate ?? 100) >= 100;
+  const totalAnswerable = questions.filter((q) => q.type !== "heading").length;
+  const answeredCount = (response.answers || []).filter(
+    (a) =>
+      a.value !== null &&
+      a.value !== undefined &&
+      a.value !== "" &&
+      !(Array.isArray(a.value) && a.value.length === 0)
+  ).length;
+
+  const effectiveCompletionRate =
+    typeof response.completionRate === "number"
+      ? response.completionRate
+      : totalAnswerable > 0
+        ? Math.min(100, Math.round((answeredCount / totalAnswerable) * 100))
+        : 100;
+
+  const isCompleted = effectiveCompletionRate >= 100;
   const submittedDate = response.submittedAt
     ? new Date(response.submittedAt)
     : new Date();
@@ -190,7 +206,7 @@ export function ResponseDetailDialog({
                     isCompleted ? "bg-primary" : "bg-muted-foreground/50"
                   }`}
                 />
-                {isCompleted ? "100% Complete" : `${response.completionRate ?? 0}% Partial`}
+                {isCompleted ? "100% Complete" : `${effectiveCompletionRate}% Partial`}
               </span>
             </div>
 

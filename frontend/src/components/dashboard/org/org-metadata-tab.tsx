@@ -2,6 +2,7 @@
 
 import * as React from "react"
 import { useRouter } from "next/navigation"
+import { useQueryClient } from "@tanstack/react-query"
 import { authClient } from "@/lib/auth-client"
 import { OrgAvatar } from "./org-avatar"
 import { DicebearGlassPicker } from "./dicebear-glass-picker"
@@ -27,7 +28,10 @@ interface OrgMetadataTabProps {
 
 export function OrgMetadataTab({ activeOrg }: OrgMetadataTabProps) {
   const router = useRouter()
+  const queryClient = useQueryClient()
   const { data: session } = authClient.useSession()
+  const { refetch: refetchActiveOrg } = authClient.useActiveOrganization()
+  const { refetch: refetchOrgs } = authClient.useListOrganizations()
 
   const [name, setName] = React.useState(activeOrg.name || "")
   const [logo, setLogo] = React.useState<string | null>(activeOrg.logo || null)
@@ -79,6 +83,12 @@ export function OrgMetadataTab({ activeOrg }: OrgMetadataTabProps) {
       }
 
       toast.success("Organisation updated")
+      // Immediately refetch Better Auth state and invalidate React Query queries so changes reflect everywhere
+      await Promise.allSettled([
+        refetchActiveOrg?.(),
+        refetchOrgs?.(),
+        queryClient.invalidateQueries(),
+      ])
       router.refresh()
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : "Failed to update organisation"

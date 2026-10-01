@@ -3,6 +3,7 @@ import { ApiError } from "../../utils/api-error";
 import type { SubmitResponseInput } from "./response.schema";
 import * as responseRepo from "./response.repository";
 import * as formRepo from "../form/form.repository";
+import * as analyticsRepo from "../analytics/analytics.repository";
 
 // ---------------------------------------------------------------------------
 // Submit a response to a form (public — no auth)
@@ -73,6 +74,15 @@ export const submitResponse = async (formId: string, input: SubmitResponseInput)
     totalAnswerable === 0
       ? 100
       : Math.min(100, Math.round((answeredCount / totalAnswerable) * 100));
+
+  // 7. If sessionId was passed, mark form session as completed
+  if (input.sessionId) {
+    try {
+      await analyticsRepo.completeFormSession(formId, input.sessionId, responseId);
+    } catch (err) {
+      console.warn("Failed to mark formSession completed:", err);
+    }
+  }
 
   return {
     ...newResponse,

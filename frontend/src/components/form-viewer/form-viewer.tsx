@@ -4,8 +4,6 @@ import * as React from "react";
 import {
   ChevronUp,
   ChevronDown,
-  Clock,
-  Calendar,
   AlertCircle,
   Sun,
   Moon,
@@ -23,6 +21,12 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Kbd } from "@/components/ui/kbd";
 import { submitResponse } from "@/lib/api/responses";
+import {
+  getOrCreateSessionId,
+  trackFormView,
+  trackFormStart,
+  trackFormProgress,
+} from "@/lib/api/analytics";
 
 interface FormViewerProps {
   form: FormWithSections;
@@ -147,13 +151,25 @@ export function FormViewer({ form, isPreview = false }: FormViewerProps) {
 
   const totalQuestions = flatQuestions.length;
 
-  // Expected time to fill (calculated based on ~20s per question)
-  const estimatedMinutes = React.useMemo(() => {
-    const answerable = flatQuestions.filter((item) => item.question.type !== "heading");
-    return Math.max(1, Math.ceil((answerable.length * 20) / 60));
-  }, [flatQuestions]);
+  // Resolve first section title & description for the welcome screen
+  const firstSectionInfo = React.useMemo(() => {
+    const sorted = [...(form.sections || [])].sort((a, b) => a.position - b.position);
+    const sec = sorted[0];
+    if (!sec) return null;
+
+    const rawTitle = sec.title?.trim() || "";
+    const rawDesc = sec.description?.trim() || "";
+
+    if (!rawTitle && !rawDesc) return null;
+
+    return {
+      title: rawTitle || null,
+      description: rawDesc || null,
+    };
+  }, [form.sections]);
 
   // State
+  const [isWelcomeScreen, setIsWelcomeScreen] = React.useState(true);
   const [currentIndex, setCurrentIndex] = React.useState(0);
   const [answers, setAnswers] = React.useState<Record<string, unknown>>({});
   const answersRef = React.useRef<Record<string, unknown>>({});
@@ -162,6 +178,56 @@ export function FormViewer({ form, isPreview = false }: FormViewerProps) {
   const [isCompleted, setIsCompleted] = React.useState(false);
   const [isSubmitting, setIsSubmitting] = React.useState(false);
   const [shake, setShake] = React.useState(false);
+
+  // ── Analytics Session & Telemetry Tracking ────────────────────
+  const sessionIdRef = React.useRef<string>("");
+  const hasStartedRef = React.useRef(false);
+
+  // 1. Silent Beacon: Track form page view on mount
+  React.useEffect(() => {
+    if (isPreview || typeof window === "undefined") return;
+    const sid = getOrCreateSessionId(form.id);
+    sessionIdRef.current = sid;
+    trackFormView(form.id, sid);
+  }, [form.id, isPreview]);
+
+  // 2. Silent Beacon: Track start session when user enters the form
+  const handleStartForm = React.useCallback(() => {
+    setIsWelcomeScreen(false);
+    if (!isPreview) {
+      if (!hasStartedRef.current) {
+        hasStartedRef.current = true;
+        const sid = sessionIdRef.current || getOrCreateSessionId(form.id);
+        sessionIdRef.current = sid;
+        trackFormStart(form.id, sid);
+        trackFormProgress(form.id, sid, 0);
+      }
+    }
+  }, [form.id, isPreview]);
+
+  // 3. Silent Beacon: Track question advance via sendBeacon / keepalive fetch
+  React.useEffect(() => {
+    if (isPreview || isWelcomeScreen || !hasStartedRef.current) return;
+    const sid = sessionIdRef.current || getOrCreateSessionId(form.id);
+    trackFormProgress(form.id, sid, currentIndex);
+  }, [currentIndex, isPreview, isWelcomeScreen, form.id]);
+
+  // Track unload / drop-off on tab close
+  React.useEffect(() => {
+    if (isPreview || typeof window === "undefined") return;
+    const handleUnload = () => {
+      if (hasStartedRef.current && !isCompleted) {
+        const sid = sessionIdRef.current || getOrCreateSessionId(form.id);
+        trackFormProgress(form.id, sid, currentIndex);
+      }
+    };
+    window.addEventListener("pagehide", handleUnload);
+    window.addEventListener("beforeunload", handleUnload);
+    return () => {
+      window.removeEventListener("pagehide", handleUnload);
+      window.removeEventListener("beforeunload", handleUnload);
+    };
+  }, [currentIndex, isCompleted, isPreview, form.id]);
 
   const currentItem = flatQuestions[currentIndex];
   const isHeading = currentItem?.question.type === "heading";
@@ -186,7 +252,10 @@ export function FormViewer({ form, isPreview = false }: FormViewerProps) {
         value,
       }));
 
-      await submitResponse(form.id, { answers: answersPayload });
+      await submitResponse(form.id, {
+        answers: answersPayload,
+        sessionId: sessionIdRef.current,
+      });
       setIsSubmitting(false);
       setIsCompleted(true);
     } catch (err: any) {
@@ -265,11 +334,15 @@ export function FormViewer({ form, isPreview = false }: FormViewerProps) {
     if (currentIndex > 0) {
       setCurrentError(null);
       setCurrentIndex((prev) => prev - 1);
+    } else if (currentIndex === 0 && !isWelcomeScreen) {
+      setCurrentError(null);
+      setIsWelcomeScreen(true);
     }
   };
 
   // Keyboard navigation:
   // - 'D' or 'd' toggles light/dark mode (when not in an input/textarea)
+  // - Enter / Down arrow on welcome screen begins the form
   // - Up / Down arrows navigate questions
   React.useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -286,6 +359,15 @@ export function FormViewer({ form, isPreview = false }: FormViewerProps) {
         return;
       }
 
+      // Welcome screen keyboard navigation
+      if (isWelcomeScreen) {
+        if (e.key === "Enter" || e.key === "ArrowDown") {
+          e.preventDefault();
+          handleStartForm();
+        }
+        return;
+      }
+
       // Up and Down arrows
       if (e.key === "ArrowDown" && target.tagName !== "TEXTAREA") {
         e.preventDefault();
@@ -298,30 +380,15 @@ export function FormViewer({ form, isPreview = false }: FormViewerProps) {
 
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  });
+  }, [isWelcomeScreen, currentIndex, totalQuestions, currentItem, answers]);
 
   // Calculate overall progress percentage
-  const progressPercent =
-    totalQuestions > 0
+  const progressPercent = isWelcomeScreen
+    ? 0
+    : totalQuestions > 0
       ? Math.round(((currentIndex + (isCompleted ? 1 : 0)) / totalQuestions) * 100)
       : 0;
 
-  // Format deadline if present
-  const formattedDeadline = React.useMemo(() => {
-    if (!form.deadline) return null;
-    try {
-      const d = new Date(form.deadline);
-      if (isNaN(d.getTime())) {
-        return typeof form.deadline === "string" && form.deadline.trim() ? form.deadline : null;
-      }
-      return d.toLocaleString([], {
-        dateStyle: "medium",
-        timeStyle: "short",
-      });
-    } catch {
-      return typeof form.deadline === "string" && form.deadline.trim() ? form.deadline : null;
-    }
-  }, [form.deadline]);
 
   // Render Empty State if no questions
   if (totalQuestions === 0) {
@@ -414,6 +481,7 @@ export function FormViewer({ form, isPreview = false }: FormViewerProps) {
             onClick={() => {
               setIsCompleted(false);
               setIsSubmitting(false);
+              setIsWelcomeScreen(true);
               setCurrentIndex(0);
               setCurrentError(null);
               setAnswers({});
@@ -503,32 +571,34 @@ export function FormViewer({ form, isPreview = false }: FormViewerProps) {
 
         {/* Right: Section & Question Indicator + Theme Mode Toggle */}
         <div className="flex items-center gap-3">
-          <div
-            className="flex items-center gap-2 text-xs font-mono font-medium select-none"
-            style={{ color: theme.colors.cardMuted }}
-          >
-            {currentItem.totalSections > 1 && (
-              <>
-                <span>
-                  Section{" "}
-                  <strong className="font-semibold" style={{ color: theme.colors.cardText }}>
-                    {currentItem.sectionIndex + 1}
-                  </strong>
-                  <span className="mx-0.5 opacity-40">/</span>
-                  {currentItem.totalSections}
-                </span>
-                <span className="opacity-40">•</span>
-              </>
-            )}
-            <span>
-              Question{" "}
-              <strong className="font-semibold" style={{ color: theme.colors.cardText }}>
-                {currentIndex + 1}
-              </strong>
-              <span className="mx-0.5 opacity-40">/</span>
-              {totalQuestions}
-            </span>
-          </div>
+          {!isWelcomeScreen && (
+            <div
+              className="flex items-center gap-2 text-xs font-mono font-medium select-none"
+              style={{ color: theme.colors.cardMuted }}
+            >
+              {currentItem.totalSections > 1 && (
+                <>
+                  <span>
+                    Section{" "}
+                    <strong className="font-semibold" style={{ color: theme.colors.cardText }}>
+                      {currentItem.sectionIndex + 1}
+                    </strong>
+                    <span className="mx-0.5 opacity-40">/</span>
+                    {currentItem.totalSections}
+                  </span>
+                  <span className="opacity-40">•</span>
+                </>
+              )}
+              <span>
+                Question{" "}
+                <strong className="font-semibold" style={{ color: theme.colors.cardText }}>
+                  {currentIndex + 1}
+                </strong>
+                <span className="mx-0.5 opacity-40">/</span>
+                {totalQuestions}
+              </span>
+            </div>
+          )}
 
           <Button
             variant="ghost"
@@ -554,230 +624,240 @@ export function FormViewer({ form, isPreview = false }: FormViewerProps) {
       <main className="flex flex-1 flex-col items-center justify-center px-4 sm:px-8 py-8 sm:py-12">
         <div className="w-full max-w-2xl mx-auto">
           {/* ────────────────────────────────────────────────────────── */}
-          {/* FIRST PAGE HERO: Left-Aligned Form Title & Description      */}
+          {/* WELCOME / INTRO SCREEN: Title & Section Title/Description  */}
           {/* ────────────────────────────────────────────────────────── */}
-          {isFirstPage && (
-            <div className="mb-8 text-left">
-              <div className="flex flex-col sm:flex-row sm:items-baseline justify-between gap-2 sm:gap-4">
-                <h1
-                  className="font-heading text-2xl sm:text-3xl md:text-4xl font-bold tracking-tight text-left leading-tight"
-                  style={{ color: theme.colors.cardText }}
-                >
-                  {form.title || "Untitled Form"}
-                </h1>
+          {isWelcomeScreen ? (
+            <div className="w-full text-left">
+              {/* Form Heading */}
+              <h1
+                className="font-heading text-2xl sm:text-3xl md:text-4xl font-bold tracking-tight text-left leading-tight"
+                style={{ color: theme.colors.cardText }}
+              >
+                {form.title || "Untitled Form"}
+              </h1>
 
-                {(estimatedMinutes || formattedDeadline) && (
-                  <div
-                    className="flex flex-wrap items-center gap-3 sm:gap-4 text-xs sm:text-sm font-medium select-none shrink-0 pt-1"
-                    style={{ color: theme.colors.cardMuted }}
-                  >
-                    {estimatedMinutes && (
-                      <span className="inline-flex items-center gap-1.5">
-                        <Clock className="size-3.5 shrink-0" style={{ color: theme.colors.primary }} />
-                        <span>~{estimatedMinutes} min</span>
-                      </span>
-                    )}
-                    {estimatedMinutes && formattedDeadline && (
-                      <span className="opacity-30 select-none">•</span>
-                    )}
-                    {formattedDeadline && (
-                      <span className="inline-flex items-center gap-1.5">
-                        <Calendar className="size-3.5 shrink-0 opacity-70" />
-                        <span>Closes {formattedDeadline}</span>
-                      </span>
-                    )}
-                  </div>
-                )}
-              </div>
-
-              {/* Subtle HR below title */}
-              <div
-                className="my-3.5 sm:my-4 border-t"
-                style={{
-                  borderColor: `color-mix(in oklch, ${theme.colors.cardBorder} 60%, transparent)`,
-                }}
-              />
-
+              {/* Form Description */}
               {form.description && (
                 <p
-                  className="text-sm sm:text-base leading-relaxed max-w-xl font-normal"
+                  className="mt-3 text-base sm:text-lg leading-relaxed text-left font-normal"
                   style={{ color: theme.colors.cardMuted }}
                 >
                   {form.description}
                 </p>
               )}
-            </div>
-          )}
 
-          {/* ────────────────────────────────────────────────────────── */}
-          {/* QUESTION CARD (Clean, Confident, Cinematic)                */}
-          {/* ────────────────────────────────────────────────────────── */}
-          <div
-            className={cn(
-              "w-full transition-all duration-200",
-              shake && "animate-shake"
-            )}
-          >
-            {/* Section Heading — Shown ONLY on the first question of each section as an editorial heading block, never as a pill */}
-            {(() => {
-              if (!currentItem.isFirstQuestionOfSection) return null;
-
-              const rawTitle = currentItem.sectionTitle?.trim() || "";
-              const hasRealTitle = rawTitle !== "" && rawTitle.toLowerCase() !== "untitled section";
-              const rawDesc = currentItem.sectionDescription?.trim() || "";
-              const hasDesc = rawDesc !== "";
-
-              if (!hasRealTitle && !hasDesc) return null;
-
-              return (
-                <div className="mb-6 text-left">
-                  {currentItem.totalSections > 1 && (
-                    <span
-                      className="text-xs font-mono font-semibold uppercase tracking-wider block mb-1.5"
-                      style={{ color: theme.colors.primary }}
-                    >
-                      Section {currentItem.sectionIndex + 1}
-                    </span>
-                  )}
-                  {hasRealTitle && (
-                    <h3
-                      className="font-heading text-lg sm:text-xl font-bold tracking-tight mt-1"
+              {/* Section Title & Description */}
+              {firstSectionInfo && (
+                <div className="mt-6 text-left">
+                  {firstSectionInfo.title && (
+                    <h2
+                      className="font-heading text-lg sm:text-xl font-bold tracking-tight"
                       style={{ color: theme.colors.cardText }}
                     >
-                      {rawTitle}
-                    </h3>
+                      {firstSectionInfo.title}
+                    </h2>
                   )}
-                  {hasDesc && (
+                  {firstSectionInfo.description && (
                     <p
-                      className="mt-1 text-xs sm:text-sm leading-relaxed font-normal"
+                      className="mt-1 text-sm sm:text-base leading-relaxed font-normal"
                       style={{ color: theme.colors.cardMuted }}
                     >
-                      {rawDesc}
+                      {firstSectionInfo.description}
                     </p>
                   )}
                 </div>
-              );
-            })()}
+              )}
 
-            {/* HEADING TYPE vs QUESTION TYPE */}
-            {isHeading ? (
-              <div className="mb-6 text-left">
-                <h2
-                  className="font-heading text-xl sm:text-2xl md:text-3xl font-bold tracking-tight"
-                  style={{ color: theme.colors.cardText }}
+              {/* Action Button: Start Form */}
+              <div className="mt-8 flex items-center gap-4">
+                <Button
+                  onClick={handleStartForm}
+                  size="default"
+                  className="font-semibold text-sm sm:text-base px-6 h-11 rounded-xl cursor-pointer transition-all duration-150 hover:opacity-90 active:scale-[0.98] flex items-center gap-2"
+                  style={{
+                    backgroundColor: theme.colors.primary,
+                    color: theme.colors.primaryForeground,
+                  }}
+                  id="typeform-start-btn"
                 >
-                  {currentItem.question.label || "Untitled Section"}
-                </h2>
-                {currentItem.question.description && (
-                  <p
-                    className="mt-2 text-sm sm:text-base leading-relaxed font-normal"
-                    style={{ color: theme.colors.cardMuted }}
-                  >
-                    {currentItem.question.description}
-                  </p>
-                )}
-              </div>
-            ) : (
-              <div className="mb-4 text-left">
-                {/* Question Title */}
-                <h2
-                  className="font-heading text-xl sm:text-2xl md:text-3xl font-semibold tracking-tight leading-snug flex items-start gap-3"
-                  style={{ color: theme.colors.cardText }}
-                >
-                  <span
-                    className="font-mono text-base sm:text-lg pt-0.5 shrink-0 font-semibold select-none"
-                    style={{ color: theme.colors.primary }}
-                  >
-                    {currentIndex + 1} ➔
-                  </span>
-                  <span>
-                    {currentItem.question.label || "Untitled Question"}
-                    {currentItem.question.required && (
-                      <span className="ml-1 text-destructive font-bold" title="Required">
-                        *
-                      </span>
-                    )}
-                  </span>
-                </h2>
-
-                {/* Question Description */}
-                {currentItem.question.description && (
-                  <p
-                    className="mt-1.5 text-sm sm:text-base pl-7 leading-relaxed font-normal"
-                    style={{ color: theme.colors.cardMuted }}
-                  >
-                    {currentItem.question.description}
-                  </p>
-                )}
-              </div>
-            )}
-
-            {/* Input Component (null for headings) */}
-            {!isHeading && (
-              <div className="mt-6 sm:mt-7 pl-0 sm:pl-7">
-                <TypeformInput
-                  key={currentItem.question.id}
-                  question={currentItem.question}
-                  theme={theme}
-                  value={answers[currentItem.question.id]}
-                  onChange={handleAnswerChange}
-                  onSubmit={(val) => handleNext(val)}
-                  hasError={Boolean(currentError)}
-                  isDark={isDark}
-                />
-
-                {/* Validation Error Message */}
-                {currentError && (
-                  <div
-                    className="mt-3 flex items-center gap-2 rounded-lg border border-destructive/30 bg-destructive/10 px-3 py-2 text-xs sm:text-sm font-medium text-destructive"
-                    role="alert"
-                  >
-                    <AlertCircle className="size-4 shrink-0" />
-                    <span>{currentError}</span>
-                  </div>
-                )}
-              </div>
-            )}
-
-            {/* ── Action Row (Directly below input, clean & natural) ── */}
-            <div className="mt-7 sm:mt-8 flex items-center gap-4 pl-0 sm:pl-7">
-              <Button
-                onClick={() => handleNext()}
-                size="default"
-                className="font-medium text-sm sm:text-base px-5 h-10 shadow-xs rounded-xl cursor-pointer transition-all duration-150 hover:opacity-90 active:scale-[0.98] flex items-center gap-2"
-                style={{
-                  backgroundColor: theme.colors.primary,
-                  color: theme.colors.primaryForeground,
-                }}
-                id="typeform-next-btn"
-              >
-                <span>
-                  {isHeading
-                    ? "Continue"
-                    : isLastQuestion
-                      ? "Submit Form"
-                      : "Next"}
-                </span>
-                <ArrowRight className="size-4" />
-              </Button>
-
-              <div
-                className="flex items-center gap-1.5 text-xs select-none"
-                style={{ color: theme.colors.cardMuted }}
-              >
-                <span>press</span>
-                {isMultiline ? (
-                  <span className="flex items-center gap-1">
-                    <Kbd className="text-[10px] px-1.5 py-0.5">Ctrl</Kbd>
-                    <span>+</span>
-                    <Kbd className="text-[10px] px-1.5 py-0.5">Enter</Kbd>
-                  </span>
-                ) : (
-                  <Kbd className="text-[10px] px-1.5 py-0.5">Enter ↵</Kbd>
-                )}
+                  <span>Start</span>
+                  <ArrowRight className="size-4" />
+                </Button>
               </div>
             </div>
-          </div>
+          ) : (
+            /* ────────────────────────────────────────────────────────── */
+            /* QUESTION CARD (Clean, Confident, Cinematic)                */
+            /* ────────────────────────────────────────────────────────── */
+            <div
+              className={cn(
+                "w-full transition-all duration-200 animate-in fade-in duration-300",
+                shake && "animate-shake"
+              )}
+            >
+              {/* Section Heading — Shown on subsequent sections (Section 2, 3, etc.) */}
+              {(() => {
+                if (!currentItem.isFirstQuestionOfSection) return null;
+                // If Section 1, it was already shown on the welcome screen
+                if (currentItem.sectionIndex === 0) return null;
+
+                const rawTitle = currentItem.sectionTitle?.trim() || "";
+                const hasRealTitle = rawTitle !== "" && rawTitle.toLowerCase() !== "untitled section";
+                const rawDesc = currentItem.sectionDescription?.trim() || "";
+                const hasDesc = rawDesc !== "";
+
+                if (!hasRealTitle && !hasDesc) return null;
+
+                return (
+                  <div className="mb-6 text-left">
+                    {currentItem.totalSections > 1 && (
+                      <span
+                        className="text-xs font-mono font-semibold uppercase tracking-wider block mb-1.5"
+                        style={{ color: theme.colors.primary }}
+                      >
+                        Section {currentItem.sectionIndex + 1}
+                      </span>
+                    )}
+                    {hasRealTitle && (
+                      <h3
+                        className="font-heading text-lg sm:text-xl font-bold tracking-tight mt-1"
+                        style={{ color: theme.colors.cardText }}
+                      >
+                        {rawTitle}
+                      </h3>
+                    )}
+                    {hasDesc && (
+                      <p
+                        className="mt-1 text-xs sm:text-sm leading-relaxed font-normal"
+                        style={{ color: theme.colors.cardMuted }}
+                      >
+                        {rawDesc}
+                      </p>
+                    )}
+                  </div>
+                );
+              })()}
+
+              {/* HEADING TYPE vs QUESTION TYPE */}
+              {isHeading ? (
+                <div className="mb-6 text-left">
+                  <h2
+                    className="font-heading text-xl sm:text-2xl md:text-3xl font-bold tracking-tight"
+                    style={{ color: theme.colors.cardText }}
+                  >
+                    {currentItem.question.label || "Untitled Section"}
+                  </h2>
+                  {currentItem.question.description && (
+                    <p
+                      className="mt-2 text-sm sm:text-base leading-relaxed font-normal"
+                      style={{ color: theme.colors.cardMuted }}
+                    >
+                      {currentItem.question.description}
+                    </p>
+                  )}
+                </div>
+              ) : (
+                <div className="mb-4 text-left">
+                  {/* Question Title */}
+                  <h2
+                    className="font-heading text-xl sm:text-2xl md:text-3xl font-semibold tracking-tight leading-snug flex items-start gap-3"
+                    style={{ color: theme.colors.cardText }}
+                  >
+                    <span
+                      className="font-mono text-base sm:text-lg pt-0.5 shrink-0 font-semibold select-none"
+                      style={{ color: theme.colors.primary }}
+                    >
+                      {currentIndex + 1} ➔
+                    </span>
+                    <span>
+                      {currentItem.question.label || "Untitled Question"}
+                      {currentItem.question.required && (
+                        <span className="ml-1 text-destructive font-bold" title="Required">
+                          *
+                        </span>
+                      )}
+                    </span>
+                  </h2>
+
+                  {/* Question Description */}
+                  {currentItem.question.description && (
+                    <p
+                      className="mt-1.5 text-sm sm:text-base pl-7 leading-relaxed font-normal"
+                      style={{ color: theme.colors.cardMuted }}
+                    >
+                      {currentItem.question.description}
+                    </p>
+                  )}
+                </div>
+              )}
+
+              {/* Input Component (null for headings) */}
+              {!isHeading && (
+                <div className="mt-6 sm:mt-7 pl-0 sm:pl-7">
+                  <TypeformInput
+                    key={currentItem.question.id}
+                    question={currentItem.question}
+                    theme={theme}
+                    value={answers[currentItem.question.id]}
+                    onChange={handleAnswerChange}
+                    onSubmit={(val) => handleNext(val)}
+                    hasError={Boolean(currentError)}
+                    isDark={isDark}
+                  />
+
+                  {/* Validation Error Message */}
+                  {currentError && (
+                    <div
+                      className="mt-3 flex items-center gap-2 rounded-lg border border-destructive/30 bg-destructive/10 px-3 py-2 text-xs sm:text-sm font-medium text-destructive"
+                      role="alert"
+                    >
+                      <AlertCircle className="size-4 shrink-0" />
+                      <span>{currentError}</span>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* ── Action Row (Directly below input, clean & natural) ── */}
+              <div className="mt-7 sm:mt-8 flex items-center gap-4 pl-0 sm:pl-7">
+                <Button
+                  onClick={() => handleNext()}
+                  size="default"
+                  className="font-medium text-sm sm:text-base px-5 h-10 shadow-xs rounded-xl cursor-pointer transition-all duration-150 hover:opacity-90 active:scale-[0.98] flex items-center gap-2"
+                  style={{
+                    backgroundColor: theme.colors.primary,
+                    color: theme.colors.primaryForeground,
+                  }}
+                  id="typeform-next-btn"
+                >
+                  <span>
+                    {isHeading
+                      ? "Continue"
+                      : isLastQuestion
+                        ? "Submit Form"
+                        : "Next"}
+                  </span>
+                  <ArrowRight className="size-4" />
+                </Button>
+
+                <div
+                  className="flex items-center gap-1.5 text-xs select-none"
+                  style={{ color: theme.colors.cardMuted }}
+                >
+                  <span>press</span>
+                  {isMultiline ? (
+                    <span className="flex items-center gap-1">
+                      <Kbd className="text-[10px] px-1.5 py-0.5">Ctrl</Kbd>
+                      <span>+</span>
+                      <Kbd className="text-[10px] px-1.5 py-0.5">Enter</Kbd>
+                    </span>
+                  ) : (
+                    <Kbd className="text-[10px] px-1.5 py-0.5">Enter ↵</Kbd>
+                  )}
+                </div>
+              </div>
+            </div>)}
+
         </div>
       </main>
 
@@ -809,7 +889,7 @@ export function FormViewer({ form, isPreview = false }: FormViewerProps) {
           variant="ghost"
           size="icon-sm"
           onClick={handlePrevious}
-          disabled={currentIndex === 0}
+          disabled={isWelcomeScreen}
           className="size-8 rounded-lg cursor-pointer transition-colors disabled:opacity-25 disabled:pointer-events-none hover:bg-black/5 dark:hover:bg-white/10 flex items-center justify-center p-0"
           style={{ color: theme.colors.cardText }}
           aria-label="Previous question"
@@ -829,8 +909,14 @@ export function FormViewer({ form, isPreview = false }: FormViewerProps) {
         <Button
           variant="ghost"
           size="icon-sm"
-          onClick={() => handleNext()}
-          disabled={currentIndex === totalQuestions - 1}
+          onClick={() => {
+            if (isWelcomeScreen) {
+              setIsWelcomeScreen(false);
+            } else {
+              handleNext();
+            }
+          }}
+          disabled={!isWelcomeScreen && currentIndex === totalQuestions - 1}
           className="size-8 rounded-lg cursor-pointer transition-colors disabled:opacity-25 disabled:pointer-events-none hover:bg-black/5 dark:hover:bg-white/10 flex items-center justify-center p-0"
           style={{ color: theme.colors.cardText }}
           aria-label="Next question"

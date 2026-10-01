@@ -25,6 +25,7 @@ export const submitResponseSchema = z.object({
     z.array(answerItemSchema),
     z.record(z.string(), z.unknown()),
   ]),
+  sessionId: z.string().optional(),
 });
 
 export type SubmitResponseInput = z.infer<typeof submitResponseSchema>;

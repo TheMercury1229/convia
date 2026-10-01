@@ -12,7 +12,6 @@ export const metadata = {
 export default function ProfilePage() {
   return (
     <div className="w-full max-w-5xl mx-auto space-y-6">
-      {/* Reusable Extracted Heading Component */}
       <PageHeading
         title="Account Settings"
         description="Manage your personal details, security credentials, and active sessions."

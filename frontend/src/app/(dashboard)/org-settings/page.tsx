@@ -67,7 +67,6 @@ export default function OrgSettingsPage() {
 
   return (
     <div className="w-full max-w-5xl mx-auto space-y-6">
-      {/* Reusable Extracted Page Heading Component */}
       <PageHeading
         title="Organisation Settings"
         description="Manage your organisation profile, members, and access roles."

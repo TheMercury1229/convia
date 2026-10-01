@@ -1,6 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
+import { useQueryClient } from "@tanstack/react-query";
 import { LogOut, User as UserIcon } from "lucide-react";
 import { authClient } from "@/lib/auth-client";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -16,6 +17,7 @@ import {
 
 export function UserButton() {
   const router = useRouter();
+  const queryClient = useQueryClient();
   const { data: session } = authClient.useSession();
   const user = session?.user;
 
@@ -29,6 +31,7 @@ export function UserButton() {
     : "?";
 
   const handleSignOut = async () => {
+    queryClient.clear();
     await authClient.signOut();
     router.push("/sign-in");
   };

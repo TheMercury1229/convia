@@ -8,6 +8,7 @@ export interface AnswerItemInput {
 
 export interface SubmitResponsePayload {
   answers: AnswerItemInput[] | Record<string, unknown>;
+  sessionId?: string;
 }
 
 export interface AnswerRecord {

@@ -77,6 +77,7 @@ interface OrgMembersTabProps {
 export function OrgMembersTab({ activeOrg }: OrgMembersTabProps) {
   const router = useRouter()
   const { data: session } = authClient.useSession()
+  const { refetch: refetchActiveOrg } = authClient.useActiveOrganization()
 
   const [searchQuery, setSearchQuery] = React.useState("")
   const [roleFilter, setRoleFilter] = React.useState<string>("all")
@@ -173,6 +174,7 @@ export function OrgMembersTab({ activeOrg }: OrgMembersTabProps) {
       }
 
       toast.success(`Role updated to ${newRole}`)
+      await refetchActiveOrg?.()
       router.refresh()
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : "Failed to update role"
@@ -201,6 +203,7 @@ export function OrgMembersTab({ activeOrg }: OrgMembersTabProps) {
         `${memberToRemove.user?.name || memberToRemove.user?.email || "Member"} removed`
       )
       setMemberToRemove(null)
+      await refetchActiveOrg?.()
       router.refresh()
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : "Failed to remove member"
@@ -225,6 +228,7 @@ export function OrgMembersTab({ activeOrg }: OrgMembersTabProps) {
       // Immediately remove from UI list so it is no longer listed
       setInvitationsList((prev) => prev.filter((inv) => inv.id !== invitationId))
       toast.success("Invitation revoked successfully")
+      await refetchActiveOrg?.()
       router.refresh()
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : "Failed to cancel invitation"
