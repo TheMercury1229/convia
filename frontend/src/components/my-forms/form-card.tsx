@@ -12,6 +12,7 @@ import {
   Clock,
   Pencil,
   Eye,
+  BarChart3,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -86,6 +87,12 @@ export function FormCard({ form }: FormCardProps) {
                 <Link href={`/builder/${form.id}?mode=edit`}>
                   <Pencil className="h-4 w-4 mr-2" />
                   Edit Form
+                </Link>
+              </DropdownMenuItem>
+              <DropdownMenuItem asChild>
+                <Link href={`/responses/${form.id}`}>
+                  <BarChart3 className="h-4 w-4 mr-2" />
+                  View Responses
                 </Link>
               </DropdownMenuItem>
               <DropdownMenuItem asChild>

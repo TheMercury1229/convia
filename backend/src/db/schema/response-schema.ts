@@ -19,7 +19,6 @@ export const response = pgTable(
     formId: text("form_id")
       .notNull()
       .references(() => form.id, { onDelete: "cascade" }),
-    // No respondent identity � form filling is anonymous and public
     submittedAt: timestamp("submitted_at").defaultNow().notNull(),
   },
   (table) => [index("response_formId_idx").on(table.formId)],
@@ -39,9 +38,7 @@ export const answer = pgTable(
     questionId: text("question_id")
       .notNull()
       .references(() => question.id, { onDelete: "cascade" }),
-    // Denormalized from question  avoids joins during AI analysis and CSV export
     fieldName: text("field_name").notNull(),
-    // JSON  handles all value types: string, number, boolean, array (multi-select)
     value: json("value"),
     createdAt: timestamp("created_at").defaultNow().notNull(),
   },

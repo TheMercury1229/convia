@@ -1,4 +1,4 @@
-﻿import { randomUUID } from "crypto";
+import { randomUUID } from "crypto";
 import { ApiError } from "../../utils/api-error";
 import { generateSlug, makeSlugUnique } from "../../utils/slug";
 import type { CreateFormInput, UpdateFormInput } from "./form.schema";

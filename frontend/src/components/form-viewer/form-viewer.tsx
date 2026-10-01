@@ -22,6 +22,7 @@ import { validateQuestionAnswer } from "@/lib/validations/question-validator";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Kbd } from "@/components/ui/kbd";
+import { submitResponse } from "@/lib/api/responses";
 
 interface FormViewerProps {
   form: FormWithSections;
@@ -168,13 +169,30 @@ export function FormViewer({ form, isPreview = false }: FormViewerProps) {
     currentItem?.question.type === "textarea" || currentItem?.question.type === "paragraph";
 
   // Submission trigger with smooth animation timing
-  const startSubmission = () => {
+  const startSubmission = async () => {
     setIsSubmitting(true);
 
-    setTimeout(() => {
+    if (isPreview) {
+      setTimeout(() => {
+        setIsSubmitting(false);
+        setIsCompleted(true);
+      }, 1200);
+      return;
+    }
+
+    try {
+      const answersPayload = Object.entries(answersRef.current).map(([questionId, value]) => ({
+        questionId,
+        value,
+      }));
+
+      await submitResponse(form.id, { answers: answersPayload });
       setIsSubmitting(false);
       setIsCompleted(true);
-    }, 1600);
+    } catch (err: any) {
+      setIsSubmitting(false);
+      triggerShake(err?.message || "Failed to submit response. Please try again.");
+    }
   };
 
   // Helper to trigger gentle shake animation on validation error
@@ -387,8 +405,8 @@ export function FormViewer({ form, isPreview = false }: FormViewerProps) {
             {isPreview
               ? "You have completed all questions in preview mode."
               : form.title
-              ? `Your response for "${form.title}" has been recorded.`
-              : "Your response has been recorded."}
+                ? `Your response for "${form.title}" has been recorded.`
+                : "Your response has been recorded."}
           </p>
 
           {/* Primary Action Button */}
@@ -737,8 +755,8 @@ export function FormViewer({ form, isPreview = false }: FormViewerProps) {
                   {isHeading
                     ? "Continue"
                     : isLastQuestion
-                    ? "Submit Form"
-                    : "Next"}
+                      ? "Submit Form"
+                      : "Next"}
                 </span>
                 <ArrowRight className="size-4" />
               </Button>

@@ -6,6 +6,7 @@ import { usePathname } from "next/navigation";
 import {
   Home,
   FileText,
+  Inbox,
   User,
   Settings2,
 } from "lucide-react";
@@ -33,6 +34,7 @@ import { authClient } from "@/lib/auth-client";
 const mainNavItems = [
   { title: "Home", href: "/home", icon: Home },
   { title: "My Forms", href: "/my-forms", icon: FileText },
+  { title: "Responses", href: "/responses", icon: Inbox },
   { title: "Profile", href: "/profile", icon: User },
 ];
 
