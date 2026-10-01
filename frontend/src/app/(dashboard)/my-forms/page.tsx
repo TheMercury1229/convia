@@ -16,30 +16,7 @@ import { FormCard } from "@/components/my-forms/form-card";
 import { CreateFormDialog } from "@/components/my-forms/create-form-dialog";
 import { PageHeading } from "@/components/dashboard/page-heading";
 import { useForms } from "@/hooks/use-forms";
-import { useAllOrgResponses } from "@/hooks/use-responses";
-
-// ---------------------------------------------------------------------------
-// Empty state
-// ---------------------------------------------------------------------------
-function EmptyState({ onCreateClick }: { onCreateClick: () => void }) {
-  return (
-    <div className="col-span-3 flex flex-col items-center justify-center py-20 text-center gap-4">
-      <div className="rounded-full bg-muted p-5">
-        <FileText className="h-8 w-8 text-muted-foreground" />
-      </div>
-      <div>
-        <p className="font-semibold text-base">No forms yet</p>
-        <p className="text-sm text-muted-foreground mt-1">
-          Create your first form to start collecting responses.
-        </p>
-      </div>
-      <Button onClick={onCreateClick} size="sm">
-        <Plus className="h-4 w-4 mr-1.5" />
-        Create a form
-      </Button>
-    </div>
-  );
-}
+import { EmptyState } from "@/components/dashboard/empty-state";
 
 // ---------------------------------------------------------------------------
 // Create card (first slot in the grid)
@@ -103,15 +80,6 @@ export default function MyFormsPage() {
   const [filter, setFilter] = useState<"all" | "published" | "draft" | "closed">("all");
 
   const { data: forms, isLoading, isError, error } = useForms();
-  const { data: responsesData } = useAllOrgResponses();
-
-  const responseCounts = useMemo(() => {
-    const map: Record<string, number> = {};
-    (responsesData?.responses || []).forEach((r) => {
-      map[r.formId] = (map[r.formId] || 0) + 1;
-    });
-    return map;
-  }, [responsesData]);
 
   // Client-side filtering
   const filtered = useMemo(() => {
@@ -227,7 +195,13 @@ export default function MyFormsPage() {
           <>
             {/* Case 1: Org has no forms at all → full empty state, no create card */}
             {forms?.length === 0 ? (
-              <EmptyState onCreateClick={() => setDialogOpen(true)} />
+              <EmptyState
+                icon={FileText}
+                title="No forms yet"
+                description="Create your first form to start collecting responses."
+                actionLabel="Create a form"
+                onAction={() => setDialogOpen(true)}
+              />
             ) : (
               <>
                 {/* Case 2 & 3: Org has forms → always show the create card first */}
@@ -244,7 +218,6 @@ export default function MyFormsPage() {
                     <FormCard
                       key={form.id}
                       form={form}
-                      responseCount={responseCounts[form.id] ?? 0}
                     />
                   ))
                 )}

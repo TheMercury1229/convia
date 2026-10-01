@@ -32,6 +32,7 @@ import { AnalyticsDropoffFunnel } from "./analytics-dropoff-funnel";
 import { AnalyticsQuestionInsights } from "./analytics-question-insights";
 import { AnalyticsActivityHeatmap } from "./analytics-activity-heatmap";
 import type { FormAnalyticsData, OrgFormAnalyticsSummary } from "@/lib/api/analytics";
+import { EmptyState } from "@/components/dashboard/empty-state";
 
 interface AnalyticsViewProps {
   forms: OrgFormAnalyticsSummary[];
@@ -57,19 +58,13 @@ export function AnalyticsView({
   // If org has zero forms
   if (forms.length === 0) {
     return (
-      <div className="flex flex-col items-center justify-center min-h-[50vh] text-center p-8 border border-dashed rounded-3xl bg-muted/20">
-        <div className="size-14 rounded-2xl bg-primary/10 border border-primary/20 flex items-center justify-center text-primary mb-4">
-          <BarChart2 className="size-7" />
-        </div>
-        <h2 className="text-xl font-bold text-foreground">No forms found</h2>
-        <p className="text-sm text-muted-foreground max-w-sm mt-1 mb-6">
-          Create your first form to start collecting responses and unlock visitor
-          telemetry, drop-off funnels, and answer insights.
-        </p>
-        <Button asChild>
-          <Link href="/my-forms">Create a Form</Link>
-        </Button>
-      </div>
+      <EmptyState
+        icon={BarChart2}
+        title="No forms yet"
+        description="Create your first form to start collecting responses and unlock analytics."
+        actionLabel="Create a form"
+        actionHref="/my-forms"
+      />
     );
   }
 

@@ -50,6 +50,7 @@ import {
 
 import type { Form, ApiQuestion } from "@/lib/api/forms";
 import type { OrgResponseItem, OrgResponseMetrics } from "@/lib/api/responses";
+import { getResponseDisplayName } from "@/lib/response-utils";
 import { useForm } from "@/hooks/use-forms";
 import { ResponseDetailDialog } from "./response-detail-dialog";
 import { PageHeading } from "@/components/dashboard/page-heading";
@@ -108,21 +109,6 @@ export function AllResponsesView({
     }
   };
 
-  // Helper to extract respondent display name
-  const getDisplayName = (item: OrgResponseItem) => {
-    const firstAnswer = item.answers?.find(
-      (a) => a.value && typeof a.value === "string" && a.value.trim().length > 0
-    )?.value as string | undefined;
-
-    const emailAnswer = item.answers?.find(
-      (a) =>
-        a.fieldName.toLowerCase().includes("email") ||
-        (typeof a.value === "string" && a.value.includes("@"))
-    )?.value as string | undefined;
-
-    return emailAnswer || firstAnswer || "Anonymous Respondent";
-  };
-
   // Filter responses by search, form, and status
   const filteredResponses = React.useMemo(() => {
     return responses.filter((item) => {
@@ -140,7 +126,7 @@ export function AllResponsesView({
       if (searchQuery.trim()) {
         const q = searchQuery.toLowerCase();
         const matchesForm = item.formTitle?.toLowerCase().includes(q);
-        const matchesDisplayName = getDisplayName(item).toLowerCase();
+        const matchesDisplayName = getResponseDisplayName(item).toLowerCase();
         const matchesAnswers = (item.answers || []).some(
           (a) =>
             a.fieldName.toLowerCase().includes(q) ||
@@ -160,7 +146,7 @@ export function AllResponsesView({
       if (sortColumn === "formTitle") {
         comparison = (a.formTitle || "").localeCompare(b.formTitle || "");
       } else if (sortColumn === "respondent") {
-        comparison = getDisplayName(a).localeCompare(getDisplayName(b));
+        comparison = getResponseDisplayName(a).localeCompare(getResponseDisplayName(b));
       } else if (sortColumn === "completion") {
         comparison = (a.completionRate ?? 0) - (b.completionRate ?? 0);
       } else if (sortColumn === "submittedAt") {
@@ -358,7 +344,7 @@ export function AllResponsesView({
                   const submittedDate = item.submittedAt
                     ? new Date(item.submittedAt)
                     : new Date();
-                  const displayName = getDisplayName(item);
+                  const displayName = getResponseDisplayName(item);
 
                   return (
                     <TableRow

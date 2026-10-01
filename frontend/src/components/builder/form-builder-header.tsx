@@ -11,12 +11,10 @@ import {
   Save,
   Settings2,
   Share2,
-  Sparkles,
   Globe,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import {
   Tooltip,
   TooltipContent,
@@ -33,12 +31,8 @@ import { useTogglePublish } from "@/hooks/use-forms";
 interface FormBuilderHeaderProps {
   /** Back-navigation href. Defaults to /my-forms. */
   backHref?: string;
-  /** Real form title from the API. Falls back to "Untitled Form". */
-  title?: string;
   /** Autosave indicator state. Defaults to "saved". */
   saveState?: "saved" | "saving" | "unsaved";
-  /** Builder mode: "create" | "edit" */
-  mode?: "create" | "edit";
   /** Called when the user clicks Save or triggers Ctrl+S. */
   onSave?: () => void;
 }
@@ -47,7 +41,7 @@ interface FormBuilderHeaderProps {
 // Inline-editable title
 // ---------------------------------------------------------------------------
 
-function EditableTitle({ initialTitle = "Untitled Form" }: { initialTitle?: string }) {
+function EditableTitle() {
   // The store is the single source of truth for the form title.
   // Local state is used only while the input is open (the in-progress draft).
   const { form, updateForm } = useBuilderStore();
@@ -161,9 +155,7 @@ function SaveIndicator({ state }: { state: SaveState }) {
 
 export function FormBuilderHeader({
   backHref = "/my-forms",
-  title,
   saveState = "saved",
-  mode = "edit",
   onSave,
 }: FormBuilderHeaderProps) {
   const [shareOpen, setShareOpen] = React.useState(false);
@@ -224,7 +216,7 @@ export function FormBuilderHeader({
         />
 
         {/* Editable title */}
-        <EditableTitle initialTitle={title} />
+        <EditableTitle />
 
         {/* Autosave indicator */}
         <SaveIndicator state={saveState} />
@@ -262,23 +254,6 @@ export function FormBuilderHeader({
       {/* RIGHT — action buttons                                               */}
       {/* ------------------------------------------------------------------ */}
       <div className="flex items-center gap-1">
-        {/* AI */}
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <Button
-              variant="ghost"
-              size="sm"
-              id="builder-ai-btn"
-              className="gap-1.5 text-muted-foreground hover:text-foreground"
-              aria-label="AI assistant"
-            >
-              <Sparkles className="h-3.5 w-3.5" />
-              <span className="hidden sm:inline font-medium">AI</span>
-            </Button>
-          </TooltipTrigger>
-          <TooltipContent side="bottom">AI Assistant</TooltipContent>
-        </Tooltip>
-
         {/* Divider */}
         <div
           className="mx-0.5 h-4 w-px shrink-0 bg-border/70"

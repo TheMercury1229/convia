@@ -10,39 +10,28 @@ import { response, answer } from "../../db/schema/response-schema";
 // ---------------------------------------------------------------------------
 
 export const recordFormView = async (formId: string, sessionId: string) => {
-  const id = randomUUID();
-  try {
-    await db
-      .insert(formView)
-      .values({
-        id,
-        formId,
-        sessionId,
-        viewedAt: new Date(),
-      })
-      .onConflictDoNothing();
-  } catch (error) {
-    // Gracefully ignore duplicate key collisions
-    console.warn("recordFormView duplicate or error:", error);
-  }
+  await db
+    .insert(formView)
+    .values({
+      id: randomUUID(),
+      formId,
+      sessionId,
+      viewedAt: new Date(),
+    })
+    .onConflictDoNothing();
 };
 
 export const startFormSession = async (formId: string, sessionId: string) => {
-  const id = randomUUID();
-  try {
-    await db
-      .insert(formSession)
-      .values({
-        id,
-        formId,
-        sessionId,
-        startedAt: new Date(),
-        lastQuestionIndex: 0,
-      })
-      .onConflictDoNothing();
-  } catch (error) {
-    console.warn("startFormSession duplicate or error:", error);
-  }
+  await db
+    .insert(formSession)
+    .values({
+      id: randomUUID(),
+      formId,
+      sessionId,
+      startedAt: new Date(),
+      lastQuestionIndex: 0,
+    })
+    .onConflictDoNothing();
 };
 
 export const updateFormSessionProgress = async (
@@ -56,10 +45,7 @@ export const updateFormSessionProgress = async (
       lastQuestionIndex: sql`GREATEST(${formSession.lastQuestionIndex}, ${lastQuestionIndex})`,
     })
     .where(
-      and(
-        eq(formSession.formId, formId),
-        eq(formSession.sessionId, sessionId),
-      ),
+      and(eq(formSession.formId, formId), eq(formSession.sessionId, sessionId)),
     );
 };
 
@@ -79,10 +65,7 @@ export const completeFormSession = async (
     .update(formSession)
     .set(updateValues)
     .where(
-      and(
-        eq(formSession.formId, formId),
-        eq(formSession.sessionId, sessionId),
-      ),
+      and(eq(formSession.formId, formId), eq(formSession.sessionId, sessionId)),
     );
 };
 

@@ -37,7 +37,9 @@ export const getPublicForm = async (slug: string) => {
   }
 
   if (formData.deadline && new Date() > formData.deadline) {
-    throw ApiError.forbidden("This form is no longer accepting responses — deadline has passed");
+    throw ApiError.forbidden(
+      "This form is no longer accepting responses — deadline has passed",
+    );
   }
 
   return formData;
@@ -99,11 +101,16 @@ export const updateForm = async (
   if (input.slug && input.slug !== existing.slug) {
     const slugTaken = await formRepo.findFormBySlug(input.slug, orgId);
     if (slugTaken) {
-      throw ApiError.conflict("A form with this slug already exists in your organisation");
+      throw ApiError.conflict(
+        "A form with this slug already exists in your organisation",
+      );
     }
   }
 
-  const updated = await formRepo.updateFormById(id, { ...input, updatedBy: userId });
+  const updated = await formRepo.updateFormById(id, {
+    ...input,
+    updatedBy: userId,
+  });
   if (!updated) throw ApiError.notFound("Form not found");
   return updated;
 };
@@ -147,33 +154,25 @@ export const duplicateForm = async (
 
   const newFormId = randomUUID();
 
-  const newForm = await formRepo.insertForm({
-    id: newFormId,
-    title: `${original.title} (Copy)`,
-    description: original.description ?? undefined,
-    slug: newSlug,
-    orgId,
-    themeId: original.themeId ?? undefined,
-    deadline: original.deadline?.toISOString() ?? undefined,
-    updatedBy: userId,
-  });
-
-  // Duplicate sections and their questions
-  for (const sec of original.sections) {
-    const newSectionId = randomUUID();
-    await formRepo.insertSection({
-      id: newSectionId,
-      formId: newFormId,
+  return formRepo.duplicateFormGraph({
+    form: {
+      id: newFormId,
+      title: `${original.title} (Copy)`,
+      description: original.description,
+      slug: newSlug,
+      orgId,
+      themeId: original.themeId,
+      isPublished: false,
+      deadline: original.deadline,
+      updatedBy: userId ?? null,
+    },
+    sections: original.sections.map((sec) => ({
+      id: randomUUID(),
       title: sec.title ?? undefined,
       description: sec.description ?? undefined,
       position: sec.position,
-    });
-
-    for (const q of sec.questions) {
-      await formRepo.insertQuestion({
+      questions: sec.questions.map((q) => ({
         id: randomUUID(),
-        sectionId: newSectionId,
-        formId: newFormId,
         fieldName: q.fieldName,
         label: q.label,
         description: q.description ?? undefined,
@@ -183,11 +182,9 @@ export const duplicateForm = async (
         position: q.position,
         options: q.options ?? undefined,
         validation: q.validation ?? undefined,
-      });
-    }
-  }
-
-  return newForm;
+      })),
+    })),
+  });
 };
 
 // ---------------------------------------------------------------------------

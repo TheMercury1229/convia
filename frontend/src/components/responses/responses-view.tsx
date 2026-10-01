@@ -67,6 +67,7 @@ import {
 
 import type { FormWithSections, ApiQuestion } from "@/lib/api/forms";
 import type { FormResponse } from "@/lib/api/responses";
+import { getResponseCompletionRate, getResponseDisplayName, isAnswered } from "@/lib/response-utils";
 import { ResponseDetailDialog } from "./response-detail-dialog";
 import { toast } from "sonner";
 
@@ -108,26 +109,7 @@ export function ResponsesView({
     return (form.sections || []).flatMap((s) => s.questions || []).filter((q) => q.type !== "heading");
   }, [form.sections]);
 
-  const totalAnswerable = allQuestions.length || 1;
-
-  // Reliable helper to resolve completion rate for any response (uses backend value, with client-side fallback)
-  const getResponseCompletionRate = React.useCallback(
-    (r: FormResponse) => {
-      if (typeof r.completionRate === "number") {
-        return r.completionRate;
-      }
-      if (allQuestions.length === 0) return 100;
-      const answered = (r.answers || []).filter(
-        (a) =>
-          a.value !== null &&
-          a.value !== undefined &&
-          a.value !== "" &&
-          !(Array.isArray(a.value) && a.value.length === 0)
-      ).length;
-      return Math.min(100, Math.round((answered / allQuestions.length) * 100));
-    },
-    [allQuestions.length]
-  );
+  const totalAnswerable = allQuestions.length;
 
   // Derived metrics for summary cards
   const stats = React.useMemo(() => {
@@ -143,7 +125,9 @@ export function ResponsesView({
       };
     }
 
-    const completedCount = responses.filter((r) => getResponseCompletionRate(r) >= 100).length;
+    const completedCount = responses.filter(
+      (r) => getResponseCompletionRate(r, totalAnswerable) >= 100,
+    ).length;
     const partialCount = total - completedCount;
     const completionRate = Math.round((completedCount / total) * 100);
 
@@ -163,7 +147,7 @@ export function ResponsesView({
       avgCompletionTime: "2m 14s",
       lastSubmission,
     };
-  }, [responses, getResponseCompletionRate]);
+  }, [responses, totalAnswerable]);
 
   // Handle in-column header sort toggle
   const handleSort = (column: SortColumn) => {
@@ -182,7 +166,7 @@ export function ResponsesView({
   const filteredResponses = React.useMemo(() => {
     return responses
       .filter((r) => {
-        const isComp = getResponseCompletionRate(r) >= 100;
+        const isComp = getResponseCompletionRate(r, totalAnswerable) >= 100;
         if (statusFilter === "completed" && !isComp) return false;
         if (statusFilter === "partial" && isComp) return false;
 
@@ -206,7 +190,9 @@ export function ResponsesView({
         if (sortColumn === "submittedAt") {
           diff = new Date(a.submittedAt).getTime() - new Date(b.submittedAt).getTime();
         } else if (sortColumn === "completion") {
-          diff = getResponseCompletionRate(a) - getResponseCompletionRate(b);
+          diff =
+            getResponseCompletionRate(a, totalAnswerable) -
+            getResponseCompletionRate(b, totalAnswerable);
         } else if (sortColumn === "respondent") {
           const nameA = a.answers?.find((ans) => ans.value && typeof ans.value === "string")?.value as string || "";
           const nameB = b.answers?.find((ans) => ans.value && typeof ans.value === "string")?.value as string || "";
@@ -216,7 +202,7 @@ export function ResponsesView({
         }
         return sortDirection === "asc" ? diff : -diff;
       });
-  }, [responses, statusFilter, searchQuery, sortColumn, sortDirection]);
+  }, [responses, statusFilter, searchQuery, sortColumn, sortDirection, totalAnswerable]);
 
   // Pagination calculation
   const totalPages = Math.max(1, Math.ceil(filteredResponses.length / pageSize));
@@ -563,29 +549,15 @@ export function ResponsesView({
               ) : (
                 paginatedResponses.map((item, idx) => {
                   const globalIndex = (currentPage - 1) * pageSize + idx;
-                  const rate = getResponseCompletionRate(item);
+                  const rate = getResponseCompletionRate(item, totalAnswerable);
                   const isCompleted = rate >= 100;
                   const submittedDate = item.submittedAt
                     ? new Date(item.submittedAt)
                     : new Date();
 
-                  const firstAnswer = item.answers?.find(
-                    (a) => a.value && typeof a.value === "string" && a.value.trim().length > 0
-                  )?.value as string | undefined;
-
-                  const emailAnswer = item.answers?.find(
-                    (a) =>
-                      a.fieldName.toLowerCase().includes("email") ||
-                      (typeof a.value === "string" && a.value.includes("@"))
-                  )?.value as string | undefined;
-
-                  const displayName = emailAnswer || firstAnswer || "Anonymous Respondent";
+                  const displayName = getResponseDisplayName(item);
                   const answeredCount = item.answers?.filter(
-                    (a) =>
-                      a.value !== null &&
-                      a.value !== undefined &&
-                      a.value !== "" &&
-                      !(Array.isArray(a.value) && a.value.length === 0)
+                    (a) => isAnswered(a.value),
                   ).length ?? 0;
 
                   return (

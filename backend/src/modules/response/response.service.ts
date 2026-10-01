@@ -4,12 +4,19 @@ import type { SubmitResponseInput } from "./response.schema";
 import * as responseRepo from "./response.repository";
 import * as formRepo from "../form/form.repository";
 import * as analyticsRepo from "../analytics/analytics.repository";
+import {
+  calculateCompletionRate,
+  isAnsweredValue,
+} from "./response-calculations";
 
 // ---------------------------------------------------------------------------
 // Submit a response to a form (public — no auth)
 // ---------------------------------------------------------------------------
 
-export const submitResponse = async (formId: string, input: SubmitResponseInput) => {
+export const submitResponse = async (
+  formId: string,
+  input: SubmitResponseInput,
+) => {
   // 1. Fetch the form — must exist, be published, and be within deadline
   const formData = await formRepo.findFormById(formId);
   if (!formData) throw ApiError.notFound("Form not found");
@@ -29,7 +36,8 @@ export const submitResponse = async (formId: string, input: SubmitResponseInput)
   const questionMap = new Map(questions.map((q) => [q.id, q]));
 
   // 3. Normalize input.answers whether passed as array or dictionary
-  const rawList: { questionId: string; fieldName?: string; value?: unknown }[] = [];
+  const rawList: { questionId: string; fieldName?: string; value?: unknown }[] =
+    [];
   if (Array.isArray(input.answers)) {
     rawList.push(...input.answers);
   } else if (input.answers && typeof input.answers === "object") {
@@ -40,7 +48,10 @@ export const submitResponse = async (formId: string, input: SubmitResponseInput)
 
   // 4. Create the response record
   const responseId = randomUUID();
-  const newResponse = await responseRepo.insertResponse({ id: responseId, formId });
+  const newResponse = await responseRepo.insertResponse({
+    id: responseId,
+    formId,
+  });
 
   // 5. Prepare answers for insertion with fieldName resolved
   const answersToInsert = rawList.map((item) => {
@@ -62,23 +73,22 @@ export const submitResponse = async (formId: string, input: SubmitResponseInput)
 
   let answeredCount = 0;
   for (const a of answersToInsert) {
-    const isAnswered =
-      a.value !== null &&
-      a.value !== undefined &&
-      a.value !== "" &&
-      !(Array.isArray(a.value) && a.value.length === 0);
-    if (isAnswered) answeredCount++;
+    if (isAnsweredValue(a.value)) answeredCount++;
   }
 
-  const completionRate =
-    totalAnswerable === 0
-      ? 100
-      : Math.min(100, Math.round((answeredCount / totalAnswerable) * 100));
+  const completionRate = calculateCompletionRate(
+    answeredCount,
+    totalAnswerable,
+  );
 
   // 7. If sessionId was passed, mark form session as completed
   if (input.sessionId) {
     try {
-      await analyticsRepo.completeFormSession(formId, input.sessionId, responseId);
+      await analyticsRepo.completeFormSession(
+        formId,
+        input.sessionId,
+        responseId,
+      );
     } catch (err) {
       console.warn("Failed to mark formSession completed:", err);
     }
@@ -119,15 +129,13 @@ export const getFormResponses = async (formId: string, orgId: string) => {
 // Get a single response (org-scoped)
 // ---------------------------------------------------------------------------
 
-export const getResponseById = async (
-  responseId: string,
-  orgId: string,
-) => {
+export const getResponseById = async (responseId: string, orgId: string) => {
   const responseData = await responseRepo.findFullResponseById(responseId);
   if (!responseData) throw ApiError.notFound("Response not found");
 
   const formData = await formRepo.findFormById(responseData.formId);
-  if (!formData || formData.orgId !== orgId) throw ApiError.forbidden("Access denied");
+  if (!formData || formData.orgId !== orgId)
+    throw ApiError.forbidden("Access denied");
 
   return responseData;
 };
@@ -153,7 +161,8 @@ export const deleteResponse = async (responseId: string, orgId: string) => {
   if (!responseData) throw ApiError.notFound("Response not found");
 
   const formData = await formRepo.findFormById(responseData.formId);
-  if (!formData || formData.orgId !== orgId) throw ApiError.forbidden("Access denied");
+  if (!formData || formData.orgId !== orgId)
+    throw ApiError.forbidden("Access denied");
 
   await responseRepo.deleteResponseById(responseId);
 };

@@ -1,5 +1,17 @@
 import axios from "axios";
 
+export class ApiClientError extends Error {
+  readonly status?: number;
+  readonly errors: string[];
+
+  constructor(message: string, status?: number, errors: string[] = []) {
+    super(message);
+    this.name = "ApiClientError";
+    this.status = status;
+    this.errors = errors;
+  }
+}
+
 /**
  * Pre-configured Axios instance that points to the backend.
  * Credentials (cookies / session) are always sent so that
@@ -20,9 +32,13 @@ export const api = axios.create({
 api.interceptors.response.use(
   (response) => response,
   (error) => {
-    // Bubble up a useful error message
     const message =
       error?.response?.data?.message ?? error?.message ?? "Unknown error";
-    return Promise.reject(new Error(message));
+    const errors = Array.isArray(error?.response?.data?.errors)
+      ? error.response.data.errors
+      : [];
+    return Promise.reject(
+      new ApiClientError(message, error?.response?.status, errors),
+    );
   },
 );

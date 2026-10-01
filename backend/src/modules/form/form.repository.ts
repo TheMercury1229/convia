@@ -1,6 +1,7 @@
-import { eq, asc, and } from "drizzle-orm";
+import { eq, asc, and, inArray } from "drizzle-orm";
 import db from "../../db/db";
 import { form, section, question } from "../../db/schema/form-schema";
+import { response } from "../../db/schema/response-schema";
 import type { CreateFormInput, UpdateFormInput } from "./form.schema";
 import type { FormWithSections } from "../../types/index";
 
@@ -9,7 +10,34 @@ import type { FormWithSections } from "../../types/index";
 // ---------------------------------------------------------------------------
 
 export const findAllForms = async (orgId: string) => {
-  return db.select().from(form).where(eq(form.orgId, orgId)).orderBy(asc(form.createdAt));
+  const forms = await db
+    .select()
+    .from(form)
+    .where(eq(form.orgId, orgId))
+    .orderBy(asc(form.createdAt));
+
+  if (forms.length === 0)
+    return forms.map((item) => ({ ...item, responseCount: 0 }));
+
+  const responseCounts = await db
+    .select({ formId: response.formId })
+    .from(response)
+    .where(
+      inArray(
+        response.formId,
+        forms.map((item) => item.id),
+      ),
+    );
+  const counts = new Map<string, number>();
+
+  for (const item of responseCounts) {
+    counts.set(item.formId, (counts.get(item.formId) ?? 0) + 1);
+  }
+
+  return forms.map((item) => ({
+    ...item,
+    responseCount: counts.get(item.id) ?? 0,
+  }));
 };
 
 export const findFormById = async (id: string) => {
@@ -30,7 +58,9 @@ export const findFormBySlug = async (slug: string, orgId?: string) => {
  * section's questions (ordered by position). Used for the builder view
  * and the public form filling view.
  */
-export const findFullFormById = async (id: string): Promise<FormWithSections | null> => {
+export const findFullFormById = async (
+  id: string,
+): Promise<FormWithSections | null> => {
   const formRow = await findFormById(id);
   if (!formRow) return null;
 
@@ -54,7 +84,9 @@ export const findFullFormById = async (id: string): Promise<FormWithSections | n
   return { ...formRow, sections: sectionsWithQuestions };
 };
 
-export const findFullFormBySlug = async (slug: string): Promise<FormWithSections | null> => {
+export const findFullFormBySlug = async (
+  slug: string,
+): Promise<FormWithSections | null> => {
   const formRow = await findFormBySlug(slug);
   if (!formRow) return null;
   return findFullFormById(formRow.id);
@@ -106,7 +138,10 @@ export const insertDefaultSection = async (data: {
   return rows[0];
 };
 
-export const updateFormById = async (id: string, data: UpdateFormInput & { updatedBy?: string }) => {
+export const updateFormById = async (
+  id: string,
+  data: UpdateFormInput & { updatedBy?: string },
+) => {
   const updateData: Partial<typeof form.$inferInsert> = {};
   if (data.title !== undefined) updateData.title = data.title;
   if (data.description !== undefined) updateData.description = data.description;
@@ -165,7 +200,7 @@ export const insertQuestion = async (data: {
   label: string;
   description?: string;
   placeholder?: string;
-  type: typeof question.$inferInsert["type"];
+  type: (typeof question.$inferInsert)["type"];
   isRequired: boolean;
   position: number;
   options?: unknown;
@@ -189,4 +224,61 @@ export const insertQuestion = async (data: {
     })
     .returning();
   return rows[0];
+};
+
+export const duplicateFormGraph = async (data: {
+  form: typeof form.$inferInsert;
+  sections: Array<{
+    id: string;
+    title?: string;
+    description?: string;
+    position: number;
+    questions: Array<{
+      id: string;
+      fieldName: string;
+      label: string;
+      description?: string;
+      placeholder?: string;
+      type: (typeof question.$inferInsert)["type"];
+      isRequired: boolean;
+      position: number;
+      options?: unknown;
+      validation?: unknown;
+    }>;
+  }>;
+}) => {
+  return db.transaction(async (tx) => {
+    const [newForm] = await tx.insert(form).values(data.form).returning();
+
+    for (const sectionData of data.sections) {
+      await tx.insert(section).values({
+        id: sectionData.id,
+        formId: data.form.id,
+        title: sectionData.title ?? null,
+        description: sectionData.description ?? null,
+        position: sectionData.position,
+      });
+
+      if (sectionData.questions.length > 0) {
+        await tx.insert(question).values(
+          sectionData.questions.map((questionData) => ({
+            id: questionData.id,
+            sectionId: sectionData.id,
+            formId: data.form.id,
+            fieldName: questionData.fieldName,
+            label: questionData.label,
+            description: questionData.description ?? null,
+            placeholder: questionData.placeholder ?? null,
+            type: questionData.type,
+            isRequired: questionData.isRequired,
+            position: questionData.position,
+            options: questionData.options ?? null,
+            validation: questionData.validation ?? null,
+          })),
+        );
+      }
+    }
+
+    return newForm;
+  });
 };

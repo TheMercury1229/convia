@@ -5,6 +5,7 @@ import { useState, useEffect } from "react";
 import { useTheme } from "next-themes";
 import { getFormTheme, type FormThemeResolved } from "@/lib/builder-themes";
 import { getTypeLabel } from "@/lib/question-registry";
+import { apiQuestionToClientQuestion } from "@/lib/form-model";
 import type {
   BuilderForm,
   Question,
@@ -113,24 +114,7 @@ function apiToBuilderState(apiForm: FormWithSections): {
   }));
 
   const questions: Question[] = apiForm.sections.flatMap((s) =>
-    s.questions.map((q) => ({
-      id: q.id,
-      sectionId: q.sectionId,
-      type: q.type as QuestionType,
-      fieldName: q.fieldName,
-      // Saved questions always have a committed fieldName — lock it
-      fieldNameLocked: true,
-      label: q.label,
-      description: q.description ?? "",
-      placeholder: q.placeholder ?? "",
-      // Backend uses isRequired; store uses required
-      required: q.isRequired,
-      position: q.position,
-      options: Array.isArray(q.options)
-        ? (q.options as QuestionOption[])
-        : [],
-      validation: (q.validation as QuestionValidation) ?? {},
-    })),
+    s.questions.map((q) => apiQuestionToClientQuestion(q)),
   );
 
   return { form, sections, questions };

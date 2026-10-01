@@ -48,10 +48,9 @@ import { toast } from "sonner";
 
 interface FormCardProps {
   form: Form;
-  responseCount?: number;
 }
 
-export function FormCard({ form, responseCount = 0 }: FormCardProps) {
+export function FormCard({ form }: FormCardProps) {
   const router = useRouter();
   const { mutate: togglePublish, isPending: toggling } = useTogglePublish();
   const { mutate: duplicate, isPending: duplicating } = useDuplicateForm();
@@ -238,7 +237,7 @@ export function FormCard({ form, responseCount = 0 }: FormCardProps) {
           >
             <Inbox className="size-3.5" />
             <span>
-              {responseCount} {responseCount === 1 ? "response" : "responses"}
+              {form.responseCount ?? 0} {form.responseCount === 1 ? "response" : "responses"}
             </span>
           </Link>
 

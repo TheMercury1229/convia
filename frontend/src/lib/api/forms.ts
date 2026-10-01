@@ -12,6 +12,7 @@ export interface Form {
   updatedAt: string;
   orgId: string;
   updatedBy?: string | null;
+  responseCount?: number;
 }
 
 export interface ApiSection {

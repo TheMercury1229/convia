@@ -5,9 +5,7 @@ import { useParams, useSearchParams } from "next/navigation";
 import { useForm, usePublicForm } from "@/hooks/use-forms";
 import { FormViewer } from "@/components/form-viewer/form-viewer";
 import { FormLoadingScreen } from "@/components/form-viewer/form-loading-screen";
-import { AlertCircle, Clock, Lock } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import Link from "next/link";
+import { FormUnavailableState } from "@/components/form-viewer/form-unavailable-state";
 
 function FormPageContent() {
   const params = useParams<{ id: string }>();
@@ -38,41 +36,9 @@ function FormPageContent() {
       errorMessage.toLowerCase().includes("forbidden");
 
     return (
-      <div className="flex min-h-screen flex-col items-center justify-center bg-background p-6 text-center">
-        <div className="w-full max-w-md rounded-2xl border border-border bg-card p-6 sm:p-8 shadow-xs">
-          <div className="mx-auto mb-4 flex size-12 items-center justify-center rounded-xl bg-destructive/10 text-destructive">
-            {isDeadlinePassed ? (
-              <Clock className="size-6" />
-            ) : isForbidden ? (
-              <Lock className="size-6" />
-            ) : (
-              <AlertCircle className="size-6" />
-            )}
-          </div>
-
-          <h1 className="font-heading text-xl sm:text-2xl font-bold tracking-tight text-foreground">
-            {isDeadlinePassed
-              ? "Form Submission Closed"
-              : isForbidden
-              ? "Form Not Available"
-              : "Form Not Found"}
-          </h1>
-
-          <p className="mt-2 text-sm text-muted-foreground leading-relaxed">
-            {isDeadlinePassed
-              ? "The deadline for submitting responses to this form has passed."
-              : isForbidden
-              ? "This form is currently unpublished or not accepting new responses."
-              : "We couldn't locate this form. The link may be incorrect or the form has been removed."}
-          </p>
-
-          <div className="mt-6 flex justify-center gap-3">
-            <Button asChild variant="outline" size="sm">
-              <Link href="/">Back to Home</Link>
-            </Button>
-          </div>
-        </div>
-      </div>
+      <FormUnavailableState
+        reason={isDeadlinePassed ? "closed" : isForbidden ? "unpublished" : "not-found"}
+      />
     );
   }
 

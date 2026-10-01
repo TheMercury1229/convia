@@ -1,5 +1,6 @@
 import { ApiError } from "../../utils/api-error";
 import * as analyticsRepo from "./analytics.repository";
+import { isAnsweredValue } from "../response/response-calculations";
 import type {
   RecordViewInput,
   StartSessionInput,
@@ -8,26 +9,184 @@ import type {
 } from "./analytics.schema";
 
 const STOP_WORDS = new Set([
-  "a", "about", "above", "after", "again", "against", "all", "am", "an", "and",
-  "any", "are", "aren't", "as", "at", "be", "because", "been", "before", "being",
-  "below", "between", "both", "but", "by", "can't", "cannot", "could", "couldn't",
-  "did", "didn't", "do", "does", "doesn't", "doing", "don't", "down", "during",
-  "each", "few", "for", "from", "further", "had", "hadn't", "has", "hasn't",
-  "have", "haven't", "having", "he", "he'd", "he'll", "he's", "her", "here",
-  "here's", "hers", "herself", "him", "himself", "his", "how", "how's", "i",
-  "i'd", "i'll", "i'm", "i've", "if", "in", "into", "is", "isn't", "it", "it's",
-  "its", "itself", "let's", "me", "more", "most", "mustn't", "my", "myself",
-  "no", "nor", "not", "of", "off", "on", "once", "only", "or", "other", "ought",
-  "our", "ours", "ourselves", "out", "over", "own", "same", "shan't", "she",
-  "she'd", "she'll", "she's", "should", "shouldn't", "so", "some", "such",
-  "than", "that", "that's", "the", "their", "theirs", "them", "themselves",
-  "then", "there", "there's", "these", "they", "they'd", "they'll", "they're",
-  "they've", "this", "those", "through", "to", "too", "under", "until", "up",
-  "very", "was", "wasn't", "we", "we'd", "we'll", "we're", "we've", "were",
-  "weren't", "what", "what's", "when", "when's", "where", "where's", "which",
-  "while", "who", "who's", "whom", "why", "why's", "with", "won't", "would",
-  "wouldn't", "you", "you'd", "you'll", "you're", "you've", "your", "yours",
-  "yourself", "yourselves", "n/a", "na", "null", "none",
+  "a",
+  "about",
+  "above",
+  "after",
+  "again",
+  "against",
+  "all",
+  "am",
+  "an",
+  "and",
+  "any",
+  "are",
+  "aren't",
+  "as",
+  "at",
+  "be",
+  "because",
+  "been",
+  "before",
+  "being",
+  "below",
+  "between",
+  "both",
+  "but",
+  "by",
+  "can't",
+  "cannot",
+  "could",
+  "couldn't",
+  "did",
+  "didn't",
+  "do",
+  "does",
+  "doesn't",
+  "doing",
+  "don't",
+  "down",
+  "during",
+  "each",
+  "few",
+  "for",
+  "from",
+  "further",
+  "had",
+  "hadn't",
+  "has",
+  "hasn't",
+  "have",
+  "haven't",
+  "having",
+  "he",
+  "he'd",
+  "he'll",
+  "he's",
+  "her",
+  "here",
+  "here's",
+  "hers",
+  "herself",
+  "him",
+  "himself",
+  "his",
+  "how",
+  "how's",
+  "i",
+  "i'd",
+  "i'll",
+  "i'm",
+  "i've",
+  "if",
+  "in",
+  "into",
+  "is",
+  "isn't",
+  "it",
+  "it's",
+  "its",
+  "itself",
+  "let's",
+  "me",
+  "more",
+  "most",
+  "mustn't",
+  "my",
+  "myself",
+  "no",
+  "nor",
+  "not",
+  "of",
+  "off",
+  "on",
+  "once",
+  "only",
+  "or",
+  "other",
+  "ought",
+  "our",
+  "ours",
+  "ourselves",
+  "out",
+  "over",
+  "own",
+  "same",
+  "shan't",
+  "she",
+  "she'd",
+  "she'll",
+  "she's",
+  "should",
+  "shouldn't",
+  "so",
+  "some",
+  "such",
+  "than",
+  "that",
+  "that's",
+  "the",
+  "their",
+  "theirs",
+  "them",
+  "themselves",
+  "then",
+  "there",
+  "there's",
+  "these",
+  "they",
+  "they'd",
+  "they'll",
+  "they're",
+  "they've",
+  "this",
+  "those",
+  "through",
+  "to",
+  "too",
+  "under",
+  "until",
+  "up",
+  "very",
+  "was",
+  "wasn't",
+  "we",
+  "we'd",
+  "we'll",
+  "we're",
+  "we've",
+  "were",
+  "weren't",
+  "what",
+  "what's",
+  "when",
+  "when's",
+  "where",
+  "where's",
+  "which",
+  "while",
+  "who",
+  "who's",
+  "whom",
+  "why",
+  "why's",
+  "with",
+  "won't",
+  "would",
+  "wouldn't",
+  "you",
+  "you'd",
+  "you'll",
+  "you're",
+  "you've",
+  "your",
+  "yours",
+  "yourself",
+  "yourselves",
+  "n/a",
+  "na",
+  "null",
+  "none",
 ]);
 
 // ---------------------------------------------------------------------------
@@ -41,14 +200,20 @@ export const recordView = async (formId: string, input: RecordViewInput) => {
   return { recorded: true };
 };
 
-export const startSession = async (formId: string, input: StartSessionInput) => {
+export const startSession = async (
+  formId: string,
+  input: StartSessionInput,
+) => {
   const formRow = await analyticsRepo.findFormById(formId);
   if (!formRow) throw ApiError.notFound("Form not found");
   await analyticsRepo.startFormSession(formId, input.sessionId);
   return { started: true };
 };
 
-export const updateSession = async (formId: string, input: UpdateSessionInput) => {
+export const updateSession = async (
+  formId: string,
+  input: UpdateSessionInput,
+) => {
   await analyticsRepo.updateFormSessionProgress(
     formId,
     input.sessionId,
@@ -57,8 +222,15 @@ export const updateSession = async (formId: string, input: UpdateSessionInput) =
   return { updated: true };
 };
 
-export const completeSession = async (formId: string, input: CompleteSessionInput) => {
-  await analyticsRepo.completeFormSession(formId, input.sessionId, input.responseId);
+export const completeSession = async (
+  formId: string,
+  input: CompleteSessionInput,
+) => {
+  await analyticsRepo.completeFormSession(
+    formId,
+    input.sessionId,
+    input.responseId,
+  );
   return { completed: true };
 };
 
@@ -187,7 +359,10 @@ export const getFormAnalytics = async (formIdOrSlug: string, orgId: string) => {
     ).length;
 
     // Adjust reached count to not exceed previous step
-    const effectiveCount = Math.min(previousStepCount, Math.max(reachedCount, totalSubmissions));
+    const effectiveCount = Math.min(
+      previousStepCount,
+      Math.max(reachedCount, totalSubmissions),
+    );
     const stepDrop =
       previousStepCount > 0
         ? Number(
@@ -238,13 +413,9 @@ export const getFormAnalytics = async (formIdOrSlug: string, orgId: string) => {
 
   const questionInsights = answerableQuestions.map((q) => {
     const qAnswers = answersByQuestion.get(q.id) ?? [];
-    
+
     // Count valid answers
-    const validAnswers = qAnswers.filter((a) => {
-      if (a.value === null || a.value === undefined || a.value === "") return false;
-      if (Array.isArray(a.value) && a.value.length === 0) return false;
-      return true;
-    });
+    const validAnswers = qAnswers.filter((a) => isAnsweredValue(a.value));
 
     const totalAnswered = validAnswers.length;
     const totalSkipped = Math.max(0, totalSubmissions - totalAnswered);
@@ -263,14 +434,18 @@ export const getFormAnalytics = async (formIdOrSlug: string, orgId: string) => {
     if (q.options) {
       if (Array.isArray(q.options)) {
         optionLabels = q.options.map((opt) =>
-          typeof opt === "string" ? opt : String((opt as any)?.label ?? (opt as any)?.value ?? opt),
+          typeof opt === "string"
+            ? opt
+            : String((opt as any)?.label ?? (opt as any)?.value ?? opt),
         );
       } else if (typeof q.options === "string") {
         try {
           const parsed = JSON.parse(q.options);
           if (Array.isArray(parsed)) {
             optionLabels = parsed.map((opt) =>
-              typeof opt === "string" ? opt : String(opt?.label ?? opt?.value ?? opt),
+              typeof opt === "string"
+                ? opt
+                : String(opt?.label ?? opt?.value ?? opt),
             );
           }
         } catch {}
@@ -374,7 +549,7 @@ export const getFormAnalytics = async (formIdOrSlug: string, orgId: string) => {
 
       let sum = 0;
       let promoters = 0; // 9-10
-      let passives = 0;  // 7-8
+      let passives = 0; // 7-8
       let detractors = 0; // 0-6
 
       validAnswers.forEach((a) => {

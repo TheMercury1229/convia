@@ -2,18 +2,30 @@ import { eq, count, and, ne, asc, desc } from "drizzle-orm";
 import db from "../../db/db";
 import { response, answer } from "../../db/schema/response-schema";
 import { form, question } from "../../db/schema/form-schema";
+import {
+  calculateCompletionRate,
+  isAnsweredValue,
+} from "./response-calculations";
 
 // ---------------------------------------------------------------------------
 // Queries
 // ---------------------------------------------------------------------------
 
 export const findResponseById = async (id: string) => {
-  const rows = await db.select().from(response).where(eq(response.id, id)).limit(1);
+  const rows = await db
+    .select()
+    .from(response)
+    .where(eq(response.id, id))
+    .limit(1);
   return rows[0] ?? null;
 };
 
 export const findResponsesByFormId = async (formId: string) => {
-  return db.select().from(response).where(eq(response.formId, formId)).orderBy(asc(response.submittedAt));
+  return db
+    .select()
+    .from(response)
+    .where(eq(response.formId, formId))
+    .orderBy(asc(response.submittedAt));
 };
 
 export const findQuestionsByFormId = async (formId: string) => {
@@ -48,23 +60,20 @@ export const findFullResponseById = async (id: string) => {
       isRequired: question.isRequired,
     })
     .from(question)
-    .where(and(eq(question.formId, responseRow.formId), ne(question.type, "heading")));
+    .where(
+      and(
+        eq(question.formId, responseRow.formId),
+        ne(question.type, "heading"),
+      ),
+    );
 
   const totalQuestions = formQuestions.length;
   let answeredCount = 0;
   for (const a of answers) {
-    const isAnswered =
-      a.value !== null &&
-      a.value !== undefined &&
-      a.value !== "" &&
-      !(Array.isArray(a.value) && a.value.length === 0);
-    if (isAnswered) answeredCount++;
+    if (isAnsweredValue(a.value)) answeredCount++;
   }
 
-  const completionRate =
-    totalQuestions === 0
-      ? 100
-      : Math.min(100, Math.round((answeredCount / totalQuestions) * 100));
+  const completionRate = calculateCompletionRate(answeredCount, totalQuestions);
 
   return { ...responseRow, answers, completionRate };
 };
@@ -101,18 +110,13 @@ export const findAllResponsesForForm = async (formId: string) => {
 
       let answeredCount = 0;
       for (const a of answers) {
-        const isAnswered =
-          a.value !== null &&
-          a.value !== undefined &&
-          a.value !== "" &&
-          !(Array.isArray(a.value) && a.value.length === 0);
-        if (isAnswered) answeredCount++;
+        if (isAnsweredValue(a.value)) answeredCount++;
       }
 
-      const completionRate =
-        totalQuestions === 0
-          ? 100
-          : Math.min(100, Math.round((answeredCount / totalQuestions) * 100));
+      const completionRate = calculateCompletionRate(
+        answeredCount,
+        totalQuestions,
+      );
 
       return { ...r, answers, completionRate };
     }),
@@ -191,16 +195,10 @@ export const findAllResponsesForOrg = async (orgId: string) => {
 
       let answeredCount = 0;
       for (const a of answers) {
-        const isAnswered =
-          a.value !== null &&
-          a.value !== undefined &&
-          a.value !== "" &&
-          !(Array.isArray(a.value) && a.value.length === 0);
-        if (isAnswered) answeredCount++;
+        if (isAnsweredValue(a.value)) answeredCount++;
       }
 
-      const completionRate =
-        totalQ === 0 ? 100 : Math.min(100, Math.round((answeredCount / totalQ) * 100));
+      const completionRate = calculateCompletionRate(answeredCount, totalQ);
 
       return {
         ...r,
@@ -247,7 +245,10 @@ export const getOrgResponseMetrics = async (orgId: string) => {
   let averageCompletionRate = 0;
   if (totalResponses > 0) {
     const allOrgResponses = await findAllResponsesForOrg(orgId);
-    const sumRate = allOrgResponses.reduce((acc, r) => acc + (r.completionRate ?? 100), 0);
+    const sumRate = allOrgResponses.reduce(
+      (acc, r) => acc + (r.completionRate ?? 100),
+      0,
+    );
     averageCompletionRate = Math.round(sumRate / totalResponses);
   }
 
@@ -316,13 +317,7 @@ export const getCompletionRate = async (formId: string) => {
   // Group non-empty answers by responseId
   const responseAnswersMap = new Map<string, Set<string>>();
   for (const a of answers) {
-    const isAnswered =
-      a.value !== null &&
-      a.value !== undefined &&
-      a.value !== "" &&
-      !(Array.isArray(a.value) && a.value.length === 0);
-
-    if (isAnswered) {
+    if (isAnsweredValue(a.value)) {
       if (!responseAnswersMap.has(a.responseId)) {
         responseAnswersMap.set(a.responseId, new Set());
       }
@@ -351,11 +346,13 @@ export const getCompletionRate = async (formId: string) => {
       completedResponses++;
     }
 
-    const pct = Math.min(100, Math.round((answeredCount / totalAnswerable) * 100));
+    const pct = calculateCompletionRate(answeredCount, totalAnswerable);
     totalPercentageSum += pct;
   }
 
-  const completionRate = Math.round((completedResponses / totalResponses) * 100);
+  const completionRate = Math.round(
+    (completedResponses / totalResponses) * 100,
+  );
   const averageCompletionRate = Math.round(totalPercentageSum / totalResponses);
 
   return {

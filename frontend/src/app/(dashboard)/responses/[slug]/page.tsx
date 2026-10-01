@@ -7,9 +7,8 @@ import { useForm, useForms } from "@/hooks/use-forms";
 import { useFormResponses } from "@/hooks/use-responses";
 import { ResponsesView } from "@/components/responses/responses-view";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Button } from "@/components/ui/button";
 import { useBreadcrumbStore } from "@/store/breadcrumb-store";
-import { ArrowLeft, FileQuestion } from "lucide-react";
+import { FormUnavailableState } from "@/components/form-viewer/form-unavailable-state";
 
 export default function FormResponsesPage() {
   const params = useParams();
@@ -71,25 +70,7 @@ export default function FormResponsesPage() {
 
   // Not found state if the form doesn't exist
   if (!liveFormData) {
-    return (
-      <div className="flex flex-col items-center justify-center min-h-[50vh] text-center p-6 space-y-4">
-        <div className="size-12 rounded-2xl bg-muted/50 border border-border flex items-center justify-center text-muted-foreground">
-          <FileQuestion className="size-6" />
-        </div>
-        <div className="space-y-1">
-          <h2 className="text-lg font-semibold text-foreground">Form Not Found</h2>
-          <p className="text-sm text-muted-foreground max-w-sm">
-            The requested form could not be found or you may not have permission to view its responses.
-          </p>
-        </div>
-        <Button asChild variant="outline" size="sm" className="gap-2">
-          <Link href="/my-forms">
-            <ArrowLeft className="size-4" />
-            Back to My Forms
-          </Link>
-        </Button>
-      </div>
-    );
+    return <FormUnavailableState dashboard />;
   }
 
   return (

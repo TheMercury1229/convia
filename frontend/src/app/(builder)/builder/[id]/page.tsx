@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { useParams, useSearchParams } from "next/navigation";
+import { useParams } from "next/navigation";
 import { FormBuilderHeader } from "@/components/builder/form-builder-header";
 import { FormBuilder } from "@/components/builder/form-builder";
 import { useBuilderStore } from "@/store/builder-store";
@@ -10,12 +10,11 @@ import { useBuilderSync } from "@/hooks/use-builder-sync";
 import { Loader2 } from "lucide-react";
 
 /**
- * Inner component that uses useParams and useSearchParams.
- * Wrapped in Suspense to satisfy Next.js client-side search params requirement.
+ * Inner component that uses client-side route params.
+ * Wrapped in Suspense for the builder route's client-side loading boundary.
  */
 function BuilderPageContent() {
   const params = useParams();
-  const searchParams = useSearchParams();
 
   const id =
     typeof params?.id === "string"
@@ -24,14 +23,10 @@ function BuilderPageContent() {
         ? params.id[0]
         : "";
 
-  const rawMode = searchParams.get("mode");
-  const mode: "create" | "edit" = rawMode === "create" ? "create" : "edit";
-
   // Fine-grained selectors — only re-render this component when these change,
   // not on every section/question mutation inside the canvas.
   const initFromApi = useBuilderStore((s) => s.initFromApi);
   const isInitialised = useBuilderStore((s) => s.isInitialised);
-  const formTitle = useBuilderStore((s) => s.form.title);
 
   // Fetch the full form with sections + questions from the API
   const { data: apiForm, isLoading } = useFormQuery(id);
@@ -64,8 +59,6 @@ function BuilderPageContent() {
     <>
       <FormBuilderHeader
         backHref="/my-forms"
-        title={formTitle}
-        mode={mode}
         saveState={saveState}
         onSave={save}
       />

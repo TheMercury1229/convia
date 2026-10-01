@@ -35,12 +35,13 @@ export const requireAuth = async (
       image: session.user.image,
     };
     (req as AuthenticatedRequest).session = {
-      activeOrganizationId: (session.session as any).activeOrganizationId ?? null,
+      activeOrganizationId:
+        (session.session as any).activeOrganizationId ?? null,
     };
 
     return next();
-  } catch {
-    return next(ApiError.unauthorized("Authentication required"));
+  } catch (error) {
+    return next(error);
   }
 };
 
@@ -95,9 +96,7 @@ export const requireOrgMember = async (
     authReq.orgRole = (member as any).role as string;
 
     return next();
-  } catch {
-    return next(
-      ApiError.forbidden("You are not a member of this organisation"),
-    );
+  } catch (error) {
+    return next(error);
   }
 };
