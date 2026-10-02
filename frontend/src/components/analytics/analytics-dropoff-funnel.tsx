@@ -6,11 +6,14 @@ import {
   Bar,
   XAxis,
   YAxis,
-  Tooltip,
-  ResponsiveContainer,
   CartesianGrid,
   Cell,
 } from "recharts";
+import {
+  ChartContainer,
+  ChartTooltip,
+  type ChartConfig,
+} from "@/components/ui/chart";
 import {
   Users,
   CheckCircle2,
@@ -31,6 +34,13 @@ import type { FunnelStep } from "@/lib/api/analytics";
 interface AnalyticsDropoffFunnelProps {
   funnel: FunnelStep[];
 }
+
+const funnelChartConfig = {
+  percent: {
+    label: "Retention",
+    color: "var(--primary)",
+  },
+} satisfies ChartConfig;
 
 export function AnalyticsDropoffFunnel({ funnel }: AnalyticsDropoffFunnelProps) {
   if (!funnel || funnel.length === 0) {
@@ -147,8 +157,12 @@ export function AnalyticsDropoffFunnel({ funnel }: AnalyticsDropoffFunnelProps) 
         </div>
 
         <div className="rounded-2xl border border-border/50 bg-card p-4 sm:p-6 shadow-none">
-          <div className="h-[220px] w-full">
-            <ResponsiveContainer width="100%" height="100%">
+          <div className="h-[220px] w-full min-w-0">
+            <ChartContainer
+              config={funnelChartConfig}
+              className="h-[220px] w-full aspect-auto"
+              initialDimension={{ width: 600, height: 220 }}
+            >
               <BarChart
                 data={chartData}
                 margin={{ top: 10, right: 10, left: -15, bottom: 0 }}
@@ -175,7 +189,7 @@ export function AnalyticsDropoffFunnel({ funnel }: AnalyticsDropoffFunnelProps) 
                   className="text-muted-foreground font-sans"
                 />
                 {/* Subtle translucent cursor to avoid solid grey blocks on hover */}
-                <Tooltip
+                <ChartTooltip
                   cursor={{ fill: "currentColor", opacity: 0.05 }}
                   content={({ active, payload }) => {
                     if (!active || !payload || !payload.length) return null;
@@ -219,7 +233,7 @@ export function AnalyticsDropoffFunnel({ funnel }: AnalyticsDropoffFunnelProps) 
                   ))}
                 </Bar>
               </BarChart>
-            </ResponsiveContainer>
+            </ChartContainer>
           </div>
         </div>
       </div>

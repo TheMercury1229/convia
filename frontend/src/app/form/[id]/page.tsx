@@ -27,17 +27,37 @@ function FormPageContent() {
     return <FormLoadingScreen />;
   }
 
-  // 2. Error State (Form not found, closed, expired deadline, unpublished)
+  // 2. Error State (Form not found, closed, expired deadline, unpublished, or network error)
   if (isError || !formData) {
     const errorMessage = error?.message || "Unable to load form.";
     const isDeadlinePassed = errorMessage.toLowerCase().includes("deadline");
     const isForbidden =
       errorMessage.toLowerCase().includes("not accepting responses") ||
-      errorMessage.toLowerCase().includes("forbidden");
+      errorMessage.toLowerCase().includes("forbidden") ||
+      errorMessage.toLowerCase().includes("unpublished");
+    const isNetworkOrServerError =
+      errorMessage.toLowerCase().includes("network") ||
+      errorMessage.toLowerCase().includes("failed to fetch") ||
+      errorMessage.toLowerCase().includes("server") ||
+      errorMessage.toLowerCase().includes("500");
+
+    const reason = isDeadlinePassed
+      ? "closed"
+      : isForbidden
+      ? "unpublished"
+      : isNetworkOrServerError
+      ? "error"
+      : "not-found";
 
     return (
       <FormUnavailableState
-        reason={isDeadlinePassed ? "closed" : isForbidden ? "unpublished" : "not-found"}
+        reason={reason}
+        errorMessage={errorMessage}
+        isPreview={isPreview}
+        formId={isPreview ? idOrSlug : undefined}
+        onRetry={() => {
+          void activeQuery.refetch();
+        }}
       />
     );
   }

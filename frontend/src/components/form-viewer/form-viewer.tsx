@@ -7,6 +7,7 @@ import { FormLoadingScreen } from "./form-loading-screen";
 import { ViewerCompletion } from "./viewer-completion";
 import { ViewerQuestion } from "./viewer-question";
 import { ViewerWelcome } from "./viewer-welcome";
+import { FormUnavailableState } from "./form-unavailable-state";
 import type { FormWithSections } from "@/lib/api/forms";
 import type { Question } from "@/types/builder";
 import { getFormTheme, type FormThemeResolved } from "@/lib/builder-themes";
@@ -31,6 +32,7 @@ export function FormViewer({ form, isPreview = false }: FormViewerProps) {
   const [isCompleted, setIsCompleted] = React.useState(false);
   const [isSubmitting, setIsSubmitting] = React.useState(false);
   const [shake, setShake] = React.useState(false);
+  const [submissionError, setSubmissionError] = React.useState<string | null>(null);
 
   answersRef.current = answers;
 
@@ -113,6 +115,7 @@ export function FormViewer({ form, isPreview = false }: FormViewerProps) {
 
   const submitCurrentResponse = async () => {
     setIsSubmitting(true);
+    setSubmissionError(null);
     if (isPreview) {
       window.setTimeout(() => {
         setIsSubmitting(false);
@@ -128,7 +131,9 @@ export function FormViewer({ form, isPreview = false }: FormViewerProps) {
       setIsCompleted(true);
     } catch (error) {
       setIsSubmitting(false);
-      triggerShake(error instanceof Error ? error.message : "Failed to submit response. Please try again.");
+      const errorMessage = error instanceof Error ? error.message : "Failed to submit response. Please try again.";
+      setSubmissionError(errorMessage);
+      triggerShake(errorMessage);
     }
   };
 
@@ -202,12 +207,39 @@ export function FormViewer({ form, isPreview = false }: FormViewerProps) {
 
   if (totalQuestions === 0) {
     return (
-      <div className="flex min-h-screen items-center justify-center p-6 text-center" style={{ backgroundColor: theme.colors.canvasBg, color: theme.colors.canvasText }}>
-        <div className="w-full max-w-md rounded-2xl border p-8 shadow-xs" style={{ backgroundColor: theme.colors.cardBg, borderColor: theme.colors.cardBorder }}>
-          <h1 className="font-heading text-2xl font-bold tracking-tight">{form.title || "Form"}</h1>
-          <p className="mt-2 text-sm leading-relaxed" style={{ color: theme.colors.cardMuted }}>{form.description || "This form does not contain any questions yet."}</p>
-        </div>
-      </div>
+      <FormUnavailableState
+        reason="empty"
+        formTitle={form.title}
+        formDescription={form.description}
+        formId={form.id}
+        theme={theme}
+        isPreview={isPreview}
+        isDark={isDark}
+        onToggleDark={() => setIsDark((dark) => !dark)}
+      />
+    );
+  }
+
+  if (submissionError) {
+    return (
+      <FormUnavailableState
+        reason="submission-failed"
+        formTitle={form.title}
+        errorMessage={submissionError}
+        formId={form.id}
+        theme={theme}
+        isPreview={isPreview}
+        isDark={isDark}
+        onToggleDark={() => setIsDark((dark) => !dark)}
+        onRetry={() => {
+          setSubmissionError(null);
+          void submitCurrentResponse();
+        }}
+        onReviewAnswers={() => {
+          setSubmissionError(null);
+          setCurrentIndex(Math.max(0, totalQuestions - 1));
+        }}
+      />
     );
   }
 

@@ -5,13 +5,27 @@ import {
   Area,
   AreaChart,
   CartesianGrid,
-  ResponsiveContainer,
-  Tooltip,
   XAxis,
   YAxis,
 } from "recharts";
 import { Button } from "@/components/ui/button";
+import {
+  ChartContainer,
+  ChartTooltip,
+  type ChartConfig,
+} from "@/components/ui/chart";
 import type { ViewsAndSubmissionsOverTime } from "@/lib/api/analytics";
+
+const trendChartConfig = {
+  views: {
+    label: "Views",
+    color: "var(--muted-foreground)",
+  },
+  submissions: {
+    label: "Submissions",
+    color: "var(--primary)",
+  },
+} satisfies ChartConfig;
 
 interface AnalyticsTrendChartProps {
   data: ViewsAndSubmissionsOverTime[];
@@ -105,8 +119,12 @@ export function AnalyticsTrendChart({ data }: AnalyticsTrendChartProps) {
 
       {/* Chart Canvas */}
       <div className="rounded-2xl border border-border/50 bg-card p-4 sm:p-6 shadow-none">
-        <div className="h-[280px] sm:h-[300px] w-full">
-          <ResponsiveContainer width="100%" height="100%">
+        <div className="h-[280px] sm:h-[300px] w-full min-w-0">
+          <ChartContainer
+            config={trendChartConfig}
+            className="h-[280px] sm:h-[300px] w-full aspect-auto"
+            initialDimension={{ width: 600, height: 300 }}
+          >
             <AreaChart
               data={filteredData}
               margin={{ top: 12, right: 12, left: -10, bottom: 4 }}
@@ -147,7 +165,7 @@ export function AnalyticsTrendChart({ data }: AnalyticsTrendChartProps) {
                 className="text-muted-foreground font-sans"
               />
 
-              <Tooltip
+              <ChartTooltip
                 content={({ active, payload }) => {
                   if (!active || !payload || !payload.length) return null;
                   const item = payload[0].payload as ViewsAndSubmissionsOverTime;
@@ -210,7 +228,7 @@ export function AnalyticsTrendChart({ data }: AnalyticsTrendChartProps) {
                 fill="url(#submissionsGradient)"
               />
             </AreaChart>
-          </ResponsiveContainer>
+          </ChartContainer>
         </div>
       </div>
     </div>
