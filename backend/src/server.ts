@@ -3,6 +3,7 @@ import { errorHandler } from "./middlewares/error-handler";
 import formRouter from "./modules/form/form.router";
 import responseRouter from "./modules/response/response.router";
 import analyticsRouter from "./modules/analytics/analytics.router";
+import aiRouter from "./modules/ai/ai.router";
 import cors from "cors";
 import ENV_CONFIG from "./config/env.config";
 const app = express();
@@ -30,6 +31,7 @@ app.get("/", (req: Request, res: Response) => {
 app.use("/api/forms", formRouter);
 app.use("/api/responses", responseRouter);
 app.use("/api/analytics", analyticsRouter);
+app.use("/api/ai", aiRouter);
 
 app.use(errorHandler);
 

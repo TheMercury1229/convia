@@ -54,6 +54,31 @@ export function FormViewer({ form, isPreview = false }: FormViewerProps) {
     [form.themeId, isDark],
   );
 
+  const rootStyle = React.useMemo<React.CSSProperties>(() => {
+    return {
+      "--background": theme.colors.canvasBg,
+      "--foreground": theme.colors.cardText,
+      "--card": theme.colors.cardBg,
+      "--card-foreground": theme.colors.cardText,
+      "--popover": theme.colors.cardBg,
+      "--popover-foreground": theme.colors.cardText,
+      "--primary": theme.colors.primary,
+      "--primary-foreground": theme.colors.primaryForeground,
+      "--secondary": theme.colors.cardInputBg,
+      "--secondary-foreground": theme.colors.cardText,
+      "--muted": theme.colors.cardInputBg,
+      "--muted-foreground": theme.colors.cardMuted,
+      "--accent": `color-mix(in oklch, ${theme.colors.primary} 12%, transparent)`,
+      "--accent-foreground": theme.colors.cardText,
+      "--border": theme.colors.cardBorder,
+      "--input": theme.colors.cardInputBorder,
+      "--ring": theme.colors.cardRingSelected || theme.colors.primary,
+      backgroundColor: theme.colors.canvasBg,
+      color: theme.colors.cardText,
+      colorScheme: isDark ? "dark" : "light",
+    } as React.CSSProperties;
+  }, [theme, isDark]);
+
   const flatQuestions = React.useMemo<FlatQuestionItem[]>(() => {
     const sections = [...(form.sections || [])].sort((a, b) => a.position - b.position);
     const items: FlatQuestionItem[] = [];
@@ -269,29 +294,148 @@ export function FormViewer({ form, isPreview = false }: FormViewerProps) {
   const isLastQuestion = currentIndex === totalQuestions - 1;
 
   return (
-    <div className="relative flex min-h-screen flex-col select-none transition-colors duration-300" style={{ backgroundColor: theme.colors.canvasBg, color: theme.colors.cardText, colorScheme: isDark ? "dark" : "light" }}>
-      <div className="fixed left-0 right-0 top-0 z-50 h-0.75 bg-black/5 dark:bg-white/5"><div className="h-full transition-all duration-300 ease-out" style={{ width: `${progressPercent}%`, backgroundColor: theme.colors.primary }} /></div>
-      <header className="sticky top-0 z-40 flex h-14 shrink-0 items-center justify-between px-4 backdrop-blur-md sm:px-8" style={{ backgroundColor: `color-mix(in oklch, ${theme.colors.canvasBg} 85%, transparent)` }}>
-        <div>{isPreview && <span className="inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-medium" style={{ backgroundColor: `color-mix(in oklch, ${theme.colors.primary} 12%, transparent)`, color: theme.colors.primary }}><Eye className="size-3" />Preview</span>}</div>
+    <div
+      className="relative flex min-h-screen flex-col select-none transition-colors duration-300"
+      style={rootStyle}
+    >
+      {/* Top Progress Bar */}
+      <div
+        className="fixed left-0 right-0 top-0 z-50 h-1 transition-colors duration-300"
+        style={{
+          backgroundColor: `color-mix(in oklch, ${theme.colors.cardBorder} 40%, transparent)`,
+        }}
+      >
+        <div
+          className="h-full transition-all duration-300 ease-out"
+          style={{
+            width: `${progressPercent}%`,
+            backgroundColor: theme.colors.primary,
+          }}
+        />
+      </div>
+
+      {/* Header */}
+      <header
+        className="sticky top-0 z-40 flex h-14 shrink-0 items-center justify-between border-b px-4 backdrop-blur-md transition-colors duration-300 sm:px-8"
+        style={{
+          backgroundColor: `color-mix(in oklch, ${theme.colors.canvasBg} 85%, transparent)`,
+          borderBottomColor: `color-mix(in oklch, ${theme.colors.cardBorder} 60%, transparent)`,
+        }}
+      >
+        <div>
+          {isPreview && (
+            <span
+              className="inline-flex items-center gap-1.5 rounded-full border px-2.5 py-0.5 text-xs font-medium shadow-2xs"
+              style={{
+                backgroundColor: theme.colors.badgeBg,
+                color: theme.colors.badgeText,
+                borderColor: theme.colors.cardInputBorder,
+              }}
+            >
+              <Eye className="size-3" />
+              Preview
+            </span>
+          )}
+        </div>
         <div className="flex items-center gap-3">
-          {!isWelcomeScreen && currentItem && <span className="text-xs font-mono font-medium" style={{ color: theme.colors.cardMuted }}>Question {currentIndex + 1} / {totalQuestions}</span>}
-          <Button variant="ghost" size="icon-sm" onClick={() => setIsDark((dark) => !dark)} className="size-8 rounded-lg" style={{ color: theme.colors.cardText }} aria-label="Toggle dark/light mode">{isDark ? <Sun className="size-4" /> : <Moon className="size-4" />}</Button>
+          {!isWelcomeScreen && currentItem && (
+            <span
+              className="text-xs font-mono font-medium"
+              style={{ color: theme.colors.cardMuted }}
+            >
+              Question {currentIndex + 1} / {totalQuestions}
+            </span>
+          )}
+          <Button
+            variant="ghost"
+            size="icon-sm"
+            onClick={() => setIsDark((dark) => !dark)}
+            className="size-8 rounded-lg transition-colors hover:opacity-80"
+            style={{
+              color: theme.colors.cardText,
+              backgroundColor: "transparent",
+            }}
+            aria-label="Toggle dark/light mode"
+          >
+            {isDark ? <Sun className="size-4" /> : <Moon className="size-4" />}
+          </Button>
         </div>
       </header>
+
+      {/* Main Content Area */}
       <main className="flex flex-1 items-center justify-center px-4 py-8 sm:px-8 sm:py-12">
         <div className="mx-auto w-full max-w-2xl">
           {isWelcomeScreen ? (
-            <ViewerWelcome form={form} theme={theme} isPreview={isPreview} firstSectionInfo={firstSectionInfo} onStart={handleStartForm} />
+            <ViewerWelcome
+              form={form}
+              theme={theme}
+              isPreview={isPreview}
+              firstSectionInfo={firstSectionInfo}
+              onStart={handleStartForm}
+            />
           ) : currentItem ? (
-            <ViewerQuestion item={currentItem} theme={theme} isDark={isDark} currentIndex={currentIndex} isLastQuestion={isLastQuestion} isMultiline={Boolean(isMultiline)} value={answers[currentItem.question.id]} error={currentError} shake={shake} onAnswerChange={handleAnswerChange} onNext={handleNext} />
+            <ViewerQuestion
+              item={currentItem}
+              theme={theme}
+              isDark={isDark}
+              currentIndex={currentIndex}
+              isLastQuestion={isLastQuestion}
+              isMultiline={Boolean(isMultiline)}
+              value={answers[currentItem.question.id]}
+              error={currentError}
+              shake={shake}
+              onAnswerChange={handleAnswerChange}
+              onNext={handleNext}
+            />
           ) : null}
         </div>
       </main>
-      <footer className="w-full px-6 py-4 text-center"><span className="text-xs font-medium tracking-wide" style={{ color: theme.colors.cardMuted }}>powered by <strong style={{ color: theme.colors.cardText }}>convia</strong></span></footer>
-      <div className="fixed bottom-6 right-6 z-40 inline-flex items-center rounded-xl border p-1 shadow-sm backdrop-blur-md" style={{ backgroundColor: `color-mix(in oklch, ${theme.colors.cardBg} 92%, transparent)`, borderColor: theme.colors.cardBorder }}>
-        <Button variant="ghost" size="icon-sm" onClick={handlePrevious} disabled={isWelcomeScreen} className="size-8 rounded-lg" style={{ color: theme.colors.cardText }} aria-label="Previous question"><ChevronUp className="size-4" /></Button>
-        <div className="mx-0.5 h-3.5 w-px" style={{ backgroundColor: theme.colors.cardBorder }} />
-        <Button variant="ghost" size="icon-sm" onClick={() => (isWelcomeScreen ? handleStartForm() : handleNext())} disabled={!isWelcomeScreen && isLastQuestion} className="size-8 rounded-lg" style={{ color: theme.colors.cardText }} aria-label="Next question"><ChevronDown className="size-4" /></Button>
+
+      {/* Footer */}
+      <footer className="w-full px-6 py-4 text-center">
+        <span
+          className="text-xs font-medium tracking-wide transition-colors"
+          style={{ color: theme.colors.cardMuted }}
+        >
+          powered by{" "}
+          <strong style={{ color: theme.colors.cardText }}>convia</strong>
+        </span>
+      </footer>
+
+      {/* Floating Bottom-Right Question Navigators */}
+      <div
+        className="fixed bottom-6 right-6 z-40 inline-flex items-center rounded-xl border p-1 shadow-sm backdrop-blur-md transition-colors duration-200"
+        style={{
+          backgroundColor: `color-mix(in oklch, ${theme.colors.cardBg} 94%, transparent)`,
+          borderColor: theme.colors.cardBorder,
+        }}
+      >
+        <Button
+          variant="ghost"
+          size="icon-sm"
+          onClick={handlePrevious}
+          disabled={isWelcomeScreen}
+          className="size-8 rounded-lg transition-colors disabled:opacity-30"
+          style={{ color: theme.colors.cardText }}
+          aria-label="Previous question"
+        >
+          <ChevronUp className="size-4" />
+        </Button>
+        <div
+          className="mx-0.5 h-3.5 w-px"
+          style={{ backgroundColor: theme.colors.cardBorder }}
+        />
+        <Button
+          variant="ghost"
+          size="icon-sm"
+          onClick={() => (isWelcomeScreen ? handleStartForm() : handleNext())}
+          disabled={!isWelcomeScreen && isLastQuestion}
+          className="size-8 rounded-lg transition-colors disabled:opacity-30"
+          style={{ color: theme.colors.cardText }}
+          aria-label="Next question"
+        >
+          <ChevronDown className="size-4" />
+        </Button>
       </div>
     </div>
   );

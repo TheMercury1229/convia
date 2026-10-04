@@ -39,6 +39,10 @@ import {
 } from "@/components/ui/tooltip";
 
 import { CreateFormDialog } from "@/components/my-forms/create-form-dialog";
+import {
+  BuildWithGrizzyDialog,
+  BuildWithGrizzyButton,
+} from "@/components/my-forms/build-with-grizzy-dialog";
 import { ResponseDetailDialog } from "@/components/responses/response-detail-dialog";
 import { PageHeading } from "@/components/dashboard/page-heading";
 
@@ -63,6 +67,7 @@ export default function HomePage() {
 
   // 2. Local State
   const [createDialogOpen, setCreateDialogOpen] = React.useState(false);
+  const [grizzyDialogOpen, setGrizzyDialogOpen] = React.useState(false);
   const [searchQuery, setSearchQuery] = React.useState("");
   const [selectedResponse, setSelectedResponse] = React.useState<OrgResponseItem | null>(null);
 
@@ -176,6 +181,11 @@ export default function HomePage() {
                 </TooltipTrigger>
                 <TooltipContent>Refresh data</TooltipContent>
               </Tooltip>
+
+              <BuildWithGrizzyButton
+                onTrigger={() => setGrizzyDialogOpen(true)}
+                className="h-8.5 text-xs sm:text-sm rounded-xl"
+              />
 
               <Button
                 size="sm"
@@ -424,6 +434,11 @@ export default function HomePage() {
         <CreateFormDialog
           open={createDialogOpen}
           onOpenChange={setCreateDialogOpen}
+        />
+
+        <BuildWithGrizzyDialog
+          open={grizzyDialogOpen}
+          onOpenChange={setGrizzyDialogOpen}
         />
 
         <ResponseDetailDialog

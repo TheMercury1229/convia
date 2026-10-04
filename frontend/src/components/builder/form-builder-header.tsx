@@ -21,6 +21,7 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { ShareDialog } from "./share-dialog";
+import { BuildWithGrizzyDialog } from "@/components/my-forms/build-with-grizzy-dialog";
 import { useBuilderStore } from "@/store/builder-store";
 import { useTogglePublish } from "@/hooks/use-forms";
 
@@ -35,6 +36,8 @@ interface FormBuilderHeaderProps {
   saveState?: "saved" | "saving" | "unsaved";
   /** Called when the user clicks Save or triggers Ctrl+S. */
   onSave?: () => void;
+  /** Called when an AI generation job starts from within the builder. */
+  onStartAiJob?: (jobId: string) => void;
 }
 
 // ---------------------------------------------------------------------------
@@ -157,8 +160,10 @@ export function FormBuilderHeader({
   backHref = "/my-forms",
   saveState = "saved",
   onSave,
+  onStartAiJob,
 }: FormBuilderHeaderProps) {
   const [shareOpen, setShareOpen] = React.useState(false);
+  const [grizzyOpen, setGrizzyOpen] = React.useState(false);
   const { rightPanelTab, setRightPanelTab, form, updateForm } = useBuilderStore();
   const togglePublishMutation = useTogglePublish();
   const isPublished = Boolean(form.isPublished);
@@ -261,6 +266,22 @@ export function FormBuilderHeader({
           aria-hidden="true"
         />
 
+        {/* Build with Grizzy */}
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Button
+              variant="outline"
+              size="sm"
+              id="builder-grizzy-btn"
+              aria-label="Build with Grizzy"
+              onClick={() => setGrizzyOpen(true)}
+            >
+              <span className="text-xs font-medium">Build with Grizzy</span>
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent side="bottom">Build with Grizzy</TooltipContent>
+        </Tooltip>
+
         {/* Settings */}
         <Tooltip>
           <TooltipTrigger asChild>
@@ -360,6 +381,11 @@ export function FormBuilderHeader({
       </div>
 
       <ShareDialog open={shareOpen} onOpenChange={setShareOpen} />
+      <BuildWithGrizzyDialog
+        open={grizzyOpen}
+        onOpenChange={setGrizzyOpen}
+        onJobStarted={onStartAiJob}
+      />
     </header>
   );
 }

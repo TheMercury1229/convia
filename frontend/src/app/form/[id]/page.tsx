@@ -6,6 +6,7 @@ import { useForm, usePublicForm } from "@/hooks/use-forms";
 import { FormViewer } from "@/components/form-viewer/form-viewer";
 import { FormLoadingScreen } from "@/components/form-viewer/form-loading-screen";
 import { FormUnavailableState } from "@/components/form-viewer/form-unavailable-state";
+import { getFormTheme } from "@/lib/builder-themes";
 
 function FormPageContent() {
   const params = useParams<{ id: string }>();
@@ -55,6 +56,7 @@ function FormPageContent() {
         errorMessage={errorMessage}
         isPreview={isPreview}
         formId={isPreview ? idOrSlug : undefined}
+        theme={formData ? getFormTheme(formData.themeId ?? undefined) : undefined}
         onRetry={() => {
           void activeQuery.refetch();
         }}

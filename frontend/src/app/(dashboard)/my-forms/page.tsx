@@ -14,6 +14,10 @@ import {
 } from "@/components/ui/select";
 import { FormCard } from "@/components/my-forms/form-card";
 import { CreateFormDialog } from "@/components/my-forms/create-form-dialog";
+import {
+  BuildWithGrizzyDialog,
+  BuildWithGrizzyButton,
+} from "@/components/my-forms/build-with-grizzy-dialog";
 import { PageHeading } from "@/components/dashboard/page-heading";
 import { useForms } from "@/hooks/use-forms";
 import { EmptyState } from "@/components/dashboard/empty-state";
@@ -76,6 +80,7 @@ function FormCardSkeleton() {
 // ---------------------------------------------------------------------------
 export default function MyFormsPage() {
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [grizzyDialogOpen, setGrizzyDialogOpen] = useState(false);
   const [search, setSearch] = useState("");
   const [filter, setFilter] = useState<"all" | "published" | "draft" | "closed">("all");
 
@@ -121,10 +126,16 @@ export default function MyFormsPage() {
         title="My Forms"
         description="All forms belonging to your organisation."
         actions={
-          <Button onClick={() => setDialogOpen(true)} id="btn-add-form">
-            <Plus className="h-4 w-4 mr-1.5" />
-            Add a Form
-          </Button>
+          <div className="flex items-center gap-2">
+            <BuildWithGrizzyButton
+              onTrigger={() => setGrizzyDialogOpen(true)}
+              id="btn-build-grizzy"
+            />
+            <Button onClick={() => setDialogOpen(true)} id="btn-add-form">
+              <Plus className="h-4 w-4 mr-1.5" />
+              Add a Form
+            </Button>
+          </div>
         }
       />
 
@@ -228,9 +239,13 @@ export default function MyFormsPage() {
       </div>
 
       {/* ------------------------------------------------------------------ */}
-      {/* Create Form Dialog                                                   */}
+      {/* Create Form Dialogs                                                  */}
       {/* ------------------------------------------------------------------ */}
       <CreateFormDialog open={dialogOpen} onOpenChange={setDialogOpen} />
+      <BuildWithGrizzyDialog
+        open={grizzyDialogOpen}
+        onOpenChange={setGrizzyDialogOpen}
+      />
     </>
   );
 }

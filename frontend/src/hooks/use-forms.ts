@@ -49,7 +49,7 @@ export function useForm(id: string) {
   return useQuery({
     queryKey: formKeys.detail(id),
     queryFn: () => getForm(id),
-    enabled: !!id,
+    enabled: !!id && id !== "ai" && id !== "generating",
   });
 }
 

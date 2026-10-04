@@ -59,23 +59,37 @@ export function FileInput({
     <div className="w-full max-w-md">
       {fileUrl ? (
         <div
-          className="flex items-center justify-between rounded-xl border p-3.5 shadow-xs sm:p-4"
+          className="flex items-center justify-between rounded-xl border p-4 shadow-2xs transition-all animate-in fade-in"
           style={{
-            backgroundColor: `color-mix(in oklch, ${theme.colors.primary} 8%, transparent)`,
-            borderColor: theme.colors.primary,
+            backgroundColor: `color-mix(in oklch, ${theme.colors.primary} 10%, ${theme.colors.cardInputBg})`,
+            borderColor: theme.colors.cardBorderSelected || theme.colors.primary,
+            boxShadow: `0 0 0 1px color-mix(in oklch, ${theme.colors.primary} 30%, transparent)`,
           }}
         >
           <div className="mr-3 flex items-center gap-3 truncate">
-            <FileIcon className="size-5 shrink-0" style={{ color: theme.colors.primary }} />
-            <span className="truncate text-sm font-medium" style={{ color: theme.colors.cardText }}>
+            <div
+              className="flex size-9 shrink-0 items-center justify-center rounded-lg"
+              style={{
+                backgroundColor: `color-mix(in oklch, ${theme.colors.primary} 15%, transparent)`,
+              }}
+            >
+              <FileIcon className="size-5 shrink-0" style={{ color: theme.colors.primary }} />
+            </div>
+            <span
+              className="truncate text-sm font-semibold"
+              style={{ color: theme.colors.cardText }}
+            >
               {fileName}
             </span>
           </div>
           <button
             type="button"
             onClick={() => onChange("")}
-            className="shrink-0 cursor-pointer rounded-lg p-1.5 transition-colors hover:bg-black/5 dark:hover:bg-white/10"
-            style={{ color: theme.colors.cardMuted }}
+            className="shrink-0 cursor-pointer rounded-lg p-1.5 transition-colors hover:opacity-80"
+            style={{
+              color: theme.colors.cardMuted,
+              backgroundColor: "transparent",
+            }}
             aria-label="Remove uploaded file"
           >
             <X className="size-4" />
@@ -84,13 +98,29 @@ export function FileInput({
       ) : (
         <label
           htmlFor={`file-upload-${question.id}`}
-          className="flex cursor-pointer flex-col items-center justify-center rounded-xl border border-dashed p-6 text-center transition-all duration-150 hover:bg-black/2 dark:hover:bg-white/2"
+          className="group flex cursor-pointer flex-col items-center justify-center rounded-xl border-2 border-dashed p-7 text-center transition-all duration-200"
           style={{
-            backgroundColor: isDark ? "rgba(255, 255, 255, 0.03)" : "rgba(0, 0, 0, 0.02)",
-            borderColor: isDark ? "rgba(255, 255, 255, 0.12)" : "rgba(0, 0, 0, 0.12)",
+            backgroundColor: theme.colors.cardInputBg,
+            borderColor: theme.colors.cardInputBorder,
+          }}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.borderColor = theme.colors.cardBorderSelected || theme.colors.primary;
+            e.currentTarget.style.backgroundColor = `color-mix(in oklch, ${theme.colors.primary} 6%, ${theme.colors.cardInputBg})`;
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.borderColor = theme.colors.cardInputBorder;
+            e.currentTarget.style.backgroundColor = theme.colors.cardInputBg;
           }}
         >
-          <Upload className="mb-2 size-6 opacity-70" style={{ color: theme.colors.primary }} />
+          <div
+            className="mb-3 flex size-12 items-center justify-center rounded-xl border transition-transform duration-200 group-hover:scale-105"
+            style={{
+              backgroundColor: theme.colors.badgeBg,
+              borderColor: theme.colors.cardInputBorder,
+            }}
+          >
+            <Upload className="size-6 transition-colors" style={{ color: theme.colors.primary }} />
+          </div>
           <p className="text-sm font-semibold" style={{ color: theme.colors.cardText }}>
             {isUploading ? "Uploading file..." : "Click to choose a file or drag & drop"}
           </p>
@@ -109,7 +139,7 @@ export function FileInput({
         </label>
       )}
       {uploadError && (
-        <p className="mt-2 text-xs text-destructive" role="alert">
+        <p className="mt-2 text-xs font-medium text-destructive" role="alert">
           {uploadError}
         </p>
       )}

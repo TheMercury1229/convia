@@ -13,6 +13,7 @@ const ENV_CONFIG = {
   BREVO_API_KEY: process.env.BREVO_API_KEY,
   BREVO_SENDER_EMAIL: process.env.BREVO_SENDER_EMAIL || "notifications@convia.app",
   BREVO_SENDER_NAME: process.env.BREVO_SENDER_NAME || "Convia",
+  AI_BACKEND_URL: process.env.AI_BACKEND_URL || "http://localhost:8080",
 };
 Object.freeze(ENV_CONFIG);
 

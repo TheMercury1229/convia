@@ -1,12 +1,14 @@
 "use client";
 
 import * as React from "react";
-import { useParams } from "next/navigation";
+import { useParams, useSearchParams } from "next/navigation";
 import { FormBuilderHeader } from "@/components/builder/form-builder-header";
 import { FormBuilder } from "@/components/builder/form-builder";
+import { AiGenerationLoader } from "@/components/builder/ai-generation-loader";
 import { useBuilderStore } from "@/store/builder-store";
 import { useForm as useFormQuery } from "@/hooks/use-forms";
 import { useBuilderSync } from "@/hooks/use-builder-sync";
+import { useAiFormGeneration } from "@/hooks/use-ai-form-generation";
 import { Loader2 } from "lucide-react";
 
 /**
@@ -15,6 +17,7 @@ import { Loader2 } from "lucide-react";
  */
 function BuilderPageContent() {
   const params = useParams();
+  const searchParams = useSearchParams();
 
   const id =
     typeof params?.id === "string"
@@ -22,6 +25,14 @@ function BuilderPageContent() {
       : Array.isArray(params?.id)
         ? params.id[0]
         : "";
+
+  const queryJobId = searchParams.get("jobId");
+
+  // AI Form generation hook — encapsulates polling, status tracking, and store hydration
+  const { isGenerating, startTrackingJob } = useAiFormGeneration({
+    currentId: id,
+    initialJobId: queryJobId,
+  });
 
   // Fine-grained selectors — only re-render this component when these change,
   // not on every section/question mutation inside the canvas.
@@ -34,17 +45,22 @@ function BuilderPageContent() {
   // Hydrate the store from the API response (runs once when data arrives)
   const hasInit = React.useRef(false);
   React.useEffect(() => {
-    if (apiForm && !hasInit.current) {
+    if (apiForm && !hasInit.current && !isGenerating) {
       hasInit.current = true;
       initFromApi(apiForm);
     }
-  }, [apiForm, initFromApi]);
+  }, [apiForm, initFromApi, isGenerating]);
 
   // Autosave: debounce + Ctrl+S + exposes save() and saveState
   const { saveState, save } = useBuilderSync();
 
+  // ── Full-screen AI Generation Loader ─────────────────────────────────────
+  if (isGenerating) {
+    return <AiGenerationLoader />;
+  }
+
   // ── Loading state — show spinner until data is fetched and store is hydrated
-  if (isLoading || !isInitialised) {
+  if (isLoading || (!isInitialised && id !== "ai" && id !== "generating")) {
     return (
       <div className="flex h-screen w-screen items-center justify-center bg-background">
         <div className="flex items-center gap-2 text-sm text-muted-foreground">
@@ -61,6 +77,7 @@ function BuilderPageContent() {
         backHref="/my-forms"
         saveState={saveState}
         onSave={save}
+        onStartAiJob={startTrackingJob}
       />
       <FormBuilder />
     </>
