@@ -8,6 +8,7 @@ import { ViewerCompletion } from "./viewer-completion";
 import { ViewerQuestion } from "./viewer-question";
 import { ViewerWelcome } from "./viewer-welcome";
 import { FormUnavailableState } from "./form-unavailable-state";
+import { AiFillChat } from "./ai-fill-chat";
 import type { FormWithSections } from "@/lib/api/forms";
 import type { Question } from "@/types/builder";
 import { getFormTheme, type FormThemeResolved } from "@/lib/builder-themes";
@@ -33,6 +34,7 @@ export function FormViewer({ form, isPreview = false }: FormViewerProps) {
   const [isSubmitting, setIsSubmitting] = React.useState(false);
   const [shake, setShake] = React.useState(false);
   const [submissionError, setSubmissionError] = React.useState<string | null>(null);
+  const [mode, setMode] = React.useState<"normal" | "ai" | "review">("normal");
 
   answersRef.current = answers;
 
@@ -128,14 +130,30 @@ export function FormViewer({ form, isPreview = false }: FormViewerProps) {
 
   const handleStartForm = () => {
     setIsWelcomeScreen(false);
+    setMode("normal");
     startSession();
+  };
+
+  const handleStartAi = () => {
+    setIsWelcomeScreen(false);
+    setMode("ai");
+    startSession();
+  };
+
+  const handleSwitchToManual = () => {
+    setMode("normal");
+    setIsWelcomeScreen(false);
+  };
+
+  const handleAnswerChangeById = (questionId: string, value: unknown) => {
+    answersRef.current = { ...answersRef.current, [questionId]: value };
+    setAnswers((previous) => ({ ...previous, [questionId]: value }));
+    setCurrentError(null);
   };
 
   const handleAnswerChange = (value: unknown) => {
     if (!currentItem) return;
-    answersRef.current = { ...answersRef.current, [currentItem.question.id]: value };
-    setAnswers((previous) => ({ ...previous, [currentItem.question.id]: value }));
-    setCurrentError(null);
+    handleAnswerChangeById(currentItem.question.id, value);
   };
 
   const submitCurrentResponse = async () => {
@@ -202,6 +220,7 @@ export function FormViewer({ form, isPreview = false }: FormViewerProps) {
 
   React.useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
+      if (mode === "ai") return;
       const target = event.target as HTMLElement;
       const isInput = ["INPUT", "TEXTAREA", "SELECT"].includes(target.tagName);
 
@@ -262,6 +281,7 @@ export function FormViewer({ form, isPreview = false }: FormViewerProps) {
         }}
         onReviewAnswers={() => {
           setSubmissionError(null);
+          setMode("normal");
           setCurrentIndex(Math.max(0, totalQuestions - 1));
         }}
       />
@@ -282,11 +302,40 @@ export function FormViewer({ form, isPreview = false }: FormViewerProps) {
         onRestart={() => {
           setIsCompleted(false);
           setIsWelcomeScreen(true);
+          setMode("normal");
           setCurrentIndex(0);
           setCurrentError(null);
           setAnswers({});
         }}
       />
+    );
+  }
+
+  if (mode === "ai") {
+    return (
+      <div style={rootStyle} className="h-screen w-full">
+        <AiFillChat
+          form={form}
+          theme={theme}
+          isDark={isDark}
+          onToggleDark={() => setIsDark((dark) => !dark)}
+          onSwitchToManual={handleSwitchToManual}
+          isPreview={isPreview}
+          initialAnswers={answers}
+          onAnswersUpdate={(newAnswers) => {
+            answersRef.current = newAnswers;
+            setAnswers(newAnswers);
+          }}
+          onSubmitResponse={async (finalAnswers) => {
+            if (finalAnswers) {
+              answersRef.current = { ...answersRef.current, ...finalAnswers };
+              setAnswers(answersRef.current);
+            }
+            await submitCurrentResponse();
+          }}
+          isSubmitting={isSubmitting}
+        />
+      </div>
     );
   }
 
@@ -338,6 +387,22 @@ export function FormViewer({ form, isPreview = false }: FormViewerProps) {
           )}
         </div>
         <div className="flex items-center gap-3">
+          {!isWelcomeScreen && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setMode("ai")}
+              className="hidden sm:inline-flex items-center rounded-full px-3 py-1 text-xs font-medium shadow-2xs transition-all hover:scale-[1.02]"
+              style={{
+                backgroundColor: theme.colors.cardInputBg,
+                borderColor: theme.colors.cardInputBorder,
+                color: theme.colors.cardText,
+              }}
+              title="Switch to Fill with Grizzy"
+            >
+              Fill with AI
+            </Button>
+          )}
           {!isWelcomeScreen && currentItem && (
             <span
               className="text-xs font-mono font-medium"
@@ -372,6 +437,7 @@ export function FormViewer({ form, isPreview = false }: FormViewerProps) {
               isPreview={isPreview}
               firstSectionInfo={firstSectionInfo}
               onStart={handleStartForm}
+              onFillWithAi={handleStartAi}
             />
           ) : currentItem ? (
             <ViewerQuestion

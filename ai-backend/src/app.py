@@ -66,9 +66,11 @@ app.add_middleware(
 # Routers
 # ---------------------------------------------------------------------------
 
-from src.modules.generate_form import router as generate_form_router  
+from src.modules.generate_form import router as generate_form_router
+from src.modules.fill_form import router as fill_form_router
 
 app.include_router(generate_form_router)
+app.include_router(fill_form_router)
 
 
 # ---------------------------------------------------------------------------

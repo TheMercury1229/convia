@@ -14,6 +14,7 @@ interface ViewerWelcomeProps {
   isPreview: boolean;
   firstSectionInfo: { title: string | null; description: string | null } | null;
   onStart: () => void;
+  onFillWithAi?: () => void;
 }
 
 export function ViewerWelcome({
@@ -22,6 +23,7 @@ export function ViewerWelcome({
   isPreview,
   firstSectionInfo,
   onStart,
+  onFillWithAi,
 }: ViewerWelcomeProps) {
   return (
     <div className="w-full text-left transition-all animate-in fade-in duration-300">
@@ -80,6 +82,22 @@ export function ViewerWelcome({
           <span>Start</span>
           <ArrowRight className="size-4.5" />
         </Button>
+
+        {onFillWithAi && (
+          <Button
+            onClick={onFillWithAi}
+            variant="outline"
+            className="flex h-12 cursor-pointer items-center rounded-xl border px-6 text-base font-semibold shadow-xs transition-all duration-150 hover:opacity-90 active:scale-[0.98]"
+            style={{
+              borderColor: theme.colors.cardInputBorder,
+              backgroundColor: theme.colors.cardInputBg,
+              color: theme.colors.cardText,
+            }}
+            id="fill-with-grizzy-btn"
+          >
+            <span>Fill with Grizzy</span>
+          </Button>
+        )}
 
         <div
           className="flex items-center gap-1.5 text-xs select-none"

@@ -83,7 +83,6 @@ export function AiGenerationLoader() {
       <div className="flex flex-col items-center max-w-md text-center">
         {/* Mascot Image Showcase with Soft Glow */}
         <div className="relative mb-6 flex size-52 sm:size-60 items-center justify-center">
-          <div className="absolute inset-0 rounded-full bg-primary/8 blur-2xl" />
           <div
             key={currentStage.image}
             className="relative size-full animate-in fade-in zoom-in-95 duration-400"
@@ -100,7 +99,7 @@ export function AiGenerationLoader() {
         </div>
 
         {/* 5-Step Minimal Progress Indicators */}
-        <div className="flex items-center gap-1.5 mb-5" aria-hidden="true">
+        {/* <div className="flex items-center gap-1.5 mb-5" aria-hidden="true">
           {BUILD_STAGES.map((stage, idx) => {
             const isActive = idx === currentStageIndex;
             const isCompleted = idx < currentStageIndex;
@@ -119,7 +118,7 @@ export function AiGenerationLoader() {
               />
             );
           })}
-        </div>
+        </div> */}
 
         {/* Dynamic Step Title & Description */}
         <div className="min-h-16 flex flex-col items-center justify-center">
@@ -138,11 +137,6 @@ export function AiGenerationLoader() {
           </p>
         </div>
 
-        {/* Bottom Status Callout */}
-        <div className="mt-8 flex items-center gap-2 rounded-full border border-border/60 bg-muted/30 px-3.5 py-1.5 text-xs font-medium text-muted-foreground shadow-2xs">
-          <Loader2 className="size-3.5 animate-spin text-primary shrink-0" />
-          <span>Generating with Grizzy…</span>
-        </div>
       </div>
     </div>
   );

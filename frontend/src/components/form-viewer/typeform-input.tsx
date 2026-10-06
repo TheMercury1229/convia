@@ -295,35 +295,9 @@ export function TypeformInput({
 
   const inputValue = question.type === "number" ? numberValue : stringValue;
 
-  const renderIcon = () => {
-    const iconClass = "size-5 shrink-0 transition-colors";
-    const iconStyle = {
-      color: isFocused ? theme.colors.primary : theme.colors.cardMuted,
-    };
-
-    switch (question.type) {
-      case "email":
-        return <Mail className={iconClass} style={iconStyle} />;
-      case "phone":
-        return <Phone className={iconClass} style={iconStyle} />;
-      case "url":
-        return <Globe className={iconClass} style={iconStyle} />;
-      case "number":
-        return <Hash className={iconClass} style={iconStyle} />;
-      case "date":
-        return <Calendar className={iconClass} style={iconStyle} />;
-      case "time":
-      case "datetime":
-        return <Clock className={iconClass} style={iconStyle} />;
-      default:
-        return <Type className={iconClass} style={iconStyle} />;
-    }
-  };
-
   return (
     <div className="relative w-full">
       <div className="flex items-center gap-3">
-        {renderIcon()}
         <input
           ref={inputRef as React.RefObject<HTMLInputElement>}
           type={inputType}

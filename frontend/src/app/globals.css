@@ -140,3 +140,14 @@
 .animate-shake {
   animation: form-shake 0.4s ease-in-out;
 }
+
+/* Chat scroll blur / gradient fade mask */
+.mask-scroll-b {
+  mask-image: linear-gradient(to bottom, black calc(100% - 48px), transparent 100%);
+  -webkit-mask-image: linear-gradient(to bottom, black calc(100% - 48px), transparent 100%);
+}
+
+.mask-scroll-y {
+  mask-image: linear-gradient(to bottom, transparent 0%, black 28px, black calc(100% - 56px), transparent 100%);
+  -webkit-mask-image: linear-gradient(to bottom, transparent 0%, black 28px, black calc(100% - 56px), transparent 100%);
+}

@@ -59,8 +59,6 @@ class GenerateFormResponse(BaseModel):
     ),
 )
 async def generate_form(body: GenerateFormRequest) -> GenerateFormResponse:
-    # Import here to avoid circular-import issues at module load time
-    # and because the chain module itself loads config/models (dotenv).
     from src.modules.generate_form.chain import run_generate_form_chain
 
     logger.info("generate_form called | query_length=%d", len(body.user_query))
