@@ -109,49 +109,53 @@ export function FormCard({ form }: FormCardProps) {
 
           {/* Quick Actions (Directly on the card: Copy, Preview, and Dropdown) */}
           <div className="flex items-center gap-0.5" onClick={(e) => e.stopPropagation()}>
-            {/* Copy Link Button */}
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={copyShareLink}
-                  className="size-8 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted/70 transition-colors"
-                >
-                  {copied ? (
-                    <Check className="size-3.5 text-primary" />
-                  ) : (
-                    <Link2 className="size-3.5" />
-                  )}
-                  <span className="sr-only">Copy form link</span>
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent side="top">
-                {copied ? "Copied!" : "Copy link"}
-              </TooltipContent>
-            </Tooltip>
+            {/* Copy Link & Live Form Buttons — only available when published */}
+            {isPublished && (
+              <>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={copyShareLink}
+                      className="size-8 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted/70 transition-colors"
+                    >
+                      {copied ? (
+                        <Check className="size-3.5 text-primary" />
+                      ) : (
+                        <Link2 className="size-3.5" />
+                      )}
+                      <span className="sr-only">Copy form link</span>
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent side="top">
+                    {copied ? "Copied!" : "Copy link"}
+                  </TooltipContent>
+                </Tooltip>
 
-            {/* Preview / Live Form Button */}
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button
-                  asChild
-                  variant="ghost"
-                  size="icon"
-                  className="size-8 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted/70 transition-colors"
-                >
-                  <Link
-                    href={`/form/${form.slug || form.id}`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                  >
-                    <ExternalLink className="size-3.5" />
-                    <span className="sr-only">Open live form</span>
-                  </Link>
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent side="top">Preview live form</TooltipContent>
-            </Tooltip>
+                {/* Preview / Live Form Button */}
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      asChild
+                      variant="ghost"
+                      size="icon"
+                      className="size-8 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted/70 transition-colors"
+                    >
+                      <Link
+                        href={`/form/${form.slug || form.id}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                      >
+                        <ExternalLink className="size-3.5" />
+                        <span className="sr-only">Open live form</span>
+                      </Link>
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent side="top">Preview live form</TooltipContent>
+                </Tooltip>
+              </>
+            )}
 
             {/* Dropdown Options Menu for Secondary Actions */}
             <DropdownMenu>
@@ -210,12 +214,18 @@ export function FormCard({ form }: FormCardProps) {
         {/* ------------------------------------------------------------------ */}
         {/* Middle Section: Title + Description                                */}
         {/* ------------------------------------------------------------------ */}
-        <div className="space-y-1">
-          <h3 className="font-semibold text-base leading-snug tracking-tight text-foreground group-hover:text-primary transition-colors line-clamp-1">
+        <div className="space-y-1 min-w-0 overflow-hidden">
+          <h3
+            className="font-semibold text-base leading-snug tracking-tight text-foreground group-hover:text-primary transition-colors truncate min-w-0 block"
+            title={form.title}
+          >
             {form.title}
           </h3>
 
-          <p className="text-xs text-muted-foreground line-clamp-2 leading-relaxed min-h-[2rem]">
+          <p
+            className="text-xs text-muted-foreground line-clamp-2 leading-relaxed min-h-[2rem] break-words"
+            title={form.description || undefined}
+          >
             {form.description?.trim() ? (
               form.description
             ) : (

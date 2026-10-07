@@ -103,9 +103,9 @@ export function FormUnavailableState({
       break;
 
     case "unpublished":
-      title = "Form unavailable";
+      title = "This form isn't accepting responses";
       description =
-        "This form is currently in draft mode or private and is not accepting responses right now.";
+        "The form owner has not opened it for responses yet. If you believe this is a mistake, please reach out to the person or organization who shared this link.";
       break;
 
     case "not-found":
@@ -167,7 +167,7 @@ export function FormUnavailableState({
               aria-label="Back to dashboard"
             >
               <Image
-                src="/logo.svg"
+                src={isDark ? "/logo-white.svg" : "/logo.svg"}
                 alt="Convia"
                 width={112}
                 height={32}
@@ -178,7 +178,7 @@ export function FormUnavailableState({
           ) : (
             <div className="inline-flex items-center gap-2 opacity-90">
               <Image
-                src="/logo.svg"
+                src={isDark ? "/logo-white.svg" : "/logo.svg"}
                 alt="Convia"
                 width={112}
                 height={32}
@@ -224,14 +224,14 @@ export function FormUnavailableState({
       <main className="my-auto flex w-full flex-1 flex-col items-center justify-center px-6 py-16 text-center">
         <div className="mx-auto w-full max-w-lg">
           <h1
-            className="font-heading text-3xl font-extrabold tracking-tight sm:text-4xl md:text-5xl"
+            className="font-heading text-3xl font-extrabold tracking-tight sm:text-4xl md:text-5xl text-balance"
             style={{ color: theme?.colors.cardText }}
           >
             {title}
           </h1>
 
           <p
-            className="mt-4 text-base leading-relaxed sm:text-lg"
+            className="mt-4 text-base leading-relaxed sm:text-lg text-balance"
             style={{ color: theme?.colors.cardMuted ?? "var(--muted-foreground)" }}
           >
             {description}

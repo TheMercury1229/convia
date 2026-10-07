@@ -1,18 +1,14 @@
 "use client";
 
-import { ArrowRight, Eye } from "lucide-react";
-import { Badge } from "@/components/ui/badge";
+import { ArrowRight, Clock, Eye } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import type { FormWithSections } from "@/lib/api/forms";
 import type { FormThemeResolved } from "@/lib/builder-themes";
-
-import { Kbd } from "@/components/ui/kbd";
 
 interface ViewerWelcomeProps {
   form: FormWithSections;
   theme: FormThemeResolved;
   isPreview: boolean;
-  firstSectionInfo: { title: string | null; description: string | null } | null;
   onStart: () => void;
   onFillWithAi?: () => void;
 }
@@ -21,51 +17,43 @@ export function ViewerWelcome({
   form,
   theme,
   isPreview,
-  firstSectionInfo,
   onStart,
   onFillWithAi,
 }: ViewerWelcomeProps) {
   return (
-    <div className="w-full text-left transition-all animate-in fade-in duration-300">
+    <div className="w-full text-left transition-all animate-in fade-in duration-300 min-w-0 max-w-full overflow-hidden">
       <h1
-        className="font-heading text-3xl font-extrabold leading-tight tracking-tight sm:text-4xl md:text-5xl"
+        className="font-heading text-3xl font-extrabold leading-tight tracking-tight sm:text-4xl md:text-5xl text-balance break-words [overflow-wrap:anywhere]"
         style={{ color: theme.colors.cardText }}
       >
         {form.title || "Untitled Form"}
       </h1>
       {form.description && (
         <p
-          className="mt-3.5 text-base leading-relaxed sm:text-lg"
+          className="mt-3.5 text-base leading-relaxed sm:text-lg text-balance break-words [overflow-wrap:anywhere]"
           style={{ color: theme.colors.cardMuted }}
         >
           {form.description}
         </p>
       )}
 
-      {firstSectionInfo && (
+      {form.deadline && (
         <div
-          className="mt-7 rounded-2xl border p-5 transition-colors"
+          className="mt-6 inline-flex items-center gap-2 rounded-xl border px-3.5 py-2 text-xs font-medium sm:text-sm"
           style={{
-            backgroundColor: theme.colors.cardInputBg,
             borderColor: theme.colors.cardInputBorder,
+            backgroundColor: theme.colors.cardInputBg,
+            color: theme.colors.cardMuted,
           }}
         >
-          {firstSectionInfo.title && (
-            <h2
-              className="font-heading text-lg font-bold tracking-tight sm:text-xl"
-              style={{ color: theme.colors.cardText }}
-            >
-              {firstSectionInfo.title}
-            </h2>
-          )}
-          {firstSectionInfo.description && (
-            <p
-              className="mt-1 text-sm leading-relaxed"
-              style={{ color: theme.colors.cardMuted }}
-            >
-              {firstSectionInfo.description}
-            </p>
-          )}
+          <Clock className="size-4 shrink-0" style={{ color: theme.colors.primary }} />
+          <span>
+            Closes{" "}
+            {new Date(form.deadline).toLocaleString([], {
+              dateStyle: "medium",
+              timeStyle: "short",
+            })}
+          </span>
         </div>
       )}
 
@@ -98,23 +86,6 @@ export function ViewerWelcome({
             <span>Fill with Grizzy</span>
           </Button>
         )}
-
-        <div
-          className="flex items-center gap-1.5 text-xs select-none"
-          style={{ color: theme.colors.cardMuted }}
-        >
-          <span>press</span>
-          <Kbd
-            className="px-1.5 py-0.5 text-[10px]"
-            style={{
-              backgroundColor: theme.colors.badgeBg,
-              color: theme.colors.badgeText,
-              borderColor: theme.colors.cardInputBorder,
-            }}
-          >
-            Enter ↵
-          </Kbd>
-        </div>
 
         {isPreview && (
           <span

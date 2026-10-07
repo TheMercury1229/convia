@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { useOrgFormsAnalytics, useFormAnalytics } from "@/hooks/use-analytics";
 import { AnalyticsView } from "@/components/analytics/analytics-view";
 import { Skeleton } from "@/components/ui/skeleton";
+import { toast } from "sonner";
 import { useBreadcrumbStore } from "@/store/breadcrumb-store";
 
 function AnalyticsDashboardSkeleton() {
@@ -42,6 +43,7 @@ function AnalyticsDashboardContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const setBreadcrumbTitle = useBreadcrumbStore((s) => s.setBreadcrumbTitle);
+  const [isRefreshing, setIsRefreshing] = React.useState(false);
 
   // Set breadcrumb title
   React.useEffect(() => {
@@ -52,6 +54,7 @@ function AnalyticsDashboardContent() {
   const {
     data: forms,
     isLoading: formsLoading,
+    isRefetching: formsRefetching,
     refetch: refetchForms,
   } = useOrgFormsAnalytics();
 
@@ -73,6 +76,7 @@ function AnalyticsDashboardContent() {
   const {
     data: analyticsData,
     isLoading: analyticsLoading,
+    isRefetching: analyticsRefetching,
     refetch: refetchAnalytics,
   } = useFormAnalytics(selectedFormId || null);
 
@@ -84,14 +88,26 @@ function AnalyticsDashboardContent() {
     });
   };
 
-  const handleRefresh = () => {
-    refetchForms();
-    if (selectedFormId) refetchAnalytics();
+  const handleRefresh = async () => {
+    setIsRefreshing(true);
+    try {
+      await Promise.all([
+        refetchForms(),
+        selectedFormId ? refetchAnalytics() : Promise.resolve(),
+      ]);
+      toast.success("Analytics data refreshed");
+    } catch {
+      toast.error("Failed to refresh analytics");
+    } finally {
+      setIsRefreshing(false);
+    }
   };
 
   if (formsLoading && !forms) {
     return <AnalyticsDashboardSkeleton />;
   }
+
+  const isBusy = analyticsLoading || formsRefetching || analyticsRefetching || isRefreshing;
 
   return (
     <AnalyticsView
@@ -99,7 +115,7 @@ function AnalyticsDashboardContent() {
       selectedFormId={selectedFormId}
       onSelectForm={handleSelectForm}
       analyticsData={analyticsData}
-      isLoading={analyticsLoading}
+      isLoading={isBusy}
       onRefresh={handleRefresh}
     />
   );

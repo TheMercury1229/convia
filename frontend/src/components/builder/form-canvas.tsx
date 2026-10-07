@@ -15,13 +15,13 @@ export function FormCanvas() {
 
   return (
     <div
-      className="flex h-full flex-col overflow-y-auto transition-colors duration-200"
+      className="flex h-full flex-col overflow-y-auto overflow-x-hidden min-w-0 transition-colors duration-200"
       style={{
         backgroundColor: currentTheme.colors.canvasBg,
       }}
       onClick={() => selectElement(null)}
     >
-      <div className="mx-auto w-full max-w-4xl xl:max-w-5xl px-6 md:px-8 py-8 flex flex-col transition-all">
+      <div className="mx-auto w-full max-w-4xl xl:max-w-5xl px-6 md:px-8 py-8 flex flex-col min-w-0 transition-all">
         {/* ── Form header card ─────────────────────────── */}
         <FormHeaderCard theme={currentTheme} />
 

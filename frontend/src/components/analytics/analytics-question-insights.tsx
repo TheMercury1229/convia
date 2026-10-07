@@ -28,6 +28,7 @@ import {
   AccordionTrigger,
   AccordionContent,
 } from "@/components/ui/accordion";
+import { cn } from "@/lib/utils";
 import type { QuestionInsight, FunnelStep } from "@/lib/api/analytics";
 
 interface AnalyticsQuestionInsightsProps {
@@ -90,6 +91,20 @@ export function AnalyticsQuestionInsights({
   funnel,
 }: AnalyticsQuestionInsightsProps) {
   const [searchQuery, setSearchQuery] = React.useState("");
+  const [trackingFilter, setTrackingFilter] = React.useState<"all" | "trackable" | "non-trackable">("all");
+
+  const isQuestionTrackable = React.useCallback((q: QuestionInsight) => {
+    const hasDistribution = Boolean(q.distribution && q.distribution.length > 0);
+    const hasKeywords = Boolean(q.topWords && q.topWords.length > 0);
+    const hasScores = q.averageScore !== null || q.npsScore !== null;
+    return hasDistribution || hasKeywords || hasScores;
+  }, []);
+
+  const trackableCount = React.useMemo(() => {
+    return insights.filter(isQuestionTrackable).length;
+  }, [insights, isQuestionTrackable]);
+
+  const nonTrackableCount = insights.length - trackableCount;
 
   // Quick lookup for question drop-off from funnel
   const funnelMap = React.useMemo(() => {
@@ -105,16 +120,23 @@ export function AnalyticsQuestionInsights({
     return map;
   }, [funnel]);
 
-  // Filtered insights by search query
+  // Filtered insights by search query and tracking filter
   const filteredInsights = React.useMemo(() => {
-    if (!searchQuery.trim()) return insights;
+    let list = insights;
+    if (trackingFilter === "trackable") {
+      list = list.filter(isQuestionTrackable);
+    } else if (trackingFilter === "non-trackable") {
+      list = list.filter((q) => !isQuestionTrackable(q));
+    }
+
+    if (!searchQuery.trim()) return list;
     const q = searchQuery.toLowerCase();
-    return insights.filter(
+    return list.filter(
       (item) =>
         item.label.toLowerCase().includes(q) ||
         item.type.toLowerCase().includes(q)
     );
-  }, [insights, searchQuery]);
+  }, [insights, trackingFilter, searchQuery, isQuestionTrackable]);
 
   if (!insights || insights.length === 0) {
     return (
@@ -150,18 +172,62 @@ export function AnalyticsQuestionInsights({
           </p>
         </div>
 
-        {/* Clean, unobtrusive search input */}
-        {insights.length > 3 && (
-          <div className="relative w-full sm:w-64">
-            <Search className="size-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground/60 pointer-events-none" />
-            <Input
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Filter questions..."
-              className="h-8 pl-8.5 pr-3 text-xs rounded-xl bg-background/60 border-border/70"
-            />
-          </div>
-        )}
+        {/* Filter controls: Segmented pills for Trackable / Non-trackable & Search */}
+        <div className="flex flex-wrap items-center gap-2">
+          {nonTrackableCount > 0 && (
+            <div className="inline-flex items-center rounded-xl border border-border/70 bg-muted/40 p-0.5 text-xs">
+              <button
+                type="button"
+                onClick={() => setTrackingFilter("all")}
+                className={cn(
+                  "px-2.5 py-1 rounded-lg text-xs font-medium transition-all cursor-pointer",
+                  trackingFilter === "all"
+                    ? "bg-background text-foreground shadow-xs font-semibold"
+                    : "text-muted-foreground hover:text-foreground"
+                )}
+              >
+                All ({insights.length})
+              </button>
+              <button
+                type="button"
+                onClick={() => setTrackingFilter("trackable")}
+                className={cn(
+                  "px-2.5 py-1 rounded-lg text-xs font-medium transition-all cursor-pointer",
+                  trackingFilter === "trackable"
+                    ? "bg-background text-foreground shadow-xs font-semibold"
+                    : "text-muted-foreground hover:text-foreground"
+                )}
+              >
+                Trackable ({trackableCount})
+              </button>
+              <button
+                type="button"
+                onClick={() => setTrackingFilter("non-trackable")}
+                className={cn(
+                  "px-2.5 py-1 rounded-lg text-xs font-medium transition-all cursor-pointer",
+                  trackingFilter === "non-trackable"
+                    ? "bg-background text-foreground shadow-xs font-semibold"
+                    : "text-muted-foreground hover:text-foreground"
+                )}
+              >
+                Non-trackable ({nonTrackableCount})
+              </button>
+            </div>
+          )}
+
+          {/* Clean, unobtrusive search input */}
+          {insights.length > 3 && (
+            <div className="relative w-full sm:w-56">
+              <Search className="size-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground/60 pointer-events-none" />
+              <Input
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="Filter questions..."
+                className="h-8 pl-8.5 pr-3 text-xs rounded-xl bg-background/60 border-border/70"
+              />
+            </div>
+          )}
+        </div>
       </div>
 
       {/* ────────────────────────────────────────────────────────── */}
@@ -182,6 +248,70 @@ export function AnalyticsQuestionInsights({
             const isHighDrop = dropRate >= 15;
             const typeMeta = getQuestionTypeMeta(q.type);
             const TypeIcon = typeMeta.icon;
+            const isTrackable = isQuestionTrackable(q);
+
+            if (!isTrackable) {
+              return (
+                <div
+                  key={q.questionId}
+                  className="px-4 sm:px-5 py-3.5 sm:py-4 bg-muted/10 border-b-0 not-last:border-b not-last:border-border/40 select-none cursor-default"
+                >
+                  <div className="flex items-center justify-between w-full text-left gap-3 sm:gap-6">
+                    {/* Left: Question index, Type hint badge, Non-trackable badge, Label */}
+                    <div className="flex items-center gap-2.5 min-w-0 flex-1">
+                      <span className="font-mono text-xs text-muted-foreground/70 shrink-0 w-5 text-center">
+                        #{idx + 1}
+                      </span>
+                      <span className="text-[10px] uppercase font-mono font-medium tracking-wider text-muted-foreground bg-muted/80 px-2 py-0.5 rounded-md border border-border/50 shrink-0 inline-flex items-center gap-1.5">
+                        <TypeIcon className="size-3 opacity-70" />
+                        <span>{typeMeta.label}</span>
+                      </span>
+                      <span className="text-[10px] font-mono font-medium text-muted-foreground/80 bg-muted/70 px-2 py-0.5 rounded-md border border-dashed border-border/70 shrink-0">
+                        Non-trackable
+                      </span>
+                      <span className="font-sans text-xs sm:text-sm font-medium text-foreground truncate">
+                        {q.label}
+                      </span>
+                      {q.isRequired && (
+                        <span
+                          className="text-destructive text-xs font-bold leading-none shrink-0"
+                          title="Required"
+                        >
+                          *
+                        </span>
+                      )}
+                    </div>
+
+                    {/* Right: Responses count & Drop-off % */}
+                    <div className="flex items-center gap-3 sm:gap-5 shrink-0 text-xs font-sans">
+                      <div className="flex items-center gap-1.5 text-muted-foreground">
+                        <span className="font-semibold text-foreground tabular-nums">
+                          {q.totalAnswered}
+                        </span>
+                        <span className="hidden sm:inline">answered</span>
+                        <span className="text-muted-foreground/50 hidden sm:inline">•</span>
+                        <span className="font-mono text-muted-foreground">
+                          {q.answerRate}%
+                        </span>
+                      </div>
+
+                      {dropRate > 0 && (
+                        <span
+                          className={`font-mono text-[11px] sm:text-xs inline-flex items-center gap-1 ${
+                            isHighDrop
+                              ? "text-destructive font-semibold"
+                              : "text-muted-foreground"
+                          }`}
+                        >
+                          <TrendingDown className="size-3 shrink-0" />
+                          <span>{dropRate}% drop</span>
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              );
+            }
 
             return (
               <AccordionItem

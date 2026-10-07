@@ -15,15 +15,27 @@ import {
   RotateCcw,
   Sun,
   Upload,
+  X,
 } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
+import {
+  Attachment,
+  AttachmentMedia,
+  AttachmentContent,
+  AttachmentTitle,
+  AttachmentDescription,
+  AttachmentActions,
+  AttachmentAction,
+} from "@/components/ui/attachment";
 import { ChatMarkdown } from "./chat-markdown";
 import { useAiFillChat } from "@/hooks/use-ai-fill-chat";
 import { uploadToImageKit } from "@/lib/imagekit";
 import type { FormWithSections } from "@/lib/api/forms";
 import type { FormThemeResolved } from "@/lib/builder-themes";
 import type { Question } from "@/types/builder";
+import { apiQuestionToClientQuestion } from "@/lib/form-model";
+import { validateQuestionAnswer } from "@/lib/validations/question-validator";
 import { cn } from "@/lib/utils";
 
 interface AiFillChatProps {
@@ -90,6 +102,7 @@ export function AiFillChat({
   const [isUploadingFile, setIsUploadingFile] = React.useState(false);
   const [uploadProgressText, setUploadProgressText] = React.useState<string | null>(null);
   const [uploadError, setUploadError] = React.useState<string | null>(null);
+  const [submitValidationError, setSubmitValidationError] = React.useState<string | null>(null);
   const bottomFileInputRef = React.useRef<HTMLInputElement>(null);
 
   const messagesEndRef = React.useRef<HTMLDivElement>(null);
@@ -98,9 +111,10 @@ export function AiFillChat({
 
   // Flattened questions list across all sections (excluding heading blocks)
   const allQuestions = React.useMemo(() => {
-    return (form.sections || []).flatMap((s) =>
-      (s.questions || []).filter((q) => q.type !== "heading"),
-    );
+    return (form.sections || [])
+      .flatMap((s) => s.questions || [])
+      .filter((q) => q.type !== "heading")
+      .map((q) => apiQuestionToClientQuestion(q, false));
   }, [form.sections]);
 
   const totalQuestions = allQuestions.length;
@@ -119,15 +133,36 @@ export function AiFillChat({
     return allQuestions.filter((q) => q.type === "file");
   }, [allQuestions]);
 
-  // Identify the first unaddressed question in order. If it's a file, Grizzy is asking for a file right now!
+  // Identify the question of type "file" that Grizzy is currently asking for
   const activeFileQuestion = React.useMemo(() => {
-    const firstUnaddressed = allQuestions.find(
-      (q) =>
-        filledAnswers[q.id] === undefined ||
-        filledAnswers[q.id] === "",
-    );
-    return firstUnaddressed?.type === "file" ? (firstUnaddressed as Question) : null;
-  }, [allQuestions, filledAnswers]);
+    if (isComplete) return null;
+
+    // 1. Check if the latest assistant message explicitly asks for a file question
+    const lastAssistantMsg = [...messages].reverse().find((m) => m.role === "assistant");
+    if (lastAssistantMsg && fileQuestions.length > 0) {
+      const mentionedFileQ = fileQuestions.find((q) => {
+        const notFilled =
+          filledAnswers[q.id] === undefined ||
+          filledAnswers[q.id] === "" ||
+          (Array.isArray(filledAnswers[q.id]) && (filledAnswers[q.id] as unknown[]).length === 0);
+        return notFilled && lastAssistantMsg.content.toLowerCase().includes(q.label.toLowerCase());
+      });
+      if (mentionedFileQ) return mentionedFileQ;
+    }
+
+    // 2. Otherwise find the first unfilled question in form order
+    const firstUnaddressed = allQuestions.find((q) => {
+      const val = filledAnswers[q.id];
+      return (
+        val === undefined ||
+        val === null ||
+        val === "" ||
+        (Array.isArray(val) && val.length === 0)
+      );
+    });
+
+    return firstUnaddressed?.type === "file" ? firstUnaddressed : null;
+  }, [allQuestions, fileQuestions, filledAnswers, messages, isComplete]);
 
   // Core file upload helper
   const handleFileUpload = async (file: File, targetQ?: Question | null) => {
@@ -244,6 +279,26 @@ export function AiFillChat({
     }
   };
 
+  const handleAiSubmit = async () => {
+    if (!onSubmitResponse || isSubmitting) return;
+
+    for (const q of allQuestions) {
+      const val = filledAnswers[q.id];
+      const result = validateQuestionAnswer(q, val);
+      if (!result.isValid) {
+        const errorMsg = result.error || `Please provide an answer for "${q.label}".`;
+        setSubmitValidationError(errorMsg);
+        sendMessage(
+          `Before we submit, we still need a valid answer for **${q.label}** (${errorMsg}). Could you please share that?`
+        );
+        return;
+      }
+    }
+
+    setSubmitValidationError(null);
+    await onSubmitResponse(filledAnswers);
+  };
+
   return (
     <div
       className="relative flex h-screen w-full flex-col overflow-hidden transition-colors duration-300"
@@ -254,39 +309,12 @@ export function AiFillChat({
     >
       {/* Top Header Bar */}
       <header
-        className="sticky top-0 z-40 flex h-14 shrink-0 items-center justify-between px-4 backdrop-blur-md transition-colors duration-300 sm:px-8 border-b"
+        className="sticky top-0 z-40 flex h-14 shrink-0 items-center justify-end px-4 backdrop-blur-md transition-colors duration-300 sm:px-8"
         style={{
           backgroundColor: `color-mix(in oklch, ${theme.colors.canvasBg} 85%, transparent)`,
           borderBottomColor: `color-mix(in oklch, ${theme.colors.cardBorder} 40%, transparent)`,
         }}
       >
-        {/* Left: Grizzy branding & Form title */}
-        <div className="flex items-center gap-2.5 min-w-0">
-          <Avatar
-            className="size-7 ring-1 shrink-0 overflow-hidden"
-            style={{
-              backgroundColor: `color-mix(in oklch, ${theme.colors.primary} 15%, ${theme.colors.cardInputBg})`,
-              borderColor: `color-mix(in oklch, ${theme.colors.primary} 25%, transparent)`,
-            }}
-          >
-            <AvatarImage src="/grizzy/avatar.png" alt="Grizzy" className="object-contain p-0.5" />
-            <AvatarFallback className="text-[10px] font-semibold">GZ</AvatarFallback>
-          </Avatar>
-          <div className="flex items-center gap-2 min-w-0">
-            <span className="font-heading text-sm font-semibold truncate" style={{ color: theme.colors.cardText }}>
-              Grizzy
-            </span>
-            <span
-              className="text-xs px-2 py-0.5 rounded-full font-medium hidden sm:inline-block truncate max-w-[200px]"
-              style={{
-                backgroundColor: theme.colors.cardInputBg,
-                color: theme.colors.cardMuted,
-              }}
-            >
-              {form.title || "Form Assistant"}
-            </span>
-          </div>
-        </div>
 
         {/* Right: Actions */}
         <div className="flex items-center gap-2">
@@ -311,7 +339,7 @@ export function AiFillChat({
           {isComplete && onSubmitResponse && (
             <Button
               size="sm"
-              onClick={() => onSubmitResponse(filledAnswers)}
+              onClick={handleAiSubmit}
               disabled={isSubmitting}
               className="flex items-center gap-1.5 rounded-xl text-xs font-semibold px-3.5 shadow-xs hover:opacity-90 active:scale-95 cursor-pointer"
               style={{
@@ -413,14 +441,14 @@ export function AiFillChat({
                   style={
                     isAi
                       ? {
-                          backgroundColor: theme.colors.cardInputBg,
-                          borderColor: theme.colors.cardInputBorder,
-                          color: theme.colors.cardText,
-                        }
+                        backgroundColor: theme.colors.cardInputBg,
+                        borderColor: theme.colors.cardInputBorder,
+                        color: theme.colors.cardText,
+                      }
                       : {
-                          backgroundColor: theme.colors.primary,
-                          color: theme.colors.primaryForeground,
-                        }
+                        backgroundColor: theme.colors.primary,
+                        color: theme.colors.primaryForeground,
+                      }
                   }
                 >
                   {isAi ? (
@@ -462,6 +490,17 @@ export function AiFillChat({
                             onFileSelect={(file) => handleFileUpload(file, activeFileQuestion)}
                             onSkip={() => handleSend("I'd like to skip this question")}
                             disabled={isStreaming || isUploadingFile}
+                            uploadedUrl={
+                              typeof filledAnswers[activeFileQuestion.id] === "string" &&
+                              Boolean(filledAnswers[activeFileQuestion.id])
+                                ? (filledAnswers[activeFileQuestion.id] as string)
+                                : undefined
+                            }
+                            onRemoveFile={() => {
+                              const updated = { ...filledAnswers };
+                              delete updated[activeFileQuestion.id];
+                              onAnswersUpdate?.(updated);
+                            }}
                           />
                         )}
                       </div>
@@ -523,7 +562,7 @@ export function AiFillChat({
                   <Button
                     type="button"
                     size="sm"
-                    onClick={() => onSubmitResponse(filledAnswers)}
+                    onClick={handleAiSubmit}
                     disabled={isSubmitting}
                     className="h-10 rounded-xl text-xs sm:text-sm font-semibold px-6 shadow-sm hover:opacity-90 active:scale-95 cursor-pointer flex items-center justify-center gap-2 shrink-0"
                     style={{
@@ -545,6 +584,12 @@ export function AiFillChat({
                   </Button>
                 )}
               </div>
+              {submitValidationError && (
+                <div className="mt-3 flex items-center gap-2 rounded-xl border border-destructive/30 bg-destructive/10 px-3.5 py-2 text-xs font-medium text-destructive">
+                  <AlertCircle className="size-4 shrink-0" />
+                  <span>{submitValidationError}</span>
+                </div>
+              )}
             </div>
           )}
 
@@ -644,12 +689,53 @@ export function AiFillChat({
             ref={bottomFileInputRef}
             type="file"
             className="hidden"
+            accept={activeFileQuestion?.validation?.allowedExtensions}
             onChange={(e) => {
               const file = e.target.files?.[0];
-              if (file) handleFileUpload(file);
+              if (file && activeFileQuestion) {
+                handleFileUpload(file, activeFileQuestion);
+              }
             }}
             disabled={isUploadingFile || isStreaming}
           />
+
+          {/* Upload Progress Preview Card above input box */}
+          {isUploadingFile && (
+            <div className="mb-2 animate-in fade-in slide-in-from-bottom-1 duration-200">
+              <Attachment
+                size="sm"
+                state="uploading"
+                className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl border shadow-2xs"
+                style={{
+                  backgroundColor: theme.colors.cardBg,
+                  borderColor: theme.colors.primary,
+                  color: theme.colors.cardText,
+                }}
+              >
+                <AttachmentMedia
+                  variant="icon"
+                  className="size-7 rounded-lg shrink-0"
+                  style={{
+                    backgroundColor: `color-mix(in oklch, ${theme.colors.primary} 15%, transparent)`,
+                    color: theme.colors.primary,
+                  }}
+                >
+                  <Loader2 className="size-3.5 animate-spin" />
+                </AttachmentMedia>
+                <AttachmentContent className="min-w-0 flex-1">
+                  <AttachmentTitle className="text-xs font-semibold truncate">
+                    {uploadProgressText || "Uploading file..."}
+                  </AttachmentTitle>
+                  <AttachmentDescription
+                    className="text-[11px] truncate"
+                    style={{ color: theme.colors.cardMuted }}
+                  >
+                    Please wait while your file is attached...
+                  </AttachmentDescription>
+                </AttachmentContent>
+              </Attachment>
+            </div>
+          )}
 
           {/* Input Box Card */}
           <div
@@ -660,29 +746,28 @@ export function AiFillChat({
               boxShadow: `0 4px 20px -2px color-mix(in oklch, ${theme.colors.cardText} 6%, transparent)`,
             }}
           >
-            {/* Attachment Button */}
-            <Button
-              type="button"
-              size="icon"
-              variant="ghost"
-              disabled={isStreaming || isUploadingFile}
-              onClick={() => bottomFileInputRef.current?.click()}
-              className="size-8 sm:size-8.5 shrink-0 rounded-full transition-all duration-150 hover:bg-black/5 dark:hover:bg-white/5 active:scale-95 cursor-pointer"
-              style={{
-                color: theme.colors.cardMuted,
-              }}
-              title={
-                activeFileQuestion
-                  ? `Upload file for "${activeFileQuestion.label}"`
-                  : "Attach a file or document"
-              }
-            >
-              {isUploadingFile ? (
-                <Loader2 className="size-4 animate-spin text-primary" />
-              ) : (
-                <Paperclip className="size-4 stroke-[2]" />
-              )}
-            </Button>
+            {/* Attachment Button — ONLY shown when the active question is of type "file" */}
+            {activeFileQuestion && (
+              <Button
+                type="button"
+                size="icon"
+                variant="ghost"
+                disabled={isStreaming || isUploadingFile}
+                onClick={() => bottomFileInputRef.current?.click()}
+                className="size-8 sm:size-8.5 shrink-0 rounded-full transition-all duration-150 active:scale-95 cursor-pointer animate-in fade-in zoom-in-95 duration-150"
+                style={{
+                  color: theme.colors.primary,
+                  backgroundColor: `color-mix(in oklch, ${theme.colors.primary} 12%, transparent)`,
+                }}
+                title={`Upload file for "${activeFileQuestion.label}"`}
+              >
+                {isUploadingFile ? (
+                  <Loader2 className="size-4 animate-spin" />
+                ) : (
+                  <Paperclip className="size-4 stroke-[2]" />
+                )}
+              </Button>
+            )}
 
             <textarea
               ref={textareaRef}
@@ -694,8 +779,8 @@ export function AiFillChat({
                 isComplete
                   ? "Ask Grizzy to adjust any answer, or click Submit Response..."
                   : activeFileQuestion
-                  ? `Message Grizzy or upload "${activeFileQuestion.label}" above...`
-                  : "Message Grizzy or share your details..."
+                    ? `Message Grizzy or upload "${activeFileQuestion.label}" above...`
+                    : "Message Grizzy or share your details..."
               }
               disabled={isStreaming}
               className="max-h-32 min-h-[38px] flex-1 resize-none bg-transparent px-2 py-1.5 text-sm leading-relaxed outline-none placeholder:text-muted-foreground transition-all disabled:opacity-50"
@@ -747,6 +832,8 @@ interface InlineFileDropzoneProps {
   onFileSelect: (file: File) => void;
   onSkip?: () => void;
   disabled?: boolean;
+  uploadedUrl?: string;
+  onRemoveFile?: () => void;
 }
 
 function InlineFileDropzone({
@@ -759,6 +846,8 @@ function InlineFileDropzone({
   onFileSelect,
   onSkip,
   disabled,
+  uploadedUrl,
+  onRemoveFile,
 }: InlineFileDropzoneProps) {
   const [isDragging, setIsDragging] = React.useState(false);
   const fileInputRef = React.useRef<HTMLInputElement>(null);
@@ -795,12 +884,93 @@ function InlineFileDropzone({
     e.target.value = "";
   };
 
+  // If a file has already been uploaded for this question, render using the Attachment component
+  if (uploadedUrl) {
+    const fileName = uploadedUrl.split("/").pop() || "Uploaded File";
+    const isImage = /\.(png|jpe?g|webp|gif|svg)(\?.*)?$/i.test(fileName || uploadedUrl);
+
+    return (
+      <div className="mt-3.5 w-full select-none animate-in fade-in duration-200">
+        <Attachment
+          size="default"
+          state="done"
+          className="w-full flex items-center justify-between p-3 rounded-2xl border shadow-2xs"
+          style={{
+            backgroundColor: theme.colors.cardBg,
+            borderColor: `color-mix(in oklch, ${theme.colors.primary} 45%, ${theme.colors.cardInputBorder})`,
+          }}
+        >
+          <AttachmentMedia
+            variant={isImage ? "image" : "icon"}
+            className="size-10 rounded-xl shrink-0 overflow-hidden"
+            style={{
+              backgroundColor: `color-mix(in oklch, ${theme.colors.primary} 15%, transparent)`,
+              color: theme.colors.primary,
+            }}
+          >
+            {isImage ? (
+              <img src={uploadedUrl} alt={fileName} className="size-full object-cover" />
+            ) : (
+              <FileText className="size-5" />
+            )}
+          </AttachmentMedia>
+          <AttachmentContent className="ml-1 min-w-0 flex-1">
+            <AttachmentTitle
+              className="text-xs sm:text-sm font-semibold truncate"
+              style={{ color: theme.colors.cardText }}
+            >
+              {fileName}
+            </AttachmentTitle>
+            <AttachmentDescription
+              className="text-[11px] truncate flex items-center gap-1.5"
+              style={{ color: theme.colors.cardMuted }}
+            >
+              <CheckCircle2 className="size-3 text-emerald-500 inline shrink-0" />
+              <span>Uploaded successfully</span>
+            </AttachmentDescription>
+          </AttachmentContent>
+          <AttachmentActions className="gap-1">
+            <AttachmentAction
+              asChild
+              size="icon-xs"
+              variant="ghost"
+              className="size-7 rounded-lg hover:bg-black/5 dark:hover:bg-white/5 cursor-pointer"
+              style={{ color: theme.colors.cardMuted }}
+            >
+              <a
+                href={uploadedUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                title="View file"
+              >
+                <ExternalLink className="size-3.5" />
+              </a>
+            </AttachmentAction>
+            {onRemoveFile && (
+              <AttachmentAction
+                size="icon-xs"
+                variant="ghost"
+                onClick={onRemoveFile}
+                className="size-7 rounded-lg hover:bg-destructive/10 hover:text-destructive cursor-pointer"
+                style={{ color: theme.colors.cardMuted }}
+                title="Remove and replace file"
+              >
+                <X className="size-3.5" />
+              </AttachmentAction>
+            )}
+          </AttachmentActions>
+        </Attachment>
+      </div>
+    );
+  }
+
   return (
     <div className="mt-3.5 w-full select-none animate-in fade-in duration-200">
       <input
         ref={fileInputRef}
         type="file"
         className="hidden"
+        accept={question.validation?.allowedExtensions}
         onChange={handleFileChange}
         disabled={disabled || isUploading}
       />
@@ -846,7 +1016,7 @@ function InlineFileDropzone({
         <div className="mb-2 max-w-sm">
           <h5 className="font-heading text-sm sm:text-base font-semibold" style={{ color: theme.colors.cardText }}>
             {question.label}
-            {question.isRequired ? (
+            {question.required ? (
               <span className="text-[11px] text-amber-500 ml-1.5 font-normal">*required</span>
             ) : (
               <span className="text-[11px] opacity-60 ml-1.5 font-normal">(optional)</span>
@@ -859,8 +1029,8 @@ function InlineFileDropzone({
           </p>
           <div className="mt-1 flex items-center justify-center gap-2 text-[11px] opacity-60">
             <span>Max {maxMb}MB</span>
-            {question.validation?.allowedFileTypes && (
-              <span>• {question.validation.allowedFileTypes.join(", ")}</span>
+            {question.validation?.allowedExtensions && (
+              <span>• {question.validation.allowedExtensions}</span>
             )}
           </div>
         </div>
@@ -913,7 +1083,7 @@ function InlineFileDropzone({
             )}
           </Button>
 
-          {!question.isRequired && onSkip && !isUploading && (
+          {!question.required && onSkip && !isUploading && (
             <Button
               type="button"
               size="sm"
@@ -933,7 +1103,7 @@ function InlineFileDropzone({
 }
 
 /**
- * Format user message bubbles: renders uploaded file badges cleanly instead of raw URLs
+ * Format user message bubbles: renders uploaded file badges cleanly with the Attachment component
  */
 function UserMessageBubble({ content }: { content: string }) {
   // Check if message is a file upload confirmation:
@@ -942,29 +1112,51 @@ function UserMessageBubble({ content }: { content: string }) {
 
   if (fileMatch) {
     const [, fileName, fileUrl] = fileMatch;
+    const isImage = /\.(png|jpe?g|webp|gif|svg)(\?.*)?$/i.test(fileName || fileUrl);
+
     return (
-      <div className="flex items-center gap-2.5 text-left py-0.5">
-        <div
-          className="size-8 rounded-lg flex items-center justify-center shrink-0"
-          style={{
-            backgroundColor: "rgba(255, 255, 255, 0.2)",
-          }}
+      <div className="py-0.5 select-none">
+        <Attachment
+          size="sm"
+          state="done"
+          className="bg-white/15 dark:bg-black/30 border-white/20 text-white shadow-xs max-w-xs"
         >
-          <FileText className="size-4 text-white" />
-        </div>
-        <div className="min-w-0">
-          <p className="font-semibold text-xs sm:text-sm text-white truncate max-w-[220px]">
-            {fileName}
-          </p>
-          <a
-            href={fileUrl}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="text-[11px] underline opacity-90 hover:opacity-100 text-white flex items-center gap-1 mt-0.5"
+          <AttachmentMedia
+            variant={isImage ? "image" : "icon"}
+            className="size-8 rounded-lg bg-white/20 text-white shrink-0 overflow-hidden"
           >
-            View uploaded file <ExternalLink className="size-2.5" />
-          </a>
-        </div>
+            {isImage ? (
+              <img src={fileUrl} alt={fileName} className="size-full object-cover" />
+            ) : (
+              <FileText className="size-4 text-white" />
+            )}
+          </AttachmentMedia>
+          <AttachmentContent className="min-w-0 pr-1 text-left">
+            <AttachmentTitle className="text-white text-xs font-semibold truncate max-w-[180px]">
+              {fileName}
+            </AttachmentTitle>
+            <AttachmentDescription className="text-white/80 text-[11px] truncate">
+              Uploaded file
+            </AttachmentDescription>
+          </AttachmentContent>
+          <AttachmentActions>
+            <AttachmentAction
+              asChild
+              size="icon-xs"
+              variant="ghost"
+              className="text-white hover:bg-white/20 size-6"
+            >
+              <a
+                href={fileUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                title="View uploaded file"
+              >
+                <ExternalLink className="size-3" />
+              </a>
+            </AttachmentAction>
+          </AttachmentActions>
+        </Attachment>
       </div>
     );
   }

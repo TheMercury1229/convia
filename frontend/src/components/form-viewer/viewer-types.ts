@@ -1,5 +1,11 @@
 import type { Question } from "@/types/builder";
 
+export interface AttachedHeading {
+  id: string;
+  label: string;
+  description?: string | null;
+}
+
 export interface FlatQuestionItem {
   question: Question;
   sectionTitle?: string | null;
@@ -9,4 +15,5 @@ export interface FlatQuestionItem {
   isFirstQuestionOfSection: boolean;
   totalQuestions: number;
   totalSections: number;
+  attachedHeadings?: AttachedHeading[];
 }

@@ -83,7 +83,7 @@ export function QuestionCard({
         selectElement({ type: "question", id: question.id });
       }}
       className={cn(
-        "group relative rounded-lg border transition-all duration-150 cursor-pointer",
+        "group relative rounded-lg border transition-all duration-150 cursor-pointer min-w-0 max-w-full overflow-hidden",
         !isSelected && "hover:border-foreground/20",
         isDragging && "opacity-30",
       )}
@@ -110,7 +110,7 @@ export function QuestionCard({
       </div>
 
       {/* Content */}
-      <div className="pl-8 pr-4 py-3.5">
+      <div className="pl-8 pr-4 py-3.5 min-w-0 overflow-hidden">
         {/* Type badge row */}
         <div className="flex items-start justify-between gap-2">
           <div className="flex items-center gap-1.5 min-w-0">
@@ -191,7 +191,7 @@ export function QuestionCard({
         {/* Label */}
         {question.type !== "heading" && (
           <p
-            className="mt-1.5 text-base font-semibold leading-snug"
+            className="mt-1.5 text-base font-semibold leading-snug break-words"
             style={{ color: currentTheme.colors.cardText }}
           >
             {question.label}
@@ -213,7 +213,7 @@ export function QuestionCard({
         {/* Description hint */}
         {question.description && question.type !== "heading" && (
           <p
-            className="mt-1.5 text-xs leading-relaxed"
+            className="mt-1.5 text-xs leading-relaxed break-words"
             style={{ color: currentTheme.colors.cardMuted }}
           >
             {question.description}

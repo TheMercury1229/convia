@@ -36,7 +36,7 @@ export function FormHeaderCard({ theme }: FormHeaderCardProps) {
 
   return (
     <div
-      className="rounded-xl border px-6 py-5 transition-all duration-150"
+      className="rounded-xl border px-6 py-5 transition-all duration-150 min-w-0 max-w-full overflow-hidden"
       style={{
         backgroundColor: theme.colors.cardBg,
         borderColor: selectedElement === null
@@ -64,7 +64,7 @@ export function FormHeaderCard({ theme }: FormHeaderCardProps) {
               setEditingTitle(false);
             }
           }}
-          className="w-full bg-transparent font-heading text-2xl font-bold outline-none border-b pb-px"
+          className="w-full bg-transparent font-heading text-2xl font-bold outline-none border-b pb-px break-words"
           style={{
             color: theme.colors.cardText,
             borderColor: theme.colors.primary,
@@ -72,7 +72,7 @@ export function FormHeaderCard({ theme }: FormHeaderCardProps) {
         />
       ) : (
         <h1
-          className="cursor-text font-heading text-2xl font-bold hover:opacity-85 transition-opacity"
+          className="cursor-text font-heading text-2xl font-bold hover:opacity-85 transition-opacity break-words"
           style={{ color: theme.colors.cardText }}
           onClick={(e) => {
             e.stopPropagation();
@@ -98,7 +98,7 @@ export function FormHeaderCard({ theme }: FormHeaderCardProps) {
             }
           }}
           rows={2}
-          className="mt-2 w-full resize-none rounded-lg border px-3 py-2 text-base outline-none"
+          className="mt-2 w-full resize-none rounded-lg border px-3 py-2 text-base outline-none break-words"
           style={{
             backgroundColor: theme.colors.cardInputBg,
             borderColor: theme.colors.cardInputBorder,
@@ -107,7 +107,7 @@ export function FormHeaderCard({ theme }: FormHeaderCardProps) {
         />
       ) : (
         <p
-          className="mt-2 cursor-text text-base transition-colors hover:opacity-80"
+          className="mt-2 cursor-text text-base transition-colors hover:opacity-80 break-words"
           style={{ color: theme.colors.cardMuted }}
           onClick={(e) => {
             e.stopPropagation();

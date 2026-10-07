@@ -88,17 +88,40 @@ export function FormViewer({ form, isPreview = false }: FormViewerProps) {
 
     for (const [sectionIndex, section] of sections.entries()) {
       const questions = [...(section.questions || [])].sort((a, b) => a.position - b.position);
-      for (const [index, question] of questions.entries()) {
-        items.push({
-          question: apiQuestionToClientQuestion(question, false),
-          sectionTitle: section.title,
-          sectionDescription: section.description,
-          questionIndex: questionIndex++,
-          sectionIndex,
-          isFirstQuestionOfSection: index === 0,
-          totalQuestions: 0,
-          totalSections: sections.length,
-        });
+      let pendingHeadings: { id: string; label: string; description?: string | null }[] = [];
+      let isFirstActualQuestion = true;
+
+      for (const question of questions) {
+        const clientQ = apiQuestionToClientQuestion(question, false);
+        if (clientQ.type === "heading") {
+          pendingHeadings.push({
+            id: clientQ.id,
+            label: clientQ.label || "",
+            description: clientQ.description || null,
+          });
+        } else {
+          items.push({
+            question: clientQ,
+            sectionTitle: section.title,
+            sectionDescription: section.description,
+            questionIndex: questionIndex++,
+            sectionIndex,
+            isFirstQuestionOfSection: isFirstActualQuestion,
+            totalQuestions: 0,
+            totalSections: sections.length,
+            attachedHeadings: pendingHeadings.length > 0 ? [...pendingHeadings] : undefined,
+          });
+          pendingHeadings = [];
+          isFirstActualQuestion = false;
+        }
+      }
+
+      if (pendingHeadings.length > 0 && items.length > 0) {
+        const lastItem = items[items.length - 1];
+        lastItem.attachedHeadings = [
+          ...(lastItem.attachedHeadings || []),
+          ...pendingHeadings,
+        ];
       }
     }
 
@@ -107,12 +130,7 @@ export function FormViewer({ form, isPreview = false }: FormViewerProps) {
 
   const totalQuestions = flatQuestions.length;
   const currentItem = flatQuestions[currentIndex];
-  const isHeading = currentItem?.question.type === "heading";
   const isMultiline = currentItem?.question.type === "textarea" || currentItem?.question.type === "paragraph";
-  const firstSection = [...(form.sections || [])].sort((a, b) => a.position - b.position)[0];
-  const firstSectionInfo = firstSection && (firstSection.title?.trim() || firstSection.description?.trim())
-    ? { title: firstSection.title?.trim() || null, description: firstSection.description?.trim() || null }
-    : null;
 
   const { sessionIdRef, startSession } = useFormAnalyticsSession({
     formId: form.id,
@@ -157,6 +175,17 @@ export function FormViewer({ form, isPreview = false }: FormViewerProps) {
   };
 
   const submitCurrentResponse = async () => {
+    // Validate all required fields
+    for (const item of flatQuestions) {
+      const val = answersRef.current[item.question.id];
+      const validation = validateQuestionAnswer(item.question, val);
+      if (!validation.isValid) {
+        const errorMsg = validation.error || `Please answer "${item.question.label}" to proceed.`;
+        triggerShake(errorMsg);
+        return;
+      }
+    }
+
     setIsSubmitting(true);
     setSubmissionError(null);
     if (isPreview) {
@@ -170,6 +199,9 @@ export function FormViewer({ form, isPreview = false }: FormViewerProps) {
     try {
       const response = Object.entries(answersRef.current).map(([questionId, value]) => ({ questionId, value }));
       await submitResponse(form.id, { answers: response, sessionId: sessionIdRef.current });
+      if (typeof window !== "undefined") {
+        sessionStorage.removeItem(`convia_session_${form.id}`);
+      }
       setIsSubmitting(false);
       setIsCompleted(true);
     } catch (error) {
@@ -183,22 +215,20 @@ export function FormViewer({ form, isPreview = false }: FormViewerProps) {
   const handleNext = (explicitAnswer?: unknown) => {
     if (!currentItem) return;
 
-    if (!isHeading) {
-      const isEvent = Boolean(
-        explicitAnswer &&
-          typeof explicitAnswer === "object" &&
-          ("nativeEvent" in explicitAnswer || "preventDefault" in explicitAnswer || "_reactName" in explicitAnswer || "target" in explicitAnswer),
-      );
-      const hasExplicitAnswer = explicitAnswer !== undefined && !isEvent;
-      const answer = hasExplicitAnswer ? explicitAnswer : answersRef.current[currentItem.question.id];
+    const isEvent = Boolean(
+      explicitAnswer &&
+        typeof explicitAnswer === "object" &&
+        ("nativeEvent" in explicitAnswer || "preventDefault" in explicitAnswer || "_reactName" in explicitAnswer || "target" in explicitAnswer),
+    );
+    const hasExplicitAnswer = explicitAnswer !== undefined && !isEvent;
+    const answer = hasExplicitAnswer ? explicitAnswer : answersRef.current[currentItem.question.id];
 
-      if (hasExplicitAnswer) handleAnswerChange(explicitAnswer);
+    if (hasExplicitAnswer) handleAnswerChange(explicitAnswer);
 
-      const validation = validateQuestionAnswer(currentItem.question, answer);
-      if (!validation.isValid) {
-        triggerShake(validation.error || "Please answer this question to proceed.");
-        return;
-      }
+    const validation = validateQuestionAnswer(currentItem.question, answer);
+    if (!validation.isValid) {
+      triggerShake(validation.error || "Please answer this question to proceed.");
+      return;
     }
 
     setCurrentError(null);
@@ -300,6 +330,9 @@ export function FormViewer({ form, isPreview = false }: FormViewerProps) {
         isPreview={isPreview}
         isDark={isDark}
         onRestart={() => {
+          if (typeof window !== "undefined") {
+            sessionStorage.removeItem(`convia_session_${form.id}`);
+          }
           setIsCompleted(false);
           setIsWelcomeScreen(true);
           setMode("normal");
@@ -344,7 +377,7 @@ export function FormViewer({ form, isPreview = false }: FormViewerProps) {
 
   return (
     <div
-      className="relative flex min-h-screen flex-col select-none transition-colors duration-300"
+      className="relative flex min-h-screen flex-col select-none transition-colors duration-300 overflow-x-hidden min-w-0"
       style={rootStyle}
     >
       {/* Top Progress Bar */}
@@ -428,14 +461,13 @@ export function FormViewer({ form, isPreview = false }: FormViewerProps) {
       </header>
 
       {/* Main Content Area */}
-      <main className="flex flex-1 items-center justify-center px-4 py-8 sm:px-8 sm:py-12">
-        <div className="mx-auto w-full max-w-2xl">
+      <main className="flex flex-1 items-center justify-center px-4 py-8 sm:px-8 sm:py-12 min-w-0 max-w-full overflow-hidden">
+        <div className="mx-auto w-full max-w-2xl min-w-0">
           {isWelcomeScreen ? (
             <ViewerWelcome
               form={form}
               theme={theme}
               isPreview={isPreview}
-              firstSectionInfo={firstSectionInfo}
               onStart={handleStartForm}
               onFillWithAi={handleStartAi}
             />

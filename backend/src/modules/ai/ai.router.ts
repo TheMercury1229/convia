@@ -3,8 +3,10 @@ import { validate } from "../../middlewares/validate";
 import { requireAuth, requireOrgMember } from "../../middlewares/require-auth";
 import { generateFormSchema } from "./ai.schema";
 import { fillFormTurnSchema } from "./fill-form.schema";
+import { analyzeResponsesTurnSchema } from "./analyze-responses.schema";
 import * as controller from "./ai.controller";
 import * as fillFormController from "./fill-form.controller";
+import * as analyzeResponsesController from "./analyze-responses.controller";
 
 const router = Router();
 
@@ -31,5 +33,13 @@ router.post("/generate-form", validate(generateFormSchema), controller.generateF
 
 // GET  /api/ai/jobs/:jobId/status — poll job status
 router.get("/jobs/:jobId/status", controller.getJobStatus);
+
+// POST /api/ai/analyze-responses/turn — one Grizzy analytics Q&A turn (SSE stream)
+// Auth required — only org members can query their form's response data
+router.post(
+  "/analyze-responses/turn",
+  validate(analyzeResponsesTurnSchema),
+  analyzeResponsesController.analyzeResponsesTurn,
+);
 
 export default router;

@@ -9,7 +9,7 @@ import {
   Loader2,
   Pencil,
   Save,
-  Settings2,
+  Settings,
   Share2,
   Globe,
 } from "lucide-react";
@@ -296,7 +296,7 @@ export function FormBuilderHeader({
               aria-label="Form settings"
               onClick={() => setRightPanelTab(rightPanelTab === "settings" ? "properties" : "settings")}
             >
-              <Settings2 className="h-4 w-4" />
+              <Settings className="h-4 w-4" />
             </Button>
           </TooltipTrigger>
           <TooltipContent side="bottom">
@@ -328,23 +328,25 @@ export function FormBuilderHeader({
           <TooltipContent side="bottom">Preview live form in new tab</TooltipContent>
         </Tooltip>
 
-        {/* Share */}
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <Button
-              variant="outline"
-              size="sm"
-              id="builder-share-btn"
-              className="gap-1.5"
-              aria-label="Share form"
-              onClick={() => setShareOpen(true)}
-            >
-              <Share2 className="h-3.5 w-3.5" />
-              <span className="hidden sm:inline">Share</span>
-            </Button>
-          </TooltipTrigger>
-          <TooltipContent side="bottom">Share form</TooltipContent>
-        </Tooltip>
+        {/* Share (only available when published) */}
+        {isPublished && (
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                variant="outline"
+                size="sm"
+                id="builder-share-btn"
+                className="gap-1.5"
+                aria-label="Share form"
+                onClick={() => setShareOpen(true)}
+              >
+                <Share2 className="h-3.5 w-3.5" />
+                <span className="hidden sm:inline">Share</span>
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent side="bottom">Share form</TooltipContent>
+          </Tooltip>
+        )}
 
         {/* Publish / Unpublish Toggle */}
         <Tooltip>

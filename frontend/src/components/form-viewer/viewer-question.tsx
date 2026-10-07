@@ -34,16 +34,16 @@ export function ViewerQuestion({
   onAnswerChange,
   onNext,
 }: ViewerQuestionProps) {
-  const isHeading = item.question.type === "heading";
   const sectionTitle = item.sectionTitle?.trim() || "";
   const sectionDescription = item.sectionDescription?.trim() || "";
   const hasSectionTitle = sectionTitle && sectionTitle.toLowerCase() !== "untitled section";
-  const showSection = item.isFirstQuestionOfSection && item.sectionIndex > 0 && (hasSectionTitle || sectionDescription);
+  const showSection = item.isFirstQuestionOfSection && (hasSectionTitle || sectionDescription);
 
   return (
-    <div className={`w-full transition-all animate-in fade-in duration-300 ${shake ? "animate-shake" : ""}`}>
+    <div className={`w-full transition-all animate-in fade-in duration-300 min-w-0 max-w-full overflow-hidden ${shake ? "animate-shake" : ""}`}>
+      {/* Attached Section Info */}
       {showSection && (
-        <div className="mb-6 text-left">
+        <div className="mb-6 text-left min-w-0">
           {item.totalSections > 1 && (
             <span
               className="mb-1.5 inline-flex items-center gap-1.5 rounded-full border px-2.5 py-0.5 text-xs font-mono font-semibold uppercase tracking-wider shadow-2xs"
@@ -58,7 +58,7 @@ export function ViewerQuestion({
           )}
           {hasSectionTitle && (
             <h3
-              className="font-heading mt-2 text-lg font-bold tracking-tight sm:text-xl"
+              className="font-heading mt-2 text-lg font-bold tracking-tight sm:text-xl text-balance break-words [overflow-wrap:anywhere]"
               style={{ color: theme.colors.cardText }}
             >
               {sectionTitle}
@@ -66,7 +66,7 @@ export function ViewerQuestion({
           )}
           {sectionDescription && (
             <p
-              className="mt-1 text-xs leading-relaxed sm:text-sm"
+              className="mt-1 text-xs leading-relaxed sm:text-sm text-balance break-words [overflow-wrap:anywhere]"
               style={{ color: theme.colors.cardMuted }}
             >
               {sectionDescription}
@@ -75,78 +75,84 @@ export function ViewerQuestion({
         </div>
       )}
 
-      {isHeading ? (
-        <div className="mb-6 text-left">
-          <h2
-            className="font-heading text-xl font-bold tracking-tight sm:text-2xl md:text-3xl"
-            style={{ color: theme.colors.cardText }}
-          >
-            {item.question.label || "Untitled Section"}
-          </h2>
-          {item.question.description && (
-            <p
-              className="mt-2 text-sm leading-relaxed sm:text-base"
-              style={{ color: theme.colors.cardMuted }}
-            >
-              {item.question.description}
-            </p>
-          )}
-        </div>
-      ) : (
-        <div className="mb-4 text-left">
-          <h2
-            className="font-heading flex items-start gap-3 text-xl font-semibold leading-snug tracking-tight sm:text-2xl md:text-3xl"
-            style={{ color: theme.colors.cardText }}
-          >
-            <span
-              className="shrink-0 pt-0.5 font-mono text-base font-semibold sm:text-lg"
-              style={{ color: theme.colors.primary }}
-            >
-              {currentIndex + 1} ➔
-            </span>
-            <span>
-              {item.question.label || "Untitled Question"}
-              {item.question.required && (
-                <span className="ml-1 font-bold text-destructive" title="Required">
-                  *
-                </span>
+      {/* Attached Heading Elements */}
+      {item.attachedHeadings && item.attachedHeadings.length > 0 && (
+        <div className="mb-6 space-y-4 text-left min-w-0">
+          {item.attachedHeadings.map((h) => (
+            <div key={h.id} className="min-w-0">
+              {h.label && (
+                <h2
+                  className="font-heading text-xl font-bold tracking-tight sm:text-2xl md:text-3xl text-balance break-words [overflow-wrap:anywhere]"
+                  style={{ color: theme.colors.cardText }}
+                >
+                  {h.label}
+                </h2>
               )}
-            </span>
-          </h2>
-          {item.question.description && (
-            <p
-              className="mt-1.5 pl-7 text-sm leading-relaxed sm:text-base"
-              style={{ color: theme.colors.cardMuted }}
-            >
-              {item.question.description}
-            </p>
-          )}
+              {h.description && (
+                <p
+                  className="mt-2 text-sm leading-relaxed sm:text-base text-balance break-words [overflow-wrap:anywhere]"
+                  style={{ color: theme.colors.cardMuted }}
+                >
+                  {h.description}
+                </p>
+              )}
+            </div>
+          ))}
         </div>
       )}
 
-      {!isHeading && (
-        <div className="mt-6 pl-0 sm:mt-7 sm:pl-7">
-          <TypeformInput
-            key={item.question.id}
-            question={item.question}
-            theme={theme}
-            value={value}
-            onChange={onAnswerChange}
-            onSubmit={onNext}
-            hasError={Boolean(error)}
-            isDark={isDark}
-          />
-          {error && (
-            <div
-              className="mt-3 flex items-center gap-2 rounded-xl border border-destructive/30 bg-destructive/10 px-3.5 py-2.5 text-xs font-medium text-destructive sm:text-sm"
-              role="alert"
-            >
-              <AlertCircle className="size-4 shrink-0" />
-              <span>{error}</span>
-            </div>
-          )}
-        </div>
-      )}
+      {/* Question Header */}
+      <div className="mb-4 text-left min-w-0">
+        <h2
+          className="font-heading flex items-start gap-3 text-xl font-semibold leading-snug tracking-tight sm:text-2xl md:text-3xl text-balance break-words [overflow-wrap:anywhere] min-w-0"
+          style={{ color: theme.colors.cardText }}
+        >
+          <span
+            className="shrink-0 pt-0.5 font-mono text-base font-semibold sm:text-lg"
+            style={{ color: theme.colors.primary }}
+          >
+            {item.questionIndex + 1} ➔
+          </span>
+          <span className="min-w-0 break-words [overflow-wrap:anywhere]">
+            {item.question.label || "Untitled Question"}
+            {item.question.required && (
+              <span className="ml-1 font-bold text-destructive" title="Required">
+                *
+              </span>
+            )}
+          </span>
+        </h2>
+        {item.question.description && (
+          <p
+            className="mt-1.5 pl-7 text-sm leading-relaxed sm:text-base text-balance break-words [overflow-wrap:anywhere]"
+            style={{ color: theme.colors.cardMuted }}
+          >
+            {item.question.description}
+          </p>
+        )}
+      </div>
+
+      <div className="mt-6 pl-0 sm:mt-7 sm:pl-7">
+        <TypeformInput
+          key={item.question.id}
+          question={item.question}
+          theme={theme}
+          value={value}
+          onChange={onAnswerChange}
+          onSubmit={onNext}
+          hasError={Boolean(error)}
+          isDark={isDark}
+        />
+        {error && (
+          <div
+            className="mt-3 flex items-center gap-2 rounded-xl border border-destructive/30 bg-destructive/10 px-3.5 py-2.5 text-xs font-medium text-destructive sm:text-sm"
+            role="alert"
+          >
+            <AlertCircle className="size-4 shrink-0" />
+            <span>{error}</span>
+          </div>
+        )}
+      </div>
 
       <div className="mt-7 flex items-center gap-4 pl-0 sm:mt-8 sm:pl-7">
         <Button
@@ -158,7 +164,7 @@ export function ViewerQuestion({
           }}
           id="typeform-next-btn"
         >
-          <span>{isHeading ? "Continue" : isLastQuestion ? "Submit Form" : "Next"}</span>
+          <span>{isLastQuestion ? "Submit Form" : "Next"}</span>
           <ArrowRight className="size-4" />
         </Button>
         <div

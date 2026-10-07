@@ -22,7 +22,7 @@ export interface QuestionPreviewProps {
 
 export function QuestionPreview({ question, theme }: QuestionPreviewProps) {
   const base =
-    "mt-2 w-full rounded-md border px-3.5 py-2 text-sm pointer-events-none select-none";
+    "mt-2 w-full rounded-md border px-3.5 py-2 text-sm pointer-events-none select-none min-w-0 max-w-full overflow-hidden";
   const inputStyle: React.CSSProperties = {
     backgroundColor: theme.colors.cardInputBg,
     borderColor: theme.colors.cardInputBorder,
@@ -32,59 +32,59 @@ export function QuestionPreview({ question, theme }: QuestionPreviewProps) {
   switch (question.type) {
     case "heading":
       return (
-        <p className="mt-1.5 text-lg font-semibold" style={{ color: theme.colors.cardText }}>
+        <p className="mt-1.5 text-lg font-semibold break-words" style={{ color: theme.colors.cardText }}>
           {question.label || "Heading"}
         </p>
       );
     case "paragraph":
       return (
         <div className={cn(base, "min-h-24 py-2.5 flex flex-col justify-between")} style={inputStyle}>
-          <span>{question.placeholder || "Long-form response / essay answer…"}</span>
-          <span className="text-[11px] opacity-50 text-right">Paragraph</span>
+          <span className="truncate break-words">{question.placeholder || "Long-form response / essay answer…"}</span>
+          <span className="text-[11px] opacity-50 text-right shrink-0">Paragraph</span>
         </div>
       );
     case "textarea":
       return (
-        <div className={cn(base, "h-16")} style={inputStyle}>{question.placeholder || "Long text answer…"}</div>
+        <div className={cn(base, "h-16 truncate break-words")} style={inputStyle}>{question.placeholder || "Long text answer…"}</div>
       );
     case "select":
       return (
-        <div className={cn(base, "flex items-center justify-between")} style={inputStyle}>
-          <span>{question.placeholder || "Select an option"}</span>
-          <ChevronDown className="size-4 opacity-50" />
+        <div className={cn(base, "flex items-center justify-between gap-2")} style={inputStyle}>
+          <span className="truncate">{question.placeholder || "Select an option"}</span>
+          <ChevronDown className="size-4 opacity-50 shrink-0" />
         </div>
       );
     case "multi_select":
       return (
-        <div className={cn(base, "flex items-center justify-between")} style={inputStyle}>
-          <span>{question.placeholder || "Select options"}</span>
-          <ListFilter className="size-4 opacity-50" />
+        <div className={cn(base, "flex items-center justify-between gap-2")} style={inputStyle}>
+          <span className="truncate">{question.placeholder || "Select options"}</span>
+          <ListFilter className="size-4 opacity-50 shrink-0" />
         </div>
       );
     case "radio":
       return (
-        <div className="mt-2 flex flex-col gap-1.5 pointer-events-none">
+        <div className="mt-2 flex flex-col gap-1.5 pointer-events-none min-w-0">
           {question.options.slice(0, 3).map((opt) => (
-            <div key={opt.id} className="flex items-center gap-2">
+            <div key={opt.id} className="flex items-center gap-2 min-w-0">
               <div
-                className="size-4 rounded-full border"
+                className="size-4 rounded-full border shrink-0"
                 style={{ borderColor: theme.colors.cardInputBorder }}
               />
-              <span className="text-sm" style={{ color: theme.colors.cardMuted }}>{opt.label}</span>
+              <span className="text-sm break-words min-w-0" style={{ color: theme.colors.cardMuted }}>{opt.label}</span>
             </div>
           ))}
         </div>
       );
     case "checkbox":
       return (
-        <div className="mt-2 flex flex-col gap-1.5 pointer-events-none">
+        <div className="mt-2 flex flex-col gap-1.5 pointer-events-none min-w-0">
           {question.options.slice(0, 3).map((opt) => (
-            <div key={opt.id} className="flex items-center gap-2">
+            <div key={opt.id} className="flex items-center gap-2 min-w-0">
               <div
-                className="size-4 rounded border"
+                className="size-4 rounded border shrink-0"
                 style={{ borderColor: theme.colors.cardInputBorder }}
               />
-              <span className="text-sm" style={{ color: theme.colors.cardMuted }}>{opt.label}</span>
+              <span className="text-sm break-words min-w-0" style={{ color: theme.colors.cardMuted }}>{opt.label}</span>
             </div>
           ))}
         </div>

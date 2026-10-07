@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { Check, Clock, Globe, Palette, Calendar } from "lucide-react";
+import { Check, Clock, Globe, Palette, Calendar, Lock } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -39,6 +39,7 @@ function SettingsSection({
 
 export function FormSettingsPanel() {
   const { form, updateForm } = useBuilderStore();
+  const isPublished = Boolean(form.isPublished);
 
   const handleSlugChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const raw = e.target.value;
@@ -99,10 +100,25 @@ export function FormSettingsPanel() {
 
         {/* Slug */}
         <div className="flex flex-col gap-1.5">
-          <Label htmlFor="settings-form-slug" className="text-xs font-medium text-muted-foreground">
-            URL Slug
-          </Label>
-          <div className="flex items-center rounded-md border border-input bg-muted/30 focus-within:border-ring focus-within:ring-2 focus-within:ring-ring/40">
+          <div className="flex items-center justify-between">
+            <Label htmlFor="settings-form-slug" className="text-xs font-medium text-muted-foreground">
+              URL Slug
+            </Label>
+            {isPublished && (
+              <span className="inline-flex items-center gap-1 text-[10px] font-medium text-amber-500">
+                <Lock className="size-3" />
+                Locked (Published)
+              </span>
+            )}
+          </div>
+          <div
+            className={cn(
+              "flex items-center rounded-md border border-input bg-muted/30 transition-colors",
+              isPublished
+                ? "opacity-70 cursor-not-allowed bg-muted/50"
+                : "focus-within:border-ring focus-within:ring-2 focus-within:ring-ring/40"
+            )}
+          >
             <span className="shrink-0 select-none pl-3 text-xs font-mono text-muted-foreground">
               form/
             </span>
@@ -111,10 +127,24 @@ export function FormSettingsPanel() {
               type="text"
               value={form.slug ?? ""}
               onChange={handleSlugChange}
+              disabled={isPublished}
               placeholder="my-form-slug"
-              className="h-9 w-full min-w-0 bg-transparent px-1.5 text-xs font-mono text-foreground outline-none"
+              className={cn(
+                "h-9 w-full min-w-0 bg-transparent px-1.5 text-xs font-mono text-foreground outline-none",
+                isPublished && "cursor-not-allowed text-muted-foreground"
+              )}
             />
+            {isPublished && (
+              <span className="pr-2.5 text-muted-foreground" title="Slug cannot be changed while form is published">
+                <Lock className="size-3.5" />
+              </span>
+            )}
           </div>
+          <p className="text-[11px] text-muted-foreground leading-tight">
+            {isPublished
+              ? "URL slug is locked to avoid breaking active form links. Unpublish to edit."
+              : "Unique URL path for sharing your form."}
+          </p>
         </div>
       </SettingsSection>
 

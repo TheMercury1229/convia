@@ -23,6 +23,7 @@ import {
   FileSpreadsheet,
   FileJson,
   BarChart2,
+  Loader2,
 } from "lucide-react";
 
 import {
@@ -102,6 +103,7 @@ export function ResponsesView({
   // Selected response for view dialog
   const [selectedResponse, setSelectedResponse] = React.useState<FormResponse | null>(null);
   const [selectedIndex, setSelectedIndex] = React.useState<number | undefined>(undefined);
+  const [loadingResponseId, setLoadingResponseId] = React.useState<string | null>(null);
   const [copiedLink, setCopiedLink] = React.useState(false);
 
   // Flatten answerable questions
@@ -137,14 +139,14 @@ export function ResponsesView({
     const lastDate = sortedByDate[0]?.submittedAt;
     const lastSubmission = lastDate
       ? formatDistanceToNow(new Date(lastDate), { addSuffix: true })
-      : "None";
+      : "No submissions yet";
 
     return {
       totalResponses: total,
       completedCount,
       partialCount,
       completionRate,
-      avgCompletionTime: "2m 14s",
+      lastDate,
       lastSubmission,
     };
   }, [responses, totalAnswerable]);
@@ -274,41 +276,46 @@ export function ResponsesView({
               <TooltipContent>Edit form in builder</TooltipContent>
             </Tooltip>
 
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button
-                  asChild
-                  variant="ghost"
-                  size="icon"
-                  className="size-8.5 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted/60 transition-colors"
-                >
-                  <Link
-                    href={`/form/${form.slug || form.id}`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                  >
-                    <ExternalLink className="size-4" />
-                    <span className="sr-only">Open live form</span>
-                  </Link>
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent>Open live form</TooltipContent>
-            </Tooltip>
+            {/* Only show live form and copy share link if the form is published */}
+            {Boolean(form.isPublished) && (
+              <>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      asChild
+                      variant="ghost"
+                      size="icon"
+                      className="size-8.5 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted/60 transition-colors"
+                    >
+                      <Link
+                        href={`/form/${form.slug || form.id}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                      >
+                        <ExternalLink className="size-4" />
+                        <span className="sr-only">Open live form</span>
+                      </Link>
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>Open live form</TooltipContent>
+                </Tooltip>
 
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={copyShareLink}
-                  className="size-8.5 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted/60 transition-colors"
-                >
-                  {copiedLink ? <Check className="size-4 text-primary" /> : <Link2 className="size-4" />}
-                  <span className="sr-only">Copy share link</span>
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent>{copiedLink ? "Link copied!" : "Copy share link"}</TooltipContent>
-            </Tooltip>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={copyShareLink}
+                      className="size-8.5 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted/60 transition-colors"
+                    >
+                      {copiedLink ? <Check className="size-4 text-primary" /> : <Link2 className="size-4" />}
+                      <span className="sr-only">Copy share link</span>
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>{copiedLink ? "Link copied!" : "Copy share link"}</TooltipContent>
+                </Tooltip>
+              </>
+            )}
 
             {/* Export Dropdown */}
             <DropdownMenu>
@@ -408,21 +415,23 @@ export function ResponsesView({
             </div>
           </div>
 
-          {/* Card 3: Median Duration */}
+          {/* Card 3: Latest Submission (real activity timestamp) */}
           <div className="group rounded-2xl border border-border bg-card p-6 transition-all duration-200 hover:border-primary/40 flex flex-col justify-between gap-5 sm:col-span-2 lg:col-span-1">
             <div className="flex items-center justify-between">
               <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-                Median Duration
+                Latest Submission
               </span>
               <Clock className="size-4 text-muted-foreground group-hover:text-primary transition-colors" />
             </div>
 
             <div className="space-y-1.5">
-              <div className="text-3xl sm:text-4xl font-bold tracking-tight text-foreground font-mono">
-                {stats.avgCompletionTime}
+              <div className="text-2xl sm:text-3xl font-bold tracking-tight text-foreground font-mono truncate" title={stats.lastSubmission}>
+                {stats.lastSubmission}
               </div>
-              <p className="text-xs text-muted-foreground">
-                Latest: {stats.lastSubmission}
+              <p className="text-xs text-muted-foreground truncate">
+                {stats.lastDate
+                  ? format(new Date(stats.lastDate), "PPP 'at' p")
+                  : "Awaiting first response"}
               </p>
             </div>
           </div>
@@ -565,6 +574,7 @@ export function ResponsesView({
                       key={item.id}
                       className="hover:bg-muted/30 cursor-pointer transition-colors group border-border/60"
                       onClick={() => {
+                        setLoadingResponseId(item.id);
                         setSelectedResponse(item);
                         setSelectedIndex(globalIndex);
                       }}
@@ -616,12 +626,18 @@ export function ResponsesView({
                               size="icon"
                               onClick={(e) => {
                                 e.stopPropagation();
+                                setLoadingResponseId(item.id);
                                 setSelectedResponse(item);
                                 setSelectedIndex(globalIndex);
                               }}
+                              disabled={loadingResponseId === item.id}
                               className="size-8 text-muted-foreground hover:text-foreground hover:bg-muted/70 rounded-lg transition-colors"
                             >
-                              <Eye className="size-4" />
+                              {loadingResponseId === item.id ? (
+                                <Loader2 className="size-4 animate-spin text-primary" />
+                              ) : (
+                                <Eye className="size-4" />
+                              )}
                               <span className="sr-only">View response values</span>
                             </Button>
                           </TooltipTrigger>
@@ -748,6 +764,7 @@ export function ResponsesView({
           onClose={() => {
             setSelectedResponse(null);
             setSelectedIndex(undefined);
+            setLoadingResponseId(null);
           }}
           response={selectedResponse}
           questions={allQuestions}

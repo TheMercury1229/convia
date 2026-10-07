@@ -22,6 +22,7 @@ interface ShareDialogProps {
 
 export function ShareDialog({ open, onOpenChange }: ShareDialogProps) {
   const form = useBuilderStore((s) => s.form);
+  const isPublished = Boolean(form.isPublished);
   const [copied, setCopied] = React.useState(false);
   const [origin, setOrigin] = React.useState("");
 
@@ -51,6 +52,10 @@ export function ShareDialog({ open, onOpenChange }: ShareDialogProps) {
   )}&margin=10`;
 
   const handleCopy = async () => {
+    if (!isPublished) {
+      toast.error("Form must be published before copying share link");
+      return;
+    }
     try {
       await navigator.clipboard.writeText(shareUrl);
       setCopied(true);
@@ -92,6 +97,12 @@ export function ShareDialog({ open, onOpenChange }: ShareDialogProps) {
             Anyone with this link or QR code can view and fill out your form.
           </DialogDescription>
         </DialogHeader>
+
+        {!isPublished && (
+          <div className="rounded-xl border border-amber-500/30 bg-amber-500/10 p-3 text-xs text-amber-600 dark:text-amber-400">
+            This form is currently in Draft. Publish it from the builder header to enable sharing and collect responses.
+          </div>
+        )}
 
         {/* ── TOP: QR Code Card ──────────────────────────────── */}
         <div className="flex items-center justify-center rounded-xl border border-border/60 bg-muted/20 p-2.5">
@@ -138,6 +149,7 @@ export function ShareDialog({ open, onOpenChange }: ShareDialogProps) {
               type="button"
               variant={copied ? "default" : "secondary"}
               size="sm"
+              disabled={!isPublished}
               onClick={handleCopy}
               className="h-9 shrink-0 gap-1.5 px-3"
             >

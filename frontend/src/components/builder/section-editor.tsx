@@ -338,7 +338,7 @@ export function SectionEditor({
     <div
       ref={sectionRef}
       className={cn(
-        "rounded-xl border transition-all duration-150",
+        "rounded-xl border transition-all duration-150 min-w-0 max-w-full overflow-hidden",
         isDragging && "opacity-40",
       )}
       style={{
@@ -357,7 +357,7 @@ export function SectionEditor({
       {/* ── Section header ───────────────────────────── */}
       <div
         ref={headerRef}
-        className="group flex items-center gap-2.5 border-b px-5 py-3.5"
+        className="group flex items-center gap-2.5 border-b px-5 py-3.5 min-w-0 overflow-hidden"
         style={{ borderColor: currentTheme.colors.cardBorder }}
       >
         {/* Drag grip */}
@@ -371,7 +371,7 @@ export function SectionEditor({
         </div>
 
         {/* Title */}
-        <div className="flex-1 min-w-0">
+        <div className="flex-1 min-w-0 overflow-hidden">
           {editingTitle ? (
             <input
               ref={titleInputRef}
@@ -383,16 +383,16 @@ export function SectionEditor({
                 if (e.key === "Escape") { setTitleDraft(section.title); setEditingTitle(false); }
               }}
               onClick={(e) => e.stopPropagation()}
-              className="w-full bg-transparent text-base font-semibold outline-none border-b pb-px"
+              className="w-full bg-transparent text-base font-semibold outline-none border-b pb-px break-words"
               style={{
                 color: currentTheme.colors.cardText,
                 borderColor: currentTheme.colors.primary,
               }}
             />
           ) : (
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 min-w-0">
               <h3
-                className="text-base font-semibold truncate"
+                className="text-base font-semibold truncate break-words min-w-0"
                 style={{ color: currentTheme.colors.cardText }}
               >
                 {section.title}
@@ -403,7 +403,7 @@ export function SectionEditor({
                   setTitleDraft(section.title);
                   setEditingTitle(true);
                 }}
-                className="opacity-0 group-hover:opacity-60 hover:!opacity-100 transition-opacity cursor-pointer"
+                className="opacity-0 group-hover:opacity-60 hover:!opacity-100 transition-opacity cursor-pointer shrink-0"
                 title="Edit section title"
               >
                 <PencilIcon className="size-3.5 text-muted-foreground" />
@@ -412,7 +412,7 @@ export function SectionEditor({
           )}
           {section.description && (
             <p
-              className="text-sm mt-1 truncate"
+              className="text-sm mt-1 truncate break-words min-w-0"
               style={{ color: currentTheme.colors.cardMuted }}
             >
               {section.description}

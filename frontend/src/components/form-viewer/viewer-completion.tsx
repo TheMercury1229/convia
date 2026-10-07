@@ -31,14 +31,14 @@ export function ViewerCompletion({
       <div className="my-auto flex w-full max-w-lg flex-col items-center px-6 py-12 transition-all animate-in fade-in duration-300">
         {/* Celebration Checkmark Icon */}
         <h2
-          className="font-heading text-3xl font-extrabold tracking-tight sm:text-4xl md:text-5xl"
+          className="font-heading text-3xl font-extrabold tracking-tight sm:text-4xl md:text-5xl text-balance"
           style={{ color: theme.colors.cardText }}
         >
           {isPreview ? "Preview Completed" : "Thank you!"}
         </h2>
 
         <p
-          className="mt-3.5 max-w-md text-base leading-relaxed sm:text-lg"
+          className="mt-3.5 max-w-md text-base leading-relaxed sm:text-lg text-balance"
           style={{ color: theme.colors.cardMuted }}
         >
           {isPreview

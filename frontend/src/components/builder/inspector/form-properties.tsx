@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { Settings2 } from "lucide-react";
+import { Settings } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
@@ -44,7 +44,7 @@ export function FormProperties() {
           onClick={() => setRightPanelTab("settings")}
           className="mt-2 w-full gap-2 text-xs font-medium"
         >
-          <Settings2 className="size-3.5" />
+          <Settings className="size-3.5" />
           Open Form Settings
         </Button>
       </InspectorSection>

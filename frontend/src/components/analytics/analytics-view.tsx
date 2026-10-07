@@ -31,6 +31,8 @@ import { AnalyticsTrendChart } from "./analytics-trend-chart";
 import { AnalyticsDropoffFunnel } from "./analytics-dropoff-funnel";
 import { AnalyticsQuestionInsights } from "./analytics-question-insights";
 import { AnalyticsActivityHeatmap } from "./analytics-activity-heatmap";
+import { AskGrizzyButton } from "./ask-grizzy-button";
+import { GrizzyAnalyticsSheet } from "./grizzy-analytics-sheet";
 import type { FormAnalyticsData, OrgFormAnalyticsSummary } from "@/lib/api/analytics";
 import { EmptyState } from "@/components/dashboard/empty-state";
 
@@ -52,8 +54,10 @@ export function AnalyticsView({
   onRefresh,
 }: AnalyticsViewProps) {
   const [activeTab, setActiveTab] = React.useState("overview");
+  const [isGrizzyOpen, setIsGrizzyOpen] = React.useState(false);
 
   const currentFormMeta = forms.find((f) => f.id === selectedFormId);
+  const isFormPublished = Boolean(analyticsData?.form?.isPublished ?? currentFormMeta?.isPublished);
 
   // If org has zero forms
   if (forms.length === 0) {
@@ -102,6 +106,9 @@ export function AnalyticsView({
                   </SelectContent>
                 </Select>
               </div>
+
+              {/* Ask Grizzy AI Button */}
+              <AskGrizzyButton onOpen={() => setIsGrizzyOpen(true)} />
 
               {/* Refresh Button */}
               <Tooltip>
@@ -152,7 +159,7 @@ export function AnalyticsView({
                       size="icon"
                       className="size-8.5 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted/60 transition-colors"
                     >
-                      <Link href={`/builder/${currentFormMeta.slug || currentFormMeta.id}`}>
+                      <Link href={`/builder/${currentFormMeta.id}?mode=edit`}>
                         <FileEdit className="size-4" />
                         <span className="sr-only">Edit form</span>
                       </Link>
@@ -162,8 +169,8 @@ export function AnalyticsView({
                 </Tooltip>
               )}
 
-              {/* Quick link: Open public form (ghost icon link) */}
-              {currentFormMeta && (
+              {/* Quick link: Open public form (ghost icon link — only when published) */}
+              {currentFormMeta && isFormPublished && (
                 <Tooltip>
                   <TooltipTrigger asChild>
                     <Button
@@ -173,7 +180,7 @@ export function AnalyticsView({
                       className="size-8.5 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted/60 transition-colors"
                     >
                       <Link
-                        href={`/f/${currentFormMeta.slug || currentFormMeta.id}`}
+                        href={`/form/${currentFormMeta.slug || currentFormMeta.id}`}
                         target="_blank"
                         rel="noopener noreferrer"
                       >
@@ -250,6 +257,16 @@ export function AnalyticsView({
           )}
         </TabsContent>
       </Tabs>
+
+      {/* Grizzy AI Analytics Sheet */}
+      <GrizzyAnalyticsSheet
+        key={selectedFormId}
+        open={isGrizzyOpen}
+        onOpenChange={setIsGrizzyOpen}
+        formId={selectedFormId}
+        formTitle={currentFormMeta?.title || "Form"}
+        analyticsData={analyticsData}
+      />
     </div>
   );
 }

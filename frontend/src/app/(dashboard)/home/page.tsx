@@ -13,6 +13,7 @@ import {
   RotateCcw,
   Eye,
   FileText,
+  Loader2,
 } from "lucide-react";
 
 import { useForms, useForm } from "@/hooks/use-forms";
@@ -70,15 +71,27 @@ export default function HomePage() {
   const [grizzyDialogOpen, setGrizzyDialogOpen] = React.useState(false);
   const [searchQuery, setSearchQuery] = React.useState("");
   const [selectedResponse, setSelectedResponse] = React.useState<OrgResponseItem | null>(null);
+  const [loadingResponseId, setLoadingResponseId] = React.useState<string | null>(null);
 
   // 3. Form details for selected response dialog
-  const { data: activeFormDetails } = useForm(selectedResponse?.formId || "");
+  const { data: activeFormDetails, isLoading: isFormDetailsLoading } = useForm(selectedResponse?.formId || "");
   const activeQuestions = React.useMemo<ApiQuestion[]>(() => {
     if (!activeFormDetails?.sections) return [];
     return activeFormDetails.sections
       .flatMap((s) => s.questions || [])
       .filter((q) => q.type !== "heading");
   }, [activeFormDetails]);
+
+  const handleSelectResponse = (item: OrgResponseItem) => {
+    setLoadingResponseId(item.id);
+    setSelectedResponse(item);
+  };
+
+  React.useEffect(() => {
+    if (!isFormDetailsLoading) {
+      setLoadingResponseId(null);
+    }
+  }, [isFormDetailsLoading, selectedResponse]);
 
   // 4. Metrics computation
   const formsList = forms || [];
@@ -350,7 +363,7 @@ export default function HomePage() {
                       <TableRow
                         key={item.id}
                         className="hover:bg-muted/30 cursor-pointer transition-colors group border-border/60"
-                        onClick={() => setSelectedResponse(item)}
+                        onClick={() => handleSelectResponse(item)}
                       >
                         {/* Form Title */}
                         <TableCell className="pl-5">
@@ -408,11 +421,16 @@ export default function HomePage() {
                                 size="icon"
                                 onClick={(e) => {
                                   e.stopPropagation();
-                                  setSelectedResponse(item);
+                                  handleSelectResponse(item);
                                 }}
+                                disabled={loadingResponseId === item.id}
                                 className="size-8 text-muted-foreground hover:text-foreground hover:bg-muted/70 rounded-lg transition-colors"
                               >
-                                <Eye className="size-4" />
+                                {loadingResponseId === item.id ? (
+                                  <Loader2 className="size-4 animate-spin text-primary" />
+                                ) : (
+                                  <Eye className="size-4" />
+                                )}
                                 <span className="sr-only">View response</span>
                               </Button>
                             </TooltipTrigger>
@@ -443,10 +461,14 @@ export default function HomePage() {
 
         <ResponseDetailDialog
           isOpen={Boolean(selectedResponse)}
-          onClose={() => setSelectedResponse(null)}
+          onClose={() => {
+            setSelectedResponse(null);
+            setLoadingResponseId(null);
+          }}
           response={selectedResponse}
           questions={activeQuestions}
           sections={activeFormDetails?.sections}
+          isLoading={isFormDetailsLoading && Boolean(selectedResponse)}
         />
       </div>
     </TooltipProvider>

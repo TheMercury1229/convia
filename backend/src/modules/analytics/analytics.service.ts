@@ -259,21 +259,70 @@ export const getFormAnalytics = async (formIdOrSlug: string, orgId: string) => {
   ]);
 
   // 3. Compute Summary Metrics
-  const totalViews = views.length;
-  const uniqueVisitorSet = new Set(views.map((v) => v.sessionId));
-  const uniqueVisitors = uniqueVisitorSet.size;
-  const totalStarts = sessions.length;
-  const totalSubmissions = responses.length;
+  const answerableQuestions = questions.filter((q) => q.type !== "heading");
+  const totalAnswerable = answerableQuestions.length;
 
+  const answersByResponse = new Map<string, typeof answers>();
+  answers.forEach((ans) => {
+    const list = answersByResponse.get(ans.responseId) ?? [];
+    list.push(ans);
+    answersByResponse.set(ans.responseId, list);
+  });
+
+  let completedSubmissions = 0;
+  let partialSubmissions = 0;
+  const responseCompletionMap = new Map<string, { answeredCount: number; isCompleted: boolean }>();
+
+  responses.forEach((r) => {
+    const rAnswers = answersByResponse.get(r.id) ?? [];
+    let answeredCount = 0;
+    for (const a of rAnswers) {
+      if (isAnsweredValue(a.value)) answeredCount++;
+    }
+
+    const isCompleted = totalAnswerable === 0 || answeredCount >= totalAnswerable;
+    responseCompletionMap.set(r.id, { answeredCount, isCompleted });
+
+    if (isCompleted) {
+      completedSubmissions++;
+    } else {
+      partialSubmissions++;
+    }
+  });
+
+  const totalSubmissions = responses.length;
+  // Submissions require starting; ensure consistency even if adblockers prevented client beacons
+  const totalStarts = Math.max(sessions.length, responses.length);
+  const totalViews = Math.max(views.length, totalStarts);
+  const uniqueVisitorSet = new Set(views.map((v) => v.sessionId));
+  const uniqueVisitors = Math.max(uniqueVisitorSet.size, totalStarts > 0 ? 1 : 0);
+
+  // Industry-Standard Form Metrics:
+  // Engagement Rate = (Total Starts / Total Views) * 100
+  const engagementRate =
+    totalViews > 0
+      ? Math.min(100, Number(((totalStarts / totalViews) * 100).toFixed(1)))
+      : 0;
+
+  // Completion Rate = (Completed Submissions / Total Starts) * 100 (partials excluded from numerator)
+  const completionRate =
+    totalStarts > 0
+      ? Math.min(100, Number(((completedSubmissions / totalStarts) * 100).toFixed(1)))
+      : 0;
+
+  // Drop-off Rate = 100 - Completion Rate
+  const dropoffRate =
+    totalStarts > 0
+      ? Math.max(0, Number((100 - completionRate).toFixed(1)))
+      : 0;
+
+  // Visit-to-Completion (Overall Conversion) Rate = (Completed Submissions / Total Views) * 100
   const visitToSubmissionRate =
     totalViews > 0
-      ? Number(((totalSubmissions / totalViews) * 100).toFixed(1))
+      ? Math.min(100, Number(((completedSubmissions / totalViews) * 100).toFixed(1)))
       : 0;
 
-  const startToSubmissionRate =
-    totalStarts > 0
-      ? Number(((totalSubmissions / totalStarts) * 100).toFixed(1))
-      : 0;
+  const startToSubmissionRate = completionRate;
 
   const lastSubmissionAt =
     responses.length > 0
@@ -300,10 +349,13 @@ export const getFormAnalytics = async (formIdOrSlug: string, orgId: string) => {
   });
 
   responses.forEach((r) => {
-    const key = new Date(r.submittedAt).toISOString().split("T")[0];
-    const cur = dateMap.get(key) ?? { views: 0, submissions: 0 };
-    cur.submissions += 1;
-    dateMap.set(key, cur);
+    const isCompleted = responseCompletionMap.get(r.id)?.isCompleted ?? true;
+    if (isCompleted) {
+      const key = new Date(r.submittedAt).toISOString().split("T")[0];
+      const cur = dateMap.get(key) ?? { views: 0, submissions: 0 };
+      cur.submissions += 1;
+      dateMap.set(key, cur);
+    }
   });
 
   const viewsAndSubmissionsOverTime = Array.from(dateMap.entries())
@@ -315,8 +367,6 @@ export const getFormAnalytics = async (formIdOrSlug: string, orgId: string) => {
     .sort((a, b) => a.date.localeCompare(b.date));
 
   // 5. Drop-off Funnel
-  // Filter answerable questions in order
-  const answerableQuestions = questions.filter((q) => q.type !== "heading");
   const funnelSteps: {
     step: string;
     label: string;
@@ -325,7 +375,7 @@ export const getFormAnalytics = async (formIdOrSlug: string, orgId: string) => {
     percentOfTotal: number;
   }[] = [];
 
-  const initialCount = Math.max(totalViews, totalStarts, totalSubmissions);
+  const initialCount = Math.max(totalViews, totalStarts, completedSubmissions);
   const baseline = initialCount > 0 ? initialCount : 1;
 
   // Step 1: Form Loaded
@@ -353,16 +403,24 @@ export const getFormAnalytics = async (formIdOrSlug: string, orgId: string) => {
   // Question steps
   let previousStepCount = totalStarts;
   answerableQuestions.forEach((q, idx) => {
-    // A session reached question idx if lastQuestionIndex >= idx OR completedAt != null
-    const reachedCount = sessions.filter(
+    const sessionReached = sessions.filter(
       (s) => s.lastQuestionIndex >= idx || s.completedAt !== null,
     ).length;
 
-    // Adjust reached count to not exceed previous step
-    const effectiveCount = Math.min(
-      previousStepCount,
-      Math.max(reachedCount, totalSubmissions),
-    );
+    const responsesReached = responses.filter((r) => {
+      const isCompleted = responseCompletionMap.get(r.id)?.isCompleted;
+      if (isCompleted) return true;
+      const rAns = answersByResponse.get(r.id) ?? [];
+      return rAns.some((a) => {
+        if (!isAnsweredValue(a.value)) return false;
+        const targetQIdx = answerableQuestions.findIndex((aq) => aq.id === a.questionId);
+        return targetQIdx >= idx;
+      });
+    }).length;
+
+    const reachedCount = Math.max(sessionReached, responsesReached, completedSubmissions);
+    const effectiveCount = Math.min(previousStepCount, reachedCount);
+
     const stepDrop =
       previousStepCount > 0
         ? Number(
@@ -390,17 +448,17 @@ export const getFormAnalytics = async (formIdOrSlug: string, orgId: string) => {
     previousStepCount > 0
       ? Number(
           (
-            ((previousStepCount - totalSubmissions) / previousStepCount) *
+            ((previousStepCount - completedSubmissions) / previousStepCount) *
             100
           ).toFixed(1),
         )
       : 0;
   funnelSteps.push({
     step: "submitted",
-    label: "Submitted",
-    count: totalSubmissions,
+    label: "Completed",
+    count: completedSubmissions,
     dropoffRate: Math.max(0, finalDrop),
-    percentOfTotal: Number(((totalSubmissions / baseline) * 100).toFixed(1)),
+    percentOfTotal: Number(((completedSubmissions / baseline) * 100).toFixed(1)),
   });
 
   // 6. Per-Question Answer Distributions & Insights
@@ -660,6 +718,11 @@ export const getFormAnalytics = async (formIdOrSlug: string, orgId: string) => {
       uniqueVisitors,
       totalStarts,
       totalSubmissions,
+      completedSubmissions,
+      partialSubmissions,
+      engagementRate,
+      completionRate,
+      dropoffRate,
       visitToSubmissionRate,
       startToSubmissionRate,
       lastSubmissionAt,
@@ -683,18 +746,56 @@ export const getOrgFormsAnalyticsOverview = async (orgId: string) => {
 
   const overviewList = await Promise.all(
     forms.map(async (f) => {
-      const [views, sessions, responses] = await Promise.all([
+      const [questions, views, sessions, responses, answers] = await Promise.all([
+        analyticsRepo.findQuestionsByFormId(f.id),
         analyticsRepo.findFormViewsByFormId(f.id),
         analyticsRepo.findFormSessionsByFormId(f.id),
         analyticsRepo.findResponsesByFormId(f.id),
+        analyticsRepo.findAnswersByFormId(f.id),
       ]);
 
-      const totalViews = views.length;
-      const totalStarts = sessions.length;
+      const answerableQuestions = questions.filter((q) => q.type !== "heading");
+      const totalAnswerable = answerableQuestions.length;
+
+      const answersByResponse = new Map<string, typeof answers>();
+      answers.forEach((ans) => {
+        const list = answersByResponse.get(ans.responseId) ?? [];
+        list.push(ans);
+        answersByResponse.set(ans.responseId, list);
+      });
+
+      let completedSubmissions = 0;
+      let partialSubmissions = 0;
+      responses.forEach((r) => {
+        const rAnswers = answersByResponse.get(r.id) ?? [];
+        let answeredCount = 0;
+        for (const a of rAnswers) {
+          if (isAnsweredValue(a.value)) answeredCount++;
+        }
+        if (totalAnswerable === 0 || answeredCount >= totalAnswerable) {
+          completedSubmissions++;
+        } else {
+          partialSubmissions++;
+        }
+      });
+
       const totalSubmissions = responses.length;
+      const totalStarts = Math.max(sessions.length, responses.length);
+      const totalViews = Math.max(views.length, totalStarts);
+
       const conversionRate =
         totalViews > 0
-          ? Number(((totalSubmissions / totalViews) * 100).toFixed(1))
+          ? Math.min(100, Number(((completedSubmissions / totalViews) * 100).toFixed(1)))
+          : 0;
+
+      const completionRate =
+        totalStarts > 0
+          ? Math.min(100, Number(((completedSubmissions / totalStarts) * 100).toFixed(1)))
+          : 0;
+
+      const engagementRate =
+        totalViews > 0
+          ? Math.min(100, Number(((totalStarts / totalViews) * 100).toFixed(1)))
           : 0;
 
       const lastSubmissionAt =
@@ -711,7 +812,11 @@ export const getOrgFormsAnalyticsOverview = async (orgId: string) => {
         totalViews,
         totalStarts,
         totalSubmissions,
+        completedSubmissions,
+        partialSubmissions,
         conversionRate,
+        completionRate,
+        engagementRate,
         lastSubmissionAt,
       };
     }),

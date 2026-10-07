@@ -23,6 +23,7 @@ import {
   Star,
   Calendar,
   ExternalLink,
+  Loader2,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -33,6 +34,7 @@ interface ResponseDetailDialogProps {
   questions: ApiQuestion[];
   sections?: (ApiSection & { questions?: ApiQuestion[] })[];
   responseIndex?: number;
+  isLoading?: boolean;
 }
 
 export function ResponseDetailDialog({
@@ -41,6 +43,7 @@ export function ResponseDetailDialog({
   response,
   questions,
   sections,
+  isLoading = false,
 }: ResponseDetailDialogProps) {
   const [copied, setCopied] = React.useState(false);
 
@@ -311,7 +314,12 @@ export function ResponseDetailDialog({
         {/* Clean, Uncluttered Question & Answer List                        */}
         {/* ---------------------------------------------------------------- */}
         <div className="flex-1 overflow-y-auto px-6 py-2 divide-y divide-border/40 max-h-[70vh]">
-          {questions.length === 0 ? (
+          {isLoading ? (
+            <div className="flex flex-col items-center justify-center py-16 text-muted-foreground space-y-3">
+              <Loader2 className="size-6 animate-spin text-primary" />
+              <p className="text-xs text-muted-foreground font-medium">Loading submission details...</p>
+            </div>
+          ) : questions.length === 0 ? (
             <div className="text-center py-12 text-muted-foreground text-sm">
               No questions found for this form.
             </div>

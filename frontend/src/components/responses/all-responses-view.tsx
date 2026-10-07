@@ -14,6 +14,7 @@ import {
   ExternalLink,
   RotateCcw,
   Layers,
+  Loader2,
 } from "lucide-react";
 
 import {
@@ -88,9 +89,10 @@ export function AllResponsesView({
 
   // Selected response for inspection dialog
   const [selectedResponse, setSelectedResponse] = React.useState<OrgResponseItem | null>(null);
+  const [loadingResponseId, setLoadingResponseId] = React.useState<string | null>(null);
 
   // Fetch full form metadata (questions & sections) for the selected response's dialog
-  const { data: activeFormDetails } = useForm(selectedResponse?.formId || "");
+  const { data: activeFormDetails, isLoading: isFormDetailsLoading } = useForm(selectedResponse?.formId || "");
 
   const activeQuestions = React.useMemo<ApiQuestion[]>(() => {
     if (!activeFormDetails?.sections) return [];
@@ -98,6 +100,17 @@ export function AllResponsesView({
       .flatMap((s) => s.questions || [])
       .filter((q) => q.type !== "heading");
   }, [activeFormDetails]);
+
+  const handleSelectResponse = (item: OrgResponseItem) => {
+    setLoadingResponseId(item.id);
+    setSelectedResponse(item);
+  };
+
+  React.useEffect(() => {
+    if (!isFormDetailsLoading) {
+      setLoadingResponseId(null);
+    }
+  }, [isFormDetailsLoading, selectedResponse]);
 
   // Handle column header sorting
   const handleSort = (column: SortColumn) => {
@@ -350,7 +363,7 @@ export function AllResponsesView({
                     <TableRow
                       key={item.id}
                       className="hover:bg-muted/30 cursor-pointer transition-colors group border-border/60"
-                      onClick={() => setSelectedResponse(item)}
+                      onClick={() => handleSelectResponse(item)}
                     >
                       {/* Form Title Column with quick drill-down link */}
                       <TableCell>
@@ -409,11 +422,16 @@ export function AllResponsesView({
                                 size="icon"
                                 onClick={(e) => {
                                   e.stopPropagation();
-                                  setSelectedResponse(item);
+                                  handleSelectResponse(item);
                                 }}
+                                disabled={loadingResponseId === item.id}
                                 className="size-8 text-muted-foreground hover:text-foreground hover:bg-muted/70 rounded-lg transition-colors"
                               >
-                                <Eye className="size-4" />
+                                {loadingResponseId === item.id ? (
+                                  <Loader2 className="size-4 animate-spin text-primary" />
+                                ) : (
+                                  <Eye className="size-4" />
+                                )}
                                 <span className="sr-only">View response values</span>
                               </Button>
                             </TooltipTrigger>
@@ -559,10 +577,14 @@ export function AllResponsesView({
         {selectedResponse && (
           <ResponseDetailDialog
             isOpen={!!selectedResponse}
-            onClose={() => setSelectedResponse(null)}
+            onClose={() => {
+              setSelectedResponse(null);
+              setLoadingResponseId(null);
+            }}
             response={selectedResponse}
             questions={activeQuestions}
             sections={activeFormDetails?.sections}
+            isLoading={isFormDetailsLoading && Boolean(selectedResponse)}
           />
         )}
       </div>

@@ -46,14 +46,27 @@ export const submitResponse = async (
     }
   }
 
-  // 4. Create the response record
+  // 4. Validate that all required questions have valid answers
+  const answerMap = new Map(rawList.map((item) => [item.questionId, item.value]));
+  for (const q of questions) {
+    if (q.type !== "heading" && q.isRequired) {
+      const val = answerMap.get(q.id);
+      if (!isAnsweredValue(val)) {
+        throw ApiError.badRequest(
+          `Question "${q.label || "Untitled"}" is required.`,
+        );
+      }
+    }
+  }
+
+  // 5. Create the response record
   const responseId = randomUUID();
   const newResponse = await responseRepo.insertResponse({
     id: responseId,
     formId,
   });
 
-  // 5. Prepare answers for insertion with fieldName resolved
+  // 6. Prepare answers for insertion with fieldName resolved
   const answersToInsert = rawList.map((item) => {
     const q = questionMap.get(item.questionId);
     return {
@@ -67,7 +80,7 @@ export const submitResponse = async (
 
   const savedAnswers = await responseRepo.insertAnswers(answersToInsert);
 
-  // 6. Calculate completion rate for this submission
+  // 7. Calculate completion rate for this submission
   const answerableQuestions = questions.filter((q) => q.type !== "heading");
   const totalAnswerable = answerableQuestions.length;
 
@@ -81,9 +94,11 @@ export const submitResponse = async (
     totalAnswerable,
   );
 
-  // 7. If sessionId was passed, mark form session as completed
+  // 8. If sessionId was passed, ensure view & start are recorded, and mark session completed
   if (input.sessionId) {
     try {
+      await analyticsRepo.recordFormView(formId, input.sessionId);
+      await analyticsRepo.startFormSession(formId, input.sessionId);
       await analyticsRepo.completeFormSession(
         formId,
         input.sessionId,

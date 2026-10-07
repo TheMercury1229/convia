@@ -5,6 +5,11 @@ export interface FormAnalyticsSummary {
   uniqueVisitors: number;
   totalStarts: number;
   totalSubmissions: number;
+  completedSubmissions: number;
+  partialSubmissions: number;
+  engagementRate: number;
+  completionRate: number;
+  dropoffRate: number;
   visitToSubmissionRate: number;
   startToSubmissionRate: number;
   lastSubmissionAt: string | null;
@@ -68,7 +73,11 @@ export interface OrgFormAnalyticsSummary {
   totalViews: number;
   totalStarts: number;
   totalSubmissions: number;
+  completedSubmissions?: number;
+  partialSubmissions?: number;
   conversionRate: number;
+  completionRate?: number;
+  engagementRate?: number;
   lastSubmissionAt: string | null;
 }
 

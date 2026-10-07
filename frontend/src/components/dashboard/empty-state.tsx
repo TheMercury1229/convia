@@ -26,8 +26,8 @@ export function EmptyState({
         <Icon className="size-8 text-muted-foreground" />
       </div>
       <div>
-        <p className="text-base font-semibold">{title}</p>
-        <p className="mt-1 text-sm text-muted-foreground">{description}</p>
+        <p className="text-base font-semibold text-balance">{title}</p>
+        <p className="mt-1 text-sm text-muted-foreground text-balance max-w-sm mx-auto">{description}</p>
       </div>
       {actionLabel && (onAction || actionHref) ? (
         <Button asChild={Boolean(actionHref)} onClick={onAction} size="sm">

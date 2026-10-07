@@ -9,34 +9,56 @@ interface AnalyticsSummaryCardsProps {
 }
 
 export function AnalyticsSummaryCards({ summary }: AnalyticsSummaryCardsProps) {
-  const startRate =
-    summary.totalViews > 0
-      ? ((summary.totalStarts / summary.totalViews) * 100).toFixed(1)
-      : "0";
+  const engagementRate =
+    typeof summary.engagementRate === "number"
+      ? summary.engagementRate
+      : summary.totalViews > 0
+        ? Number(((summary.totalStarts / summary.totalViews) * 100).toFixed(1))
+        : 0;
+
+  const completionRate =
+    typeof summary.completionRate === "number"
+      ? summary.completionRate
+      : summary.totalStarts > 0
+        ? Number(
+            (
+              ((summary.completedSubmissions ?? summary.totalSubmissions) /
+                summary.totalStarts) *
+              100
+            ).toFixed(1),
+          )
+        : 0;
+
+  const completedCount =
+    summary.completedSubmissions ?? summary.totalSubmissions;
+  const partialCount = summary.partialSubmissions ?? 0;
 
   const metrics = [
     {
       label: "Views",
       value: summary.totalViews.toLocaleString(),
-      subtext: `${summary.uniqueVisitors.toLocaleString()} unique visitors`,
+      subtext: `${summary.uniqueVisitors.toLocaleString()} unique visitor${summary.uniqueVisitors === 1 ? "" : "s"}`,
       icon: Eye,
     },
     {
       label: "Starts",
       value: summary.totalStarts.toLocaleString(),
-      subtext: `${startRate}% engagement rate`,
+      subtext: `${Math.min(100, engagementRate)}% engagement rate`,
       icon: PlayCircle,
     },
     {
       label: "Submissions",
-      value: summary.totalSubmissions.toLocaleString(),
-      subtext: `${summary.startToSubmissionRate}% completed after start`,
+      value: completedCount.toLocaleString(),
+      subtext:
+        partialCount > 0
+          ? `${partialCount} partial excluded (${summary.totalSubmissions} total)`
+          : "All submissions completed",
       icon: CheckCircle2,
     },
     {
       label: "Completion Rate",
-      value: `${summary.visitToSubmissionRate}%`,
-      subtext: "Overall visit-to-submission",
+      value: `${Math.min(100, completionRate)}%`,
+      subtext: `${Math.min(100, summary.visitToSubmissionRate)}% overall conversion`,
       icon: TrendingUp,
     },
   ];
