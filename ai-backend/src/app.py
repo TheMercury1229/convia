@@ -69,10 +69,12 @@ app.add_middleware(
 from src.modules.generate_form import router as generate_form_router
 from src.modules.fill_form import router as fill_form_router
 from src.modules.analyze_responses import router as analyze_responses_router
+from src.modules.builder_chat import router as builder_chat_router
 
 app.include_router(generate_form_router)
 app.include_router(fill_form_router)
 app.include_router(analyze_responses_router)
+app.include_router(builder_chat_router)
 
 
 # ---------------------------------------------------------------------------

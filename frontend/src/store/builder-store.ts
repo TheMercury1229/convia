@@ -8,6 +8,7 @@ import { getTypeLabel } from "@/lib/question-registry";
 import { apiQuestionToClientQuestion } from "@/lib/form-model";
 import type {
   BuilderForm,
+  BuilderSnapshot,
   Question,
   QuestionOption,
   QuestionType,
@@ -20,6 +21,22 @@ import type { FormWithSections } from "@/lib/api/forms";
 // --------------------------------------------------------
 // Helpers
 // --------------------------------------------------------
+
+function createSnapshot(state: {
+  form: BuilderForm;
+  sections: Section[];
+  questions: Question[];
+}): BuilderSnapshot {
+  return {
+    form: { ...state.form },
+    sections: state.sections.map((s) => ({ ...s })),
+    questions: state.questions.map((q) => ({
+      ...q,
+      options: q.options.map((o) => ({ ...o })),
+      validation: { ...(q.validation || {}) },
+    })),
+  };
+}
 
 function uid(): string {
   return Math.random().toString(36).slice(2, 10) + Date.now().toString(36);
@@ -143,10 +160,10 @@ interface BuilderState {
   sections: Section[];
   questions: Question[];
   selectedElement: SelectedElement | null;
-  rightPanelTab: "properties" | "settings";
+  rightPanelTab: "properties" | "settings" | "grizzy";
   /** Whether the store has been initialised from the API (prevents flash of empty state) */
   isInitialised: boolean;
-  setRightPanelTab(tab: "properties" | "settings"): void;
+  setRightPanelTab(tab: "properties" | "settings" | "grizzy"): void;
 
   /**
    * Initialise the store from the API response.
@@ -194,6 +211,17 @@ interface BuilderState {
 
   // ── Validation ────────────────────────────────────────
   updateValidation(questionId: string, patch: Partial<QuestionValidation>): void;
+
+  // ── History & Snapshots (Undo / Redo / AI reviews) ───
+  historyPast: BuilderSnapshot[];
+  historyFuture: BuilderSnapshot[];
+  getSnapshot(): BuilderSnapshot;
+  restoreSnapshot(snapshot: BuilderSnapshot): void;
+  pushHistory(): void;
+  undo(): void;
+  redo(): void;
+  canUndo(): boolean;
+  canRedo(): boolean;
 }
 
 export const useBuilderStore = create<BuilderState>()(
@@ -203,6 +231,8 @@ export const useBuilderStore = create<BuilderState>()(
     questions: [],
     selectedElement: null,
     rightPanelTab: "properties",
+    historyPast: [],
+    historyFuture: [],
     isInitialised: false,
 
     setRightPanelTab: (tab) =>
@@ -217,6 +247,8 @@ export const useBuilderStore = create<BuilderState>()(
         s.form = form;
         s.sections = sections;
         s.questions = questions;
+        s.historyPast = [];
+        s.historyFuture = [];
         s.isInitialised = true;
         s.selectedElement = null;
       }),
@@ -436,7 +468,7 @@ export const useBuilderStore = create<BuilderState>()(
     selectElement: (el) =>
       set((s) => {
         s.selectedElement = el;
-        if (el) {
+        if (el && s.rightPanelTab !== "grizzy") {
           s.rightPanelTab = "properties";
         }
       }),
@@ -474,8 +506,76 @@ export const useBuilderStore = create<BuilderState>()(
     updateValidation: (questionId, patch) =>
       set((s) => {
         const q = s.questions.find((x) => x.id === questionId);
-        if (q) Object.assign(q.validation, patch);
+        if (q) {
+          q.validation = { ...(q.validation || {}), ...patch };
+        }
       }),
+
+    // ── History & Snapshots ─────────────────────────────
+    getSnapshot: () => createSnapshot(get()),
+
+    pushHistory: () =>
+      set((s) => {
+        const snap = createSnapshot(s);
+        s.historyPast.push(snap);
+        if (s.historyPast.length > 30) {
+          s.historyPast.shift();
+        }
+        s.historyFuture = [];
+      }),
+
+    restoreSnapshot: (snapshot) =>
+      set((s) => {
+        Object.assign(s.form, snapshot.form);
+        s.sections = snapshot.sections.map((sec) => ({ ...sec }));
+        s.questions = snapshot.questions.map((q) => ({
+          ...q,
+          options: q.options.map((opt) => ({ ...opt })),
+          validation: { ...(q.validation || {}) },
+        }));
+        s.selectedElement = null;
+      }),
+
+    undo: () => {
+      const { historyPast } = get();
+      if (historyPast.length === 0) return;
+      const currentSnap = createSnapshot(get());
+      const previousSnap = historyPast[historyPast.length - 1];
+      set((s) => {
+        s.historyPast.pop();
+        s.historyFuture.push(currentSnap);
+        Object.assign(s.form, previousSnap.form);
+        s.sections = previousSnap.sections.map((sec) => ({ ...sec }));
+        s.questions = previousSnap.questions.map((q) => ({
+          ...q,
+          options: q.options.map((opt) => ({ ...opt })),
+          validation: { ...(q.validation || {}) },
+        }));
+        s.selectedElement = null;
+      });
+    },
+
+    redo: () => {
+      const { historyFuture } = get();
+      if (historyFuture.length === 0) return;
+      const currentSnap = createSnapshot(get());
+      const nextSnap = historyFuture[historyFuture.length - 1];
+      set((s) => {
+        s.historyFuture.pop();
+        s.historyPast.push(currentSnap);
+        Object.assign(s.form, nextSnap.form);
+        s.sections = nextSnap.sections.map((sec) => ({ ...sec }));
+        s.questions = nextSnap.questions.map((q) => ({
+          ...q,
+          options: q.options.map((opt) => ({ ...opt })),
+          validation: { ...(q.validation || {}) },
+        }));
+        s.selectedElement = null;
+      });
+    },
+
+    canUndo: () => get().historyPast.length > 0,
+    canRedo: () => get().historyFuture.length > 0,
   })),
 );
 

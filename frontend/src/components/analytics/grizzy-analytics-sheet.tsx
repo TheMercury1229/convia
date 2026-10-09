@@ -215,6 +215,7 @@ export function GrizzyAnalyticsSheet({
                           width={32}
                           height={32}
                           className="object-contain"
+                          style={{ width: "auto", height: "auto" }}
                         />
                       </div>
                     ) : (
@@ -231,7 +232,9 @@ export function GrizzyAnalyticsSheet({
                       className={cn(
                         "relative group rounded-2xl px-4 py-3 text-xs sm:text-sm leading-relaxed shadow-2xs",
                         isAi
-                          ? "bg-card border border-border/70 text-card-foreground rounded-tl-sm"
+                          ? message.isError
+                            ? "bg-destructive/5 border border-destructive/30 text-card-foreground rounded-tl-sm"
+                            : "bg-card border border-border/70 text-card-foreground rounded-tl-sm"
                           : "bg-primary text-primary-foreground rounded-tr-sm",
                       )}
                     >
@@ -239,7 +242,41 @@ export function GrizzyAnalyticsSheet({
                         <div>
                           {message.content ? (
                             <GrizzyMarkdown content={message.content} />
-                          ) : (
+                          ) : null}
+
+                          {message.isError ? (
+                            <div
+                              className={cn(
+                                "flex flex-col gap-2.5",
+                                message.content && "mt-3 pt-3 border-t border-destructive/20",
+                              )}
+                            >
+                              <div className="flex items-start gap-2.5 text-destructive">
+                                <AlertCircle className="size-4 shrink-0 mt-0.5" />
+                                <div className="flex-1 min-w-0 space-y-1">
+                                  <p className="font-semibold text-xs text-destructive">
+                                    Unable to generate response
+                                  </p>
+                                  <p className="text-xs text-muted-foreground leading-relaxed break-words">
+                                    {message.errorMessage || "An error occurred while communicating with the analytics service."}
+                                  </p>
+                                </div>
+                              </div>
+                              <div className="flex items-center gap-2 pt-0.5">
+                                <Button
+                                  type="button"
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={retryLastMessage}
+                                  disabled={isStreaming}
+                                  className="h-7 text-xs border-destructive/30 text-destructive hover:bg-destructive/10 hover:text-destructive cursor-pointer"
+                                >
+                                  <RotateCcw className="size-3 mr-1.5" />
+                                  Retry
+                                </Button>
+                              </div>
+                            </div>
+                          ) : !message.content ? (
                             /* Typing dots while awaiting first token */
                             <div className="flex items-center gap-1.5 py-1 text-muted-foreground">
                               <span className="size-1.5 rounded-full bg-primary animate-bounce" />
@@ -255,10 +292,10 @@ export function GrizzyAnalyticsSheet({
                                 Analyzing responses…
                               </span>
                             </div>
-                          )}
+                          ) : null}
 
                           {/* Quick Copy Button on Hover */}
-                          {message.content && !isStreaming && (
+                          {message.content && !isStreaming && !message.isError && (
                             <div className="mt-2.5 pt-2 border-t border-border/40 flex items-center justify-between text-[11px] text-muted-foreground">
                               <span className="font-mono text-[10px]">
                                 {new Date(message.timestamp).toLocaleTimeString(
@@ -320,8 +357,8 @@ export function GrizzyAnalyticsSheet({
               );
             })}
 
-            {/* Error Banner */}
-            {error && (
+            {/* Error Banner (shown if an error occurs and is not already displayed in a message) */}
+            {error && !messages.some((m) => m.isError) && (
               <div className="flex items-center justify-between gap-3 p-3 rounded-xl border border-destructive/30 bg-destructive/10 text-destructive text-xs animate-in fade-in">
                 <div className="flex items-center gap-2">
                   <AlertCircle className="size-4 shrink-0" />

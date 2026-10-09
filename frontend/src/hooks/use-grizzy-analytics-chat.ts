@@ -16,6 +16,8 @@ export interface GrizzyChatMessage {
   role: "assistant" | "user";
   content: string;
   timestamp: Date;
+  isError?: boolean;
+  errorMessage?: string;
 }
 
 export interface QuestionSuggestion {
@@ -68,113 +70,6 @@ export const DEFAULT_SUGGESTIONS: QuestionSuggestion[] = [
     iconType: "recommendation",
   },
 ];
-
-function generateStage1SimulatedResponse(
-  query: string,
-  formTitle: string,
-  data?: FormAnalyticsData,
-): string {
-  const q = query.toLowerCase();
-  const summary = data?.summary;
-  const totalSubmissions = summary?.totalSubmissions ?? 0;
-  const completionRate = summary?.completionRate ?? 0;
-  const engagementRate = summary?.engagementRate ?? 0;
-  const dropoffRate = summary?.dropoffRate ?? 0;
-  const questions = data?.questionInsights ?? [];
-  const funnel = data?.funnel ?? [];
-
-  // Drop-off / Bottleneck question
-  if (q.includes("drop") || q.includes("bottleneck") || q.includes("skip") || q.includes("abandon")) {
-    const highestDropQuestion = [...questions].sort(
-      (a, b) => b.totalSkipped - a.totalSkipped,
-    )[0];
-    const funnelDropStep = [...funnel].sort(
-      (a, b) => b.dropoffRate - a.dropoffRate,
-    )[0];
-
-    return `### Drop-off & Bottleneck Analysis for **${formTitle}**
-
-Based on **${totalSubmissions} submissions** and respondent session traces:
-
-| Metric | Value | Assessment |
-| :--- | :--- | :--- |
-| **Overall Drop-off Rate** | **${dropoffRate.toFixed(1)}%** | ${dropoffRate > 30 ? "Needs Attention" : "Healthy"} |
-| **Completion Rate** | **${completionRate.toFixed(1)}%** | ${completionRate > 60 ? "Above average" : "Room for improvement"} |
-| **Most Skipped Question** | "${highestDropQuestion?.label ?? "Required fields"}" | ${highestDropQuestion ? `${highestDropQuestion.totalSkipped} skips (${(100 - highestDropQuestion.answerRate).toFixed(1)}% skip rate)` : "Minimal skipping"} |
-${funnelDropStep ? `| **Steepest Funnel Falloff** | "${funnelDropStep.label}" | ${funnelDropStep.dropoffRate.toFixed(1)}% drop-off |` : ""}
-
-#### Key Takeaways:
-1. **Friction Point**: Respondents hesitate most at questions with complex choices or long explanations.
-2. **Device Optimization**: Drop-offs are highest on mobile viewports during multi-line inputs.
-3. **Recommendation**: Shorten the question prompts and consider marking optional fields clearly.`;
-  }
-
-  // Executive summary
-  if (q.includes("summary") || q.includes("overview") || q.includes("performance") || q.includes("executive")) {
-    return `### Executive Summary for **${formTitle}**
-
-Here is a high-level briefing on your form's performance:
-
-- **Total Views**: **${summary?.totalViews?.toLocaleString() ?? 0}**
-- **Total Submissions**: **${totalSubmissions.toLocaleString()}** (${summary?.completedSubmissions ?? totalSubmissions} completed, ${summary?.partialSubmissions ?? 0} partial)
-- **Visitor-to-Start Engagement**: **${engagementRate.toFixed(1)}%**
-- **Completion Rate**: **${completionRate.toFixed(1)}%**
-
-#### Performance Highlights:
-- **Engagement**: Your form captures interest quickly once visitors begin filling it out.
-- **Data Completeness**: Most respondents complete the required questions without issues.
-- **Top Answer Distribution**: Responses show a steady distribution across primary questions.
-
-Would you like me to drill down into a specific question or look at text response themes?`;
-  }
-
-  // Themes & feedback
-  if (q.includes("theme") || q.includes("feedback") || q.includes("sentiment") || q.includes("words")) {
-    const questionsWithWords = questions.filter((qi) => (qi.topWords ?? []).length > 0);
-    const topWordList = questionsWithWords.flatMap((q) => q.topWords ?? []).slice(0, 8);
-
-    return `### Qualitative Feedback & Themes for **${formTitle}**
-
-I reviewed the open-ended text answers and qualitative feedback from your respondents:
-
-#### Dominant Themes:
-1. **User Satisfaction & Clarity**: Positive remarks around ease of use and responsive design.
-2. **Speed & Efficiency**: Respondents appreciate concise, focused questions.
-3. **Key Mentioned Keywords**: ${topWordList.length > 0 ? topWordList.map((w) => `\`${w.word}\` (${w.count})`).join(", ") : "_Convenient, intuitive, helpful, reliable, fast_"}
-
-#### Sentiment Overview:
-- **Positive Sentiment**: ~**78%**
-- **Neutral / Informative**: ~**16%**
-- **Critical / Suggestions**: ~**6%**`;
-  }
-
-  // Recommendations / Improvements
-  if (q.includes("recommend") || q.includes("improve") || q.includes("tips") || q.includes("action")) {
-    return `### 3 Actionable Recommendations for **${formTitle}**
-
-To lift your completion rate from **${completionRate.toFixed(1)}%** and reduce drop-off:
-
-1. **Streamline Optional Questions**
-   Move non-essential questions towards the end or remove them to maintain momentum.
-2. **Optimize Question Micro-copy**
-   Provide short placeholder examples for open-text fields so respondents understand what to enter immediately.
-3. **Leverage AI Pre-fills / Conversational Mode**
-   Offering respondent AI-assisted filling increases completion rates by up to **24%** for lengthy surveys.`;
-  }
-
-  // General grounded response
-  return `### Insights on **${formTitle}**
-
-You asked: *"${query}"*
-
-Here is what your response data indicates:
-- **Total Records Analyzed**: ${totalSubmissions} submissions
-- **Completion Rate**: ${completionRate.toFixed(1)}%
-- **Engagement Rate**: ${engagementRate.toFixed(1)}%
-- **Total Tracked Questions**: ${questions.length} questions
-
-If you want more detailed answers, feel free to ask about specific questions, drop-off points, or open-text feedback!`;
-}
 
 export function useGrizzyAnalyticsChat({
   formId,
@@ -319,75 +214,46 @@ You can ask me to analyze drop-offs, summarize responses, or identify feedback t
       let fullReply = "";
 
       try {
-        // Attempt streaming from backend endpoint
-        let streamedAnyChunk = false;
+        for await (const event of streamAnalyzeResponsesTurn(
+          payload,
+          controller.signal,
+        )) {
+          if (controller.signal.aborted) break;
 
-        try {
-          for await (const event of streamAnalyzeResponsesTurn(
-            payload,
-            controller.signal,
-          )) {
-            if (controller.signal.aborted) break;
-
-            if (event.error) {
-              throw new Error(event.error);
-            }
-
-            if (event.delta) {
-              streamedAnyChunk = true;
-              fullReply += event.delta;
-              const textSoFar = fullReply;
-              setMessages((prev) =>
-                prev.map((m) =>
-                  m.id === assistantMsgId ? { ...m, content: textSoFar } : m,
-                ),
-              );
-            }
+          if (event.error) {
+            throw new Error(event.error);
           }
-        } catch (streamErr: unknown) {
-          if (controller.signal.aborted) return;
 
-          // If backend is not available or errored, use stage 1 simulated response
-          if (!streamedAnyChunk) {
-            const simulatedText = generateStage1SimulatedResponse(
-              trimmedQuery,
-              formTitle,
-              analyticsData,
+          if (event.delta) {
+            fullReply += event.delta;
+            const textSoFar = fullReply;
+            setMessages((prev) =>
+              prev.map((m) =>
+                m.id === assistantMsgId ? { ...m, content: textSoFar } : m,
+              ),
             );
-
-            // Stream chunk by chunk with typing effect
-            const chunkSize = 12;
-            for (let i = 0; i < simulatedText.length; i += chunkSize) {
-              if (controller.signal.aborted) break;
-              const chunk = simulatedText.slice(i, i + chunkSize);
-              fullReply += chunk;
-              const textSoFar = fullReply;
-              setMessages((prev) =>
-                prev.map((m) =>
-                  m.id === assistantMsgId ? { ...m, content: textSoFar } : m,
-                ),
-              );
-              await new Promise((resolve) => setTimeout(resolve, 20));
-            }
-          } else {
-            throw streamErr;
           }
         }
       } catch (err: unknown) {
         if (controller.signal.aborted) return;
-        const msg =
+        const rawMsg =
           err instanceof Error
             ? err.message
             : "Failed to generate analytics insight.";
+        const msg =
+          rawMsg === "Failed to fetch"
+            ? "Unable to reach server. Please check your connection and try again."
+            : rawMsg;
+
         setError(msg);
         setMessages((prev) =>
           prev.map((m) =>
             m.id === assistantMsgId
               ? {
                   ...m,
-                  content:
-                    m.content ||
-                    "I encountered an issue analyzing the response dataset. Please try asking again.",
+                  isError: true,
+                  errorMessage: msg,
+                  content: fullReply,
                 }
               : m,
           ),
@@ -436,7 +302,13 @@ You can ask me to analyze drop-offs, summarize responses, or identify feedback t
       timestamp: new Date(),
     };
 
-    setMessages((prev) => [...prev, assistantMsg]);
+    setMessages((prev) => {
+      const last = prev[prev.length - 1];
+      if (last?.role === "assistant" && last.isError) {
+        return [...prev.slice(0, -1), assistantMsg];
+      }
+      return [...prev, assistantMsg];
+    });
     executeTurn(query, assistantMsgId);
   }, [isStreaming, executeTurn]);
 

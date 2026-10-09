@@ -12,6 +12,9 @@ import {
   Settings,
   Share2,
   Globe,
+  Sparkles,
+  Undo2,
+  Redo2,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -21,7 +24,6 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { ShareDialog } from "./share-dialog";
-import { BuildWithGrizzyDialog } from "@/components/my-forms/build-with-grizzy-dialog";
 import { useBuilderStore } from "@/store/builder-store";
 import { useTogglePublish } from "@/hooks/use-forms";
 
@@ -163,10 +165,54 @@ export function FormBuilderHeader({
   onStartAiJob,
 }: FormBuilderHeaderProps) {
   const [shareOpen, setShareOpen] = React.useState(false);
-  const [grizzyOpen, setGrizzyOpen] = React.useState(false);
-  const { rightPanelTab, setRightPanelTab, form, updateForm } = useBuilderStore();
+  const {
+    rightPanelTab,
+    setRightPanelTab,
+    form,
+    updateForm,
+    undo,
+    redo,
+    historyPast,
+    historyFuture,
+  } = useBuilderStore();
   const togglePublishMutation = useTogglePublish();
   const isPublished = Boolean(form.isPublished);
+
+  const canUndo = historyPast.length > 0;
+  const canRedo = historyFuture.length > 0;
+
+  // Keyboard shortcut listener for Ctrl+Z and Ctrl+Y / Ctrl+Shift+Z
+  React.useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      const target = e.target as HTMLElement;
+      if (
+        target.tagName === "INPUT" ||
+        target.tagName === "TEXTAREA" ||
+        target.isContentEditable
+      ) {
+        return;
+      }
+
+      const isMac =
+        typeof navigator !== "undefined" &&
+        navigator.platform.toUpperCase().indexOf("MAC") >= 0;
+      const modKey = isMac ? e.metaKey : e.ctrlKey;
+
+      if (modKey && e.key === "z" && !e.shiftKey) {
+        e.preventDefault();
+        undo();
+      } else if (
+        (modKey && e.key === "y") ||
+        (modKey && e.shiftKey && (e.key === "z" || e.key === "Z"))
+      ) {
+        e.preventDefault();
+        redo();
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [undo, redo]);
 
   const handleTogglePublish = () => {
     if (!form.id) return;
@@ -191,7 +237,7 @@ export function FormBuilderHeader({
       )}
     >
       {/* ------------------------------------------------------------------ */}
-      {/* LEFT — back + title + autosave                                       */}
+      {/* LEFT — back + title + autosave + undo/redo                           */}
       {/* ------------------------------------------------------------------ */}
       <div className="flex min-w-0 flex-1 items-center gap-1.5">
         {/* Back button */}
@@ -226,7 +272,7 @@ export function FormBuilderHeader({
         {/* Autosave indicator */}
         <SaveIndicator state={saveState} />
 
-        {/* Manual save button — accessible and consistent with other icons */}
+        {/* Manual save button */}
         <Tooltip>
           <TooltipTrigger asChild>
             <Button
@@ -249,9 +295,45 @@ export function FormBuilderHeader({
             {saveState === "unsaved"
               ? "Save changes"
               : saveState === "saving"
-              ? "Saving…"
-              : "Save"}
+                ? "Saving…"
+                : "Save"}
           </TooltipContent>
+        </Tooltip>
+
+        {/* Undo button */}
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Button
+              variant="ghost"
+              size="icon-sm"
+              id="builder-undo-btn"
+              aria-label="Undo"
+              onClick={undo}
+              disabled={!canUndo}
+              className="shrink-0 text-muted-foreground hover:text-foreground disabled:opacity-30 cursor-pointer disabled:cursor-not-allowed"
+            >
+              <Undo2 className="h-4 w-4" />
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent side="bottom">Undo (Ctrl+Z)</TooltipContent>
+        </Tooltip>
+
+        {/* Redo button */}
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Button
+              variant="ghost"
+              size="icon-sm"
+              id="builder-redo-btn"
+              aria-label="Redo"
+              onClick={redo}
+              disabled={!canRedo}
+              className="shrink-0 text-muted-foreground hover:text-foreground disabled:opacity-30 cursor-pointer disabled:cursor-not-allowed"
+            >
+              <Redo2 className="h-4 w-4" />
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent side="bottom">Redo (Ctrl+Y)</TooltipContent>
         </Tooltip>
       </div>
 
@@ -270,16 +352,25 @@ export function FormBuilderHeader({
         <Tooltip>
           <TooltipTrigger asChild>
             <Button
-              variant="outline"
-              size="sm"
+              variant={rightPanelTab === "grizzy" ? "secondary" : "outline"}
+              size="default"
               id="builder-grizzy-btn"
               aria-label="Build with Grizzy"
-              onClick={() => setGrizzyOpen(true)}
+              onClick={() =>
+                setRightPanelTab(rightPanelTab === "grizzy" ? "properties" : "grizzy")
+              }
+              className={cn(
+                "h-9 px-3.5 gap-2 text-sm font-medium transition-colors cursor-pointer",
+                rightPanelTab === "grizzy" &&
+                "bg-primary/10 text-primary border-primary/30 hover:bg-primary/15 dark:bg-primary/20"
+              )}
             >
-              <span className="text-xs font-medium">Build with Grizzy</span>
+              <span>Build with Grizzy</span>
             </Button>
           </TooltipTrigger>
-          <TooltipContent side="bottom">Build with Grizzy</TooltipContent>
+          <TooltipContent side="bottom">
+            {rightPanelTab === "grizzy" ? "Close Grizzy chat" : "Chat with Grizzy"}
+          </TooltipContent>
         </Tooltip>
 
         {/* Settings */}
@@ -371,8 +462,8 @@ export function FormBuilderHeader({
                 {togglePublishMutation.isPending
                   ? "Updating…"
                   : isPublished
-                  ? "Published"
-                  : "Publish"}
+                    ? "Published"
+                    : "Publish"}
               </span>
             </Button>
           </TooltipTrigger>
@@ -383,11 +474,6 @@ export function FormBuilderHeader({
       </div>
 
       <ShareDialog open={shareOpen} onOpenChange={setShareOpen} />
-      <BuildWithGrizzyDialog
-        open={grizzyOpen}
-        onOpenChange={setGrizzyOpen}
-        onJobStarted={onStartAiJob}
-      />
     </header>
   );
 }

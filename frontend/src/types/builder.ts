@@ -165,3 +165,14 @@ export interface PaletteComponent {
   group: string;
   icon: string; // lucide icon name (resolved in palette)
 }
+
+// --------------------------------------------------------
+// Snapshot (for Undo/Redo & AI change reviews)
+// --------------------------------------------------------
+
+export interface BuilderSnapshot {
+  form: BuilderForm;
+  sections: Section[];
+  questions: Question[];
+}
+
