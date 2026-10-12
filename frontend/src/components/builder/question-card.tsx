@@ -48,6 +48,7 @@ export function QuestionCard({
     duplicateQuestion,
     moveQuestionUp,
     moveQuestionDown,
+    readOnly,
   } = useBuilderStore();
   const fallbackTheme = useBuilderTheme();
   const currentTheme = propTheme ?? fallbackTheme;
@@ -69,8 +70,9 @@ export function QuestionCard({
       sectionId: question.sectionId,
       index,
     }),
+    canDrag: () => !readOnly,
     collect: (monitor) => ({ isDragging: monitor.isDragging() }),
-  }));
+  }), [question.id, question.sectionId, index, readOnly]);
 
   const cardRef = React.useRef<HTMLDivElement>(null);
   dragPreview(cardRef);
@@ -97,20 +99,22 @@ export function QuestionCard({
       }}
     >
       {/* Drag handle */}
-      <div
-        ref={drag as unknown as React.Ref<HTMLDivElement>}
-        className={cn(
-          "absolute left-0 top-0 bottom-0 flex w-8 cursor-grab items-center justify-center",
-          "opacity-0 group-hover:opacity-100 transition-opacity active:cursor-grabbing",
-        )}
-        onClick={(e) => e.stopPropagation()}
-        title="Drag to reorder"
-      >
-        <GripVertical className="size-4" style={{ color: currentTheme.colors.cardMuted }} />
-      </div>
+      {!readOnly && (
+        <div
+          ref={drag as unknown as React.Ref<HTMLDivElement>}
+          className={cn(
+            "absolute left-0 top-0 bottom-0 flex w-8 cursor-grab items-center justify-center",
+            "opacity-0 group-hover:opacity-100 transition-opacity active:cursor-grabbing",
+          )}
+          onClick={(e) => e.stopPropagation()}
+          title="Drag to reorder"
+        >
+          <GripVertical className="size-4" style={{ color: currentTheme.colors.cardMuted }} />
+        </div>
+      )}
 
       {/* Content */}
-      <div className="pl-8 pr-4 py-3.5 min-w-0 overflow-hidden">
+      <div className={cn(readOnly ? "px-4" : "pl-8 pr-4", "py-3.5 min-w-0 overflow-hidden")}>
         {/* Type badge row */}
         <div className="flex items-start justify-between gap-2">
           <div className="flex items-center gap-1.5 min-w-0">
@@ -129,12 +133,13 @@ export function QuestionCard({
           </div>
 
           {/* Inline actions — appear on hover or when selected */}
-          <div
-            className={cn(
-              "flex items-center gap-0.5 transition-opacity shrink-0",
-              isSelected ? "opacity-100" : "opacity-0 group-hover:opacity-100",
-            )}
-          >
+          {!readOnly && (
+            <div
+              className={cn(
+                "flex items-center gap-0.5 transition-opacity shrink-0",
+                isSelected ? "opacity-100" : "opacity-0 group-hover:opacity-100",
+              )}
+            >
             <Button
               variant="ghost"
               size="icon-xs"
@@ -186,6 +191,7 @@ export function QuestionCard({
               <Trash2 className="size-3.5" />
             </Button>
           </div>
+          )}
         </div>
 
         {/* Label */}

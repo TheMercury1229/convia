@@ -5,14 +5,6 @@
     .accent-cyan { stroke: #00B4B4; }
     .accent-cyan-fill { fill: #00B4B4; stroke: #00B4B4; }
     .accent-blue { stroke: #0077FE; }
-
-    @media (prefers-color-scheme: dark) {
-      .primary-color { stroke: #F8FAFC; }
-      .text-color { fill: #F8FAFC; }
-      .accent-cyan { stroke: #00E5C9; }
-      .accent-cyan-fill { fill: #00E5C9; stroke: #00E5C9; }
-      .accent-blue { stroke: #3B82F6; }
-    }
   </style>
 
   <!-- Form Boundary -->

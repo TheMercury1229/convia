@@ -52,6 +52,14 @@ export const form = pgTable(
     isPublished: boolean("is_published").default(false).notNull(),
     // Nullable — if set, form stops accepting responses after this timestamp
     deadline: timestamp("deadline", { withTimezone: true }),
+    // Nullable — if set, form stops accepting responses after reaching this count
+    maxResponses: integer("max_responses"),
+    // Nullable — if set, redirects respondent to this URL upon completion
+    redirectUrl: text("redirect_url"),
+    // Nullable — custom completion/thank you title
+    completionTitle: text("completion_title"),
+    // Nullable — custom completion/thank you message
+    completionMessage: text("completion_message"),
     // FK -> organization.id — scopes the form to its organisation
     orgId: text("org_id").notNull(),
     createdAt: timestamp("created_at").defaultNow().notNull(),

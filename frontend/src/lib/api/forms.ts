@@ -7,6 +7,10 @@ export interface Form {
   slug: string;
   isPublished: boolean;
   deadline?: string | null;
+  maxResponses?: number | null;
+  redirectUrl?: string | null;
+  completionTitle?: string | null;
+  completionMessage?: string | null;
   themeId?: string | null;
   createdAt: string;
   updatedAt: string;
@@ -52,6 +56,10 @@ export interface CreateFormPayload {
   slug?: string;
   themeId?: string;
   deadline?: string | null;
+  maxResponses?: number | null;
+  redirectUrl?: string | null;
+  completionTitle?: string | null;
+  completionMessage?: string | null;
 }
 
 export interface UpdateFormPayload extends Partial<CreateFormPayload> { }

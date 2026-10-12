@@ -32,6 +32,9 @@ function FormPageContent() {
   if (isError || !formData) {
     const errorMessage = error?.message || "Unable to load form.";
     const isDeadlinePassed = errorMessage.toLowerCase().includes("deadline");
+    const isLimitReached =
+      errorMessage.toLowerCase().includes("limit") ||
+      errorMessage.toLowerCase().includes("maximum response");
     const isForbidden =
       errorMessage.toLowerCase().includes("not accepting responses") ||
       errorMessage.toLowerCase().includes("forbidden") ||
@@ -42,7 +45,7 @@ function FormPageContent() {
       errorMessage.toLowerCase().includes("server") ||
       errorMessage.toLowerCase().includes("500");
 
-    const reason = isDeadlinePassed
+    const reason = isDeadlinePassed || isLimitReached
       ? "closed"
       : isForbidden
       ? "unpublished"

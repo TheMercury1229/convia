@@ -12,6 +12,7 @@ import {
   RefreshCw,
   Sun,
 } from "lucide-react";
+import { useTheme } from "next-themes";
 import { Button } from "@/components/ui/button";
 import type { FormThemeResolved } from "@/lib/builder-themes";
 
@@ -52,27 +53,28 @@ export function FormUnavailableState({
   onReviewAnswers,
   onToggleDark,
 }: FormUnavailableStateProps) {
-  const [internalDark, setInternalDark] = React.useState(false);
+  const { resolvedTheme, setTheme } = useTheme();
+  const [mounted, setMounted] = React.useState(false);
   const [isRetrying, setIsRetrying] = React.useState(false);
 
   React.useEffect(() => {
-    if (typeof window !== "undefined") {
-      setInternalDark(
-        document.documentElement.classList.contains("dark") ||
-          window.matchMedia("(prefers-color-scheme: dark)").matches,
-      );
-    }
+    setMounted(true);
   }, []);
 
-  const isDark = externalIsDark !== undefined ? externalIsDark : internalDark;
+  const isDark =
+    externalIsDark !== undefined
+      ? externalIsDark
+      : mounted
+      ? resolvedTheme === "dark"
+      : false;
 
   const handleToggleDark = () => {
     if (onToggleDark) {
       onToggleDark();
     } else {
-      const next = !isDark;
-      setInternalDark(next);
-      document.documentElement.classList.toggle("dark", next);
+      const isCurrentlyDark =
+        document.documentElement.classList.contains("dark") || resolvedTheme === "dark";
+      setTheme(isCurrentlyDark ? "light" : "dark");
     }
   };
 
@@ -89,17 +91,30 @@ export function FormUnavailableState({
   const isDeadlineError = Boolean(
     errorMessage && errorMessage.toLowerCase().includes("deadline"),
   );
+  const isLimitError = Boolean(
+    errorMessage &&
+      (errorMessage.toLowerCase().includes("limit") ||
+        errorMessage.toLowerCase().includes("maximum response")),
+  );
 
   let title = "Form unavailable";
   let description = "This form is not accessible at this moment.";
 
   switch (reason) {
     case "closed":
-      title = formTitle
-        ? `Submissions closed for ${formTitle}`
-        : "Submissions are closed";
-      description =
-        "This form is no longer accepting responses. If you need to submit information, please contact the person or organization who shared this link.";
+      if (isLimitError) {
+        title = formTitle
+          ? `Response limit reached for ${formTitle}`
+          : "Response limit reached";
+        description =
+          "This form has reached its maximum response limit and is no longer accepting submissions.";
+      } else {
+        title = formTitle
+          ? `Submissions closed for ${formTitle}`
+          : "Submissions are closed";
+        description =
+          "This form is no longer accepting responses. If you need to submit information, please contact the person or organization who shared this link.";
+      }
       break;
 
     case "unpublished":
@@ -128,7 +143,11 @@ export function FormUnavailableState({
       break;
 
     case "submission-failed":
-      if (isDeadlineError) {
+      if (isLimitError) {
+        title = "Response limit reached before submission";
+        description =
+          "The maximum response limit for this form was reached while you were completing it. Your answers have been preserved.";
+      } else if (isDeadlineError) {
         title = "Deadline passed before submission";
         description =
           "The deadline for this form ended while you were completing it. Your answers have been preserved so you can review or copy them.";
@@ -152,7 +171,7 @@ export function FormUnavailableState({
       style={{
         backgroundColor: theme?.colors.canvasBg,
         color: theme?.colors.cardText,
-        colorScheme: isDark ? "dark" : "light",
+        colorScheme: externalIsDark !== undefined ? (isDark ? "dark" : "light") : undefined,
       }}
     >
       {/* ────────────────────────────────────────────────────────── */}
@@ -166,25 +185,67 @@ export function FormUnavailableState({
               className="inline-flex items-center gap-2 opacity-90 transition-opacity hover:opacity-100"
               aria-label="Back to dashboard"
             >
-              <Image
-                src={isDark ? "/logo-white.svg" : "/logo.svg"}
-                alt="Convia"
-                width={112}
-                height={32}
-                className="h-6 w-auto"
-                priority
-              />
+              {externalIsDark !== undefined ? (
+                <Image
+                  src={isDark ? "/logo-white.svg" : "/logo.svg"}
+                  alt="Convia"
+                  width={112}
+                  height={32}
+                  className="h-6 w-auto"
+                  priority
+                />
+              ) : (
+                <>
+                  <Image
+                    src="/logo.svg"
+                    alt="Convia"
+                    width={112}
+                    height={32}
+                    className="h-6 w-auto dark:hidden"
+                    priority
+                  />
+                  <Image
+                    src="/logo-white.svg"
+                    alt="Convia"
+                    width={112}
+                    height={32}
+                    className="h-6 w-auto hidden dark:block"
+                    priority
+                  />
+                </>
+              )}
             </Link>
           ) : (
             <div className="inline-flex items-center gap-2 opacity-90">
-              <Image
-                src={isDark ? "/logo-white.svg" : "/logo.svg"}
-                alt="Convia"
-                width={112}
-                height={32}
-                className="h-6 w-auto"
-                priority
-              />
+              {externalIsDark !== undefined ? (
+                <Image
+                  src={isDark ? "/logo-white.svg" : "/logo.svg"}
+                  alt="Convia"
+                  width={112}
+                  height={32}
+                  className="h-6 w-auto"
+                  priority
+                />
+              ) : (
+                <>
+                  <Image
+                    src="/logo.svg"
+                    alt="Convia"
+                    width={112}
+                    height={32}
+                    className="h-6 w-auto dark:hidden"
+                    priority
+                  />
+                  <Image
+                    src="/logo-white.svg"
+                    alt="Convia"
+                    width={112}
+                    height={32}
+                    className="h-6 w-auto hidden dark:block"
+                    priority
+                  />
+                </>
+              )}
             </div>
           )}
         </div>
@@ -213,7 +274,14 @@ export function FormUnavailableState({
             style={{ color: theme?.colors.cardText }}
             aria-label="Toggle dark/light mode"
           >
-            {isDark ? <Sun className="size-4" /> : <Moon className="size-4" />}
+            {externalIsDark !== undefined ? (
+              isDark ? <Sun className="size-4" /> : <Moon className="size-4" />
+            ) : (
+              <>
+                <Sun className="size-4 hidden dark:block" />
+                <Moon className="size-4 block dark:hidden" />
+              </>
+            )}
           </Button>
         </div>
       </header>

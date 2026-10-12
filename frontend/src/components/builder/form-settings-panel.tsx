@@ -1,11 +1,12 @@
 "use client";
 
 import * as React from "react";
-import { Check, Clock, Globe, Palette, Calendar, Lock } from "lucide-react";
+import { Check, Clock, Globe, Palette, Calendar, Lock, Hash, ExternalLink, Sparkles } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
+import { Textarea } from "@/components/ui/textarea";
 import { useBuilderStore } from "@/store/builder-store";
 import { BUILDER_THEMES } from "@/lib/builder-themes";
 
@@ -75,6 +76,28 @@ export function FormSettingsPanel() {
       nextWeek.setDate(nextWeek.getDate() + 7);
       nextWeek.setHours(23, 59, 0, 0);
       updateForm({ deadline: nextWeek.toISOString() });
+    }
+  };
+
+  const hasMaxResponses = Boolean(
+    form.maxResponses !== null && form.maxResponses !== undefined && form.maxResponses > 0,
+  );
+
+  const handleMaxResponsesToggle = (checked: boolean) => {
+    if (!checked) {
+      updateForm({ maxResponses: null });
+    } else {
+      updateForm({ maxResponses: 100 });
+    }
+  };
+
+  const hasRedirect = Boolean(form.redirectUrl && form.redirectUrl.trim().length > 0);
+
+  const handleRedirectToggle = (checked: boolean) => {
+    if (!checked) {
+      updateForm({ redirectUrl: null });
+    } else {
+      updateForm({ redirectUrl: "https://" });
     }
   };
 
@@ -148,8 +171,9 @@ export function FormSettingsPanel() {
         </div>
       </SettingsSection>
 
-      {/* ── 2. Deadline ────────────────────────────────────── */}
-      <SettingsSection title="Deadline" icon={Clock}>
+      {/* ── 2. Deadline & Limits ────────────────────────────── */}
+      <SettingsSection title="Access & Limits" icon={Clock}>
+        {/* Expiration Deadline */}
         <div className="flex items-center justify-between rounded-lg border border-border/60 bg-muted/20 p-3">
           <div className="flex flex-col gap-0.5">
             <Label htmlFor="settings-deadline-toggle" className="text-sm font-medium cursor-pointer">
@@ -194,9 +218,122 @@ export function FormSettingsPanel() {
             )}
           </div>
         )}
+
+        {/* Max Responses Limit */}
+        <div className="flex items-center justify-between rounded-lg border border-border/60 bg-muted/20 p-3">
+          <div className="flex flex-col gap-0.5">
+            <Label htmlFor="settings-max-responses-toggle" className="text-sm font-medium cursor-pointer">
+              Limit Total Submissions
+            </Label>
+            <span className="text-xs text-muted-foreground">
+              Close form after reaching a maximum response count
+            </span>
+          </div>
+          <Switch
+            id="settings-max-responses-toggle"
+            checked={hasMaxResponses}
+            onCheckedChange={handleMaxResponsesToggle}
+          />
+        </div>
+
+        {hasMaxResponses && (
+          <div className="flex flex-col gap-1.5 pl-1">
+            <div className="flex items-center gap-2">
+              <Hash className="size-4 text-muted-foreground shrink-0" />
+              <Input
+                type="number"
+                min={1}
+                placeholder="100"
+                value={form.maxResponses ?? ""}
+                onChange={(e) => {
+                  const val = e.target.value;
+                  if (!val || !val.trim()) {
+                    updateForm({ maxResponses: null });
+                  } else {
+                    const n = parseInt(val, 10);
+                    updateForm({ maxResponses: isNaN(n) ? null : Math.max(1, n) });
+                  }
+                }}
+                className="h-9 text-xs font-mono bg-background"
+              />
+            </div>
+            <p className="text-[11px] text-muted-foreground pl-6">
+              Accepts up to {form.maxResponses ?? 100} responses before closing automatically.
+            </p>
+          </div>
+        )}
       </SettingsSection>
 
-      {/* ── 3. Themes (Only name and icon in 3x2 grid) ─────── */}
+      {/* ── 3. After Submission (Thank you & Redirect) ─────── */}
+      <SettingsSection title="After Submission" icon={Sparkles}>
+        {/* Custom Thank You Title */}
+        <div className="flex flex-col gap-1.5">
+          <Label htmlFor="settings-completion-title" className="text-xs font-medium text-muted-foreground">
+            Thank You Headline
+          </Label>
+          <Input
+            id="settings-completion-title"
+            value={form.completionTitle ?? ""}
+            onChange={(e) => updateForm({ completionTitle: e.target.value || null })}
+            placeholder="Thank you!"
+            className="h-9 text-sm"
+          />
+          <p className="text-[11px] text-muted-foreground">
+            Displayed on completion screen. Defaults to &quot;Thank you!&quot;
+          </p>
+        </div>
+
+        {/* Custom Thank You Message */}
+        <div className="flex flex-col gap-1.5">
+          <Label htmlFor="settings-completion-message" className="text-xs font-medium text-muted-foreground">
+            Thank You Message
+          </Label>
+          <Textarea
+            id="settings-completion-message"
+            value={form.completionMessage ?? ""}
+            onChange={(e) => updateForm({ completionMessage: e.target.value || null })}
+            placeholder="Your response has been recorded."
+            className="min-h-18 text-xs leading-relaxed"
+          />
+        </div>
+
+        {/* Redirect on Submit Toggle & Input */}
+        <div className="flex items-center justify-between rounded-lg border border-border/60 bg-muted/20 p-3">
+          <div className="flex flex-col gap-0.5">
+            <Label htmlFor="settings-redirect-toggle" className="text-sm font-medium cursor-pointer">
+              Redirect to External URL
+            </Label>
+            <span className="text-xs text-muted-foreground">
+              Forward respondent to a web page after submission
+            </span>
+          </div>
+          <Switch
+            id="settings-redirect-toggle"
+            checked={hasRedirect}
+            onCheckedChange={handleRedirectToggle}
+          />
+        </div>
+
+        {hasRedirect && (
+          <div className="flex flex-col gap-1.5 pl-1">
+            <div className="flex items-center gap-2">
+              <ExternalLink className="size-4 text-muted-foreground shrink-0" />
+              <Input
+                type="url"
+                placeholder="https://example.com/welcome"
+                value={form.redirectUrl ?? ""}
+                onChange={(e) => updateForm({ redirectUrl: e.target.value || null })}
+                className="h-9 text-xs font-mono bg-background"
+              />
+            </div>
+            <p className="text-[11px] text-muted-foreground pl-6">
+              Respondents will be automatically redirected to this URL upon completion.
+            </p>
+          </div>
+        )}
+      </SettingsSection>
+
+      {/* ── 4. Themes ──────────────────────────────────────── */}
       <SettingsSection title="Theme" icon={Palette}>
         <div className="grid grid-cols-3 gap-2">
           {BUILDER_THEMES.map((theme) => {

@@ -16,6 +16,8 @@ import { useForms } from "@/hooks/use-forms";
 const routeLabels: Record<string, string> = {
   home: "Home",
   "my-forms": "My Forms",
+  templates: "Templates",
+  template: "Templates",
   profile: "Profile",
   "org-settings": "Org Settings",
   responses: "Responses",

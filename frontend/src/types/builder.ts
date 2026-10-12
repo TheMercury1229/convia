@@ -140,6 +140,10 @@ export interface BuilderForm {
   slug?: string;
   isPublished?: boolean;
   deadline?: string | null;
+  maxResponses?: number | null;
+  redirectUrl?: string | null;
+  completionTitle?: string | null;
+  completionMessage?: string | null;
   themeColor?: string;
   themeId?: string;
 }

@@ -1,6 +1,5 @@
 import Image from "next/image";
 import Link from "next/link";
-import { Sparkles, CheckCircle2, ShieldCheck } from "lucide-react";
 
 export function AuthShowcase() {
   return (

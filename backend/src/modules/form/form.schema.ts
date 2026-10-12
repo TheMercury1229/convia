@@ -32,6 +32,20 @@ export const createFormSchema = z.object({
       return val;
     }, z.string().datetime({ offset: true, message: "deadline must be a valid UTC datetime string" }).nullable())
     .optional(),
+  maxResponses: z.preprocess((val) => {
+    if (val === undefined) return undefined;
+    if (val === "" || val === null) return null;
+    const num = Number(val);
+    return isNaN(num) ? val : num;
+  }, z.number().int().min(1, "Max responses must be at least 1").nullable().optional()),
+  redirectUrl: z
+    .string()
+    .url("Must be a valid URL")
+    .or(z.literal(""))
+    .nullable()
+    .optional(),
+  completionTitle: z.string().max(255, "Title too long").nullable().optional(),
+  completionMessage: z.string().max(2000, "Message too long").nullable().optional(),
 });
 
 // ---------------------------------------------------------------------------

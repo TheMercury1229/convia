@@ -13,7 +13,7 @@ import { GrizzyBuilderPanel } from "./grizzy-builder-panel";
 export { QUESTION_TYPES };
 
 export function PropertiesInspector({ className }: { className?: string } = {}) {
-  const { selectedElement, rightPanelTab, setRightPanelTab } = useBuilderStore();
+  const { selectedElement, rightPanelTab, setRightPanelTab, readOnly } = useBuilderStore();
 
   const isGrizzy = rightPanelTab === "grizzy";
 
@@ -55,21 +55,29 @@ export function PropertiesInspector({ className }: { className?: string } = {}) 
 
           {/* Scrollable content */}
           <div className="flex-1 overflow-y-auto">
-            {rightPanelTab === "settings" ? (
-              <FormSettingsPanel />
-            ) : (
-              <>
-                {!selectedElement && <FormProperties />}
+            <fieldset
+              disabled={readOnly}
+              className={cn(
+                "w-full border-none p-0 m-0",
+                readOnly && "pointer-events-none opacity-80 select-none cursor-not-allowed"
+              )}
+            >
+              {rightPanelTab === "settings" ? (
+                <FormSettingsPanel />
+              ) : (
+                <>
+                  {!selectedElement && <FormProperties />}
 
-                {selectedElement?.type === "section" && (
-                  <SectionProperties sectionId={selectedElement.id} />
-                )}
+                  {selectedElement?.type === "section" && (
+                    <SectionProperties sectionId={selectedElement.id} />
+                  )}
 
-                {selectedElement?.type === "question" && (
-                  <QuestionProperties questionId={selectedElement.id} />
-                )}
-              </>
-            )}
+                  {selectedElement?.type === "question" && (
+                    <QuestionProperties questionId={selectedElement.id} />
+                  )}
+                </>
+              )}
+            </fieldset>
           </div>
         </div>
       )}

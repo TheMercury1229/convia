@@ -149,6 +149,10 @@ export const updateFormById = async (
   if (data.themeId !== undefined) updateData.themeId = data.themeId;
   if (data.deadline !== undefined)
     updateData.deadline = data.deadline ? new Date(data.deadline) : null;
+  if (data.maxResponses !== undefined) updateData.maxResponses = data.maxResponses;
+  if (data.redirectUrl !== undefined) updateData.redirectUrl = data.redirectUrl;
+  if (data.completionTitle !== undefined) updateData.completionTitle = data.completionTitle;
+  if (data.completionMessage !== undefined) updateData.completionMessage = data.completionMessage;
   if (data.updatedBy !== undefined) updateData.updatedBy = data.updatedBy;
 
   const rows = await db

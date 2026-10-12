@@ -6,6 +6,7 @@ import { usePathname } from "next/navigation";
 import {
   Home,
   FileText,
+  LayoutTemplate,
   Inbox,
   BarChart3,
   User,
@@ -35,6 +36,7 @@ import { authClient } from "@/lib/auth-client";
 const mainNavItems = [
   { title: "Home", href: "/home", icon: Home },
   { title: "My Forms", href: "/my-forms", icon: FileText },
+  { title: "Templates", href: "/templates", icon: LayoutTemplate },
   { title: "Responses", href: "/responses", icon: Inbox },
   { title: "Analytics", href: "/analytics", icon: BarChart3 },
   { title: "Profile", href: "/profile", icon: User },
@@ -75,7 +77,15 @@ export function AppSidebar() {
             alt="Convia"
             width={160}
             height={48}
-            className="h-8 w-auto transition-all group-data-[collapsible=icon]:hidden"
+            className="h-8 w-auto transition-all dark:hidden group-data-[collapsible=icon]:!hidden"
+            priority
+          />
+          <Image
+            src="/logo-white.svg"
+            alt="Convia"
+            width={160}
+            height={48}
+            className="h-8 w-auto transition-all hidden dark:block group-data-[collapsible=icon]:!hidden"
             priority
           />
           <Image
@@ -83,7 +93,7 @@ export function AppSidebar() {
             alt="Convia"
             width={28}
             height={28}
-            className="hidden size-7 transition-all group-data-[collapsible=icon]:block"
+            className="hidden size-7 transition-all group-data-[collapsible=icon]:!block"
             priority
           />
         </Link>

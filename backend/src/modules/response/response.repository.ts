@@ -28,6 +28,14 @@ export const findResponsesByFormId = async (formId: string) => {
     .orderBy(asc(response.submittedAt));
 };
 
+export const countResponsesByFormId = async (formId: string): Promise<number> => {
+  const rows = await db
+    .select({ total: count() })
+    .from(response)
+    .where(eq(response.formId, formId));
+  return Number(rows[0]?.total ?? 0);
+};
+
 export const findQuestionsByFormId = async (formId: string) => {
   return db
     .select()

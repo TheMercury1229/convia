@@ -7,7 +7,7 @@ import { SectionEditor, SectionDropSlot } from "./section-editor";
 import { FormHeaderCard } from "./form-header-card";
 
 export function FormCanvas() {
-  const { form, sections, selectElement, addSection } = useBuilderStore();
+  const { form, sections, selectElement, addSection, readOnly } = useBuilderStore();
 
   const currentTheme = useBuilderTheme();
 
@@ -28,7 +28,7 @@ export function FormCanvas() {
         {/* ── Sections with drop slots between them ─── */}
         <div className="mt-5">
           {/* Slot before first section */}
-          <SectionDropSlot insertAt={0} theme={currentTheme} />
+          {!readOnly && <SectionDropSlot insertAt={0} theme={currentTheme} />}
 
           {sortedSections.map((section, idx) => (
             <React.Fragment key={section.id}>
@@ -39,27 +39,29 @@ export function FormCanvas() {
                 isLast={idx === sortedSections.length - 1}
               />
               {/* Slot after each section */}
-              <SectionDropSlot insertAt={idx + 1} theme={currentTheme} />
+              {!readOnly && <SectionDropSlot insertAt={idx + 1} theme={currentTheme} />}
             </React.Fragment>
           ))}
         </div>
 
         {/* ── Add Section ──────────────────────────────── */}
-        <button
-          onClick={(e) => {
-            e.stopPropagation();
-            addSection();
-          }}
-          className="mt-2 flex w-full items-center justify-center gap-2 rounded-xl border-2 border-dashed py-4 text-base font-medium transition-all hover:opacity-90 cursor-pointer"
-          style={{
-            borderColor: currentTheme.colors.cardBorder,
-            backgroundColor: `${currentTheme.colors.cardBg}88`,
-            color: currentTheme.colors.cardMuted,
-          }}
-        >
-          <Plus className="size-5" style={{ color: currentTheme.colors.primary }} />
-          Add section
-        </button>
+        {!readOnly && (
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              addSection();
+            }}
+            className="mt-2 flex w-full items-center justify-center gap-2 rounded-xl border-2 border-dashed py-4 text-base font-medium transition-all hover:opacity-90 cursor-pointer"
+            style={{
+              borderColor: currentTheme.colors.cardBorder,
+              backgroundColor: `${currentTheme.colors.cardBg}88`,
+              color: currentTheme.colors.cardMuted,
+            }}
+          >
+            <Plus className="size-5" style={{ color: currentTheme.colors.primary }} />
+            Add section
+          </button>
+        )}
 
         <div className="h-16" />
       </div>

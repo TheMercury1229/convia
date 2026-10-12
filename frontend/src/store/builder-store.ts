@@ -119,6 +119,10 @@ function apiToBuilderState(apiForm: FormWithSections): {
     slug: apiForm.slug,
     isPublished: apiForm.isPublished ?? false,
     deadline: apiForm.deadline ?? null,
+    maxResponses: apiForm.maxResponses ?? null,
+    redirectUrl: apiForm.redirectUrl ?? null,
+    completionTitle: apiForm.completionTitle ?? null,
+    completionMessage: apiForm.completionMessage ?? null,
     themeId: apiForm.themeId ?? "nova",
   };
 
@@ -148,6 +152,10 @@ const emptyForm: BuilderForm = {
   slug: "",
   isPublished: false,
   deadline: null,
+  maxResponses: null,
+  redirectUrl: null,
+  completionTitle: null,
+  completionMessage: null,
   themeId: "nova",
 };
 
@@ -163,13 +171,16 @@ interface BuilderState {
   rightPanelTab: "properties" | "settings" | "grizzy";
   /** Whether the store has been initialised from the API (prevents flash of empty state) */
   isInitialised: boolean;
+  /** Whether the builder is in view-only / template mode (disallows all mutations) */
+  readOnly: boolean;
+  setReadOnly(readOnly: boolean): void;
   setRightPanelTab(tab: "properties" | "settings" | "grizzy"): void;
 
   /**
    * Initialise the store from the API response.
    * Call once when the form data first arrives from React Query.
    */
-  initFromApi(apiForm: FormWithSections): void;
+  initFromApi(apiForm: FormWithSections, readOnly?: boolean): void;
 
   // ── Form ──────────────────────────────────────────────
   updateForm(patch: Partial<BuilderForm>): void;
@@ -234,6 +245,12 @@ export const useBuilderStore = create<BuilderState>()(
     historyPast: [],
     historyFuture: [],
     isInitialised: false,
+    readOnly: false,
+
+    setReadOnly: (readOnly) =>
+      set((s) => {
+        s.readOnly = readOnly;
+      }),
 
     setRightPanelTab: (tab) =>
       set((s) => {
@@ -241,7 +258,7 @@ export const useBuilderStore = create<BuilderState>()(
       }),
 
     // ── Init ────────────────────────────────────────────
-    initFromApi: (apiForm) =>
+    initFromApi: (apiForm, readOnly = false) =>
       set((s) => {
         const { form, sections, questions } = apiToBuilderState(apiForm);
         s.form = form;
@@ -251,17 +268,20 @@ export const useBuilderStore = create<BuilderState>()(
         s.historyFuture = [];
         s.isInitialised = true;
         s.selectedElement = null;
+        s.readOnly = readOnly;
       }),
 
     // ── Form ────────────────────────────────────────────
     updateForm: (patch) =>
       set((s) => {
+        if (s.readOnly) return;
         Object.assign(s.form, patch);
       }),
 
     // ── Sections ────────────────────────────────────────
     addSection: () =>
       set((s) => {
+        if (s.readOnly) return;
         const id = uid();
         s.sections.push({
           id,
@@ -276,12 +296,14 @@ export const useBuilderStore = create<BuilderState>()(
 
     updateSection: (id, patch) =>
       set((s) => {
+        if (s.readOnly) return;
         const sec = s.sections.find((x) => x.id === id);
         if (sec) Object.assign(sec, patch);
       }),
 
     deleteSection: (id) =>
       set((s) => {
+        if (s.readOnly) return;
         s.sections = s.sections.filter((x) => x.id !== id);
         s.questions = s.questions.filter((q) => q.sectionId !== id);
         syncSectionPositions(s.sections);
@@ -290,6 +312,7 @@ export const useBuilderStore = create<BuilderState>()(
 
     reorderSections: (fromIndex, toIndex) =>
       set((s) => {
+        if (s.readOnly) return;
         if (
           fromIndex === toIndex ||
           fromIndex < 0 ||
@@ -305,6 +328,7 @@ export const useBuilderStore = create<BuilderState>()(
       }),
 
     moveSectionUp: (id) => {
+      if (get().readOnly) return;
       const index = get().sections.findIndex((x) => x.id === id);
       if (index > 0) {
         get().reorderSections(index, index - 1);
@@ -312,6 +336,7 @@ export const useBuilderStore = create<BuilderState>()(
     },
 
     moveSectionDown: (id) => {
+      if (get().readOnly) return;
       const index = get().sections.findIndex((x) => x.id === id);
       if (index >= 0 && index < get().sections.length - 1) {
         get().reorderSections(index, index + 1);
@@ -321,6 +346,7 @@ export const useBuilderStore = create<BuilderState>()(
     // ── Questions ───────────────────────────────────────
     addQuestion: (sectionId, type, atIndex) =>
       set((s) => {
+        if (s.readOnly) return;
         const secIndices = s.questions
           .map((q, i) => (q.sectionId === sectionId ? i : -1))
           .filter((i) => i !== -1);
@@ -340,6 +366,7 @@ export const useBuilderStore = create<BuilderState>()(
 
     updateQuestion: (id, patch) =>
       set((s) => {
+        if (s.readOnly) return;
         const q = s.questions.find((x) => x.id === id);
         if (!q) return;
         Object.assign(q, patch);
@@ -349,6 +376,7 @@ export const useBuilderStore = create<BuilderState>()(
     // final committed label. Ignored if already locked.
     commitLabel: (id) =>
       set((s) => {
+        if (s.readOnly) return;
         const q = s.questions.find((x) => x.id === id);
         if (!q || q.fieldNameLocked) return;
         q.fieldName = makeFieldName(q.label);
@@ -357,6 +385,7 @@ export const useBuilderStore = create<BuilderState>()(
 
     deleteQuestion: (id) =>
       set((s) => {
+        if (s.readOnly) return;
         const q = s.questions.find((x) => x.id === id);
         if (!q) return;
         const { sectionId } = q;
@@ -367,6 +396,7 @@ export const useBuilderStore = create<BuilderState>()(
 
     duplicateQuestion: (id) =>
       set((s) => {
+        if (s.readOnly) return;
         const index = s.questions.findIndex((x) => x.id === id);
         if (index === -1) return;
         const q = s.questions[index];
@@ -387,6 +417,7 @@ export const useBuilderStore = create<BuilderState>()(
 
     reorderQuestions: (sectionId, fromIndex, toIndex) =>
       set((s) => {
+        if (s.readOnly) return;
         const secIndices = s.questions
           .map((q, i) => (q.sectionId === sectionId ? i : -1))
           .filter((i) => i !== -1);
@@ -420,6 +451,7 @@ export const useBuilderStore = create<BuilderState>()(
       }),
 
     moveQuestionUp: (id) => {
+      if (get().readOnly) return;
       const q = get().questions.find((x) => x.id === id);
       if (!q) return;
       const secQuestions = get().questions.filter((x) => x.sectionId === q.sectionId);
@@ -430,6 +462,7 @@ export const useBuilderStore = create<BuilderState>()(
     },
 
     moveQuestionDown: (id) => {
+      if (get().readOnly) return;
       const q = get().questions.find((x) => x.id === id);
       if (!q) return;
       const secQuestions = get().questions.filter((x) => x.sectionId === q.sectionId);
@@ -441,6 +474,7 @@ export const useBuilderStore = create<BuilderState>()(
 
     moveQuestion: (questionId, toSectionId, toIndex) =>
       set((s) => {
+        if (s.readOnly) return;
         const fromIndex = s.questions.findIndex((x) => x.id === questionId);
         if (fromIndex === -1) return;
         const [moved] = s.questions.splice(fromIndex, 1);
@@ -476,6 +510,7 @@ export const useBuilderStore = create<BuilderState>()(
     // ── Options ─────────────────────────────────────────
     addOption: (questionId) =>
       set((s) => {
+        if (s.readOnly) return;
         const q = s.questions.find((x) => x.id === questionId);
         if (!q) return;
         q.options.push({ id: uid(), label: `Option ${q.options.length + 1}` });
@@ -483,6 +518,7 @@ export const useBuilderStore = create<BuilderState>()(
 
     updateOption: (questionId, optionId, label) =>
       set((s) => {
+        if (s.readOnly) return;
         const q = s.questions.find((x) => x.id === questionId);
         const opt = q?.options.find((o) => o.id === optionId);
         if (opt) opt.label = label;
@@ -490,12 +526,14 @@ export const useBuilderStore = create<BuilderState>()(
 
     deleteOption: (questionId, optionId) =>
       set((s) => {
+        if (s.readOnly) return;
         const q = s.questions.find((x) => x.id === questionId);
         if (q) q.options = q.options.filter((o) => o.id !== optionId);
       }),
 
     reorderOptions: (questionId, fromIndex, toIndex) =>
       set((s) => {
+        if (s.readOnly) return;
         const q = s.questions.find((x) => x.id === questionId);
         if (!q) return;
         const [moved] = q.options.splice(fromIndex, 1);
@@ -505,6 +543,7 @@ export const useBuilderStore = create<BuilderState>()(
     // ── Validation ──────────────────────────────────────
     updateValidation: (questionId, patch) =>
       set((s) => {
+        if (s.readOnly) return;
         const q = s.questions.find((x) => x.id === questionId);
         if (q) {
           q.validation = { ...(q.validation || {}), ...patch };
@@ -516,6 +555,7 @@ export const useBuilderStore = create<BuilderState>()(
 
     pushHistory: () =>
       set((s) => {
+        if (s.readOnly) return;
         const snap = createSnapshot(s);
         s.historyPast.push(snap);
         if (s.historyPast.length > 30) {
@@ -526,6 +566,7 @@ export const useBuilderStore = create<BuilderState>()(
 
     restoreSnapshot: (snapshot) =>
       set((s) => {
+        if (s.readOnly) return;
         Object.assign(s.form, snapshot.form);
         s.sections = snapshot.sections.map((sec) => ({ ...sec }));
         s.questions = snapshot.questions.map((q) => ({
@@ -537,6 +578,7 @@ export const useBuilderStore = create<BuilderState>()(
       }),
 
     undo: () => {
+      if (get().readOnly) return;
       const { historyPast } = get();
       if (historyPast.length === 0) return;
       const currentSnap = createSnapshot(get());
@@ -556,6 +598,7 @@ export const useBuilderStore = create<BuilderState>()(
     },
 
     redo: () => {
+      if (get().readOnly) return;
       const { historyFuture } = get();
       if (historyFuture.length === 0) return;
       const currentSnap = createSnapshot(get());

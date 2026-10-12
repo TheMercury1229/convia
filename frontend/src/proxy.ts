@@ -36,12 +36,9 @@ export async function proxy(request: NextRequest) {
     (prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`)
   );
 
-  // Root path ("/") routing
+  // Root path ("/") is the public landing page: allow access
   if (pathname === "/") {
-    if (hasSession) {
-      return NextResponse.redirect(new URL("/home", request.url));
-    }
-    return NextResponse.redirect(new URL("/sign-in", request.url));
+    return NextResponse.next();
   }
 
   // 1. Private route check: Redirect unauthenticated users to /sign-in

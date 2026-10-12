@@ -31,6 +31,15 @@ export const submitResponse = async (
     );
   }
 
+  if (formData.maxResponses !== null && formData.maxResponses !== undefined) {
+    const totalResponses = await responseRepo.countResponsesByFormId(formId);
+    if (totalResponses >= formData.maxResponses) {
+      throw ApiError.forbidden(
+        "This form is no longer accepting responses — maximum response limit reached",
+      );
+    }
+  }
+
   // 2. Fetch form questions to auto-resolve fieldName & calculate completion rate
   const questions = await responseRepo.findQuestionsByFormId(formId);
   const questionMap = new Map(questions.map((q) => [q.id, q]));

@@ -1,5 +1,3 @@
-"use client";
-
 import * as React from "react";
 import { useDrag } from "react-dnd";
 import { GripVertical, Search, X } from "lucide-react";
@@ -7,12 +5,19 @@ import { cn } from "@/lib/utils";
 import { DND_TYPES } from "./dnd-types";
 import type { QuestionType } from "@/types/builder";
 import { PALETTE_GROUPS, type PaletteEntry } from "@/lib/question-registry";
+import { useBuilderStore } from "@/store/builder-store";
 
 // --------------------------------------------------------
 // Individual draggable palette item
 // --------------------------------------------------------
 
-function DraggablePaletteItem({ entry }: { entry: PaletteEntry }) {
+function DraggablePaletteItem({
+  entry,
+  readOnly = false,
+}: {
+  entry: PaletteEntry;
+  readOnly?: boolean;
+}) {
   const [{ isDragging }, drag] = useDrag<
     { type: string; questionType: string },
     void,
@@ -20,25 +25,29 @@ function DraggablePaletteItem({ entry }: { entry: PaletteEntry }) {
   >(() => ({
     type: DND_TYPES.PALETTE_COMPONENT,
     item: { type: DND_TYPES.PALETTE_COMPONENT, questionType: entry.type },
+    canDrag: () => !readOnly,
     collect: (monitor) => ({ isDragging: monitor.isDragging() }),
-  }));
+  }), [readOnly]);
 
   const { Icon } = entry;
 
   return (
     <div
-      ref={drag as unknown as React.Ref<HTMLDivElement>}
+      ref={readOnly ? undefined : (drag as unknown as React.Ref<HTMLDivElement>)}
       className={cn(
-        "group flex cursor-grab items-center gap-2.5 rounded-lg border border-transparent px-3 py-2.5",
-        "text-sm text-foreground/80 select-none transition-all",
-        "hover:border-border hover:bg-muted hover:text-foreground",
-        "active:cursor-grabbing active:border-primary/40 active:bg-primary/5",
+        "group flex items-center gap-2.5 rounded-lg border border-transparent px-3 py-2.5",
+        "text-sm select-none transition-all",
+        readOnly
+          ? "cursor-default text-foreground/80 opacity-70"
+          : "cursor-grab text-foreground/80 hover:border-border hover:bg-muted hover:text-foreground active:cursor-grabbing active:border-primary/40 active:bg-primary/5",
         isDragging && "opacity-40 ring-1 ring-primary/30",
       )}
     >
       <Icon className="size-4 shrink-0 text-muted-foreground group-hover:text-foreground transition-colors" />
       <span className="flex-1 font-medium text-sm">{entry.label}</span>
-      <GripVertical className="size-3.5 shrink-0 text-muted-foreground/40 opacity-0 group-hover:opacity-100 transition-opacity" />
+      {!readOnly && (
+        <GripVertical className="size-3.5 shrink-0 text-muted-foreground/40 opacity-0 group-hover:opacity-100 transition-opacity" />
+      )}
     </div>
   );
 }
@@ -48,6 +57,7 @@ function DraggablePaletteItem({ entry }: { entry: PaletteEntry }) {
 // --------------------------------------------------------
 
 export function ComponentPalette({ className }: { className?: string } = {}) {
+  const readOnly = useBuilderStore((s) => s.readOnly);
   const [isSearchOpen, setIsSearchOpen] = React.useState(false);
   const [searchQuery, setSearchQuery] = React.useState("");
   const inputRef = React.useRef<HTMLInputElement>(null);
@@ -155,7 +165,11 @@ export function ComponentPalette({ className }: { className?: string } = {}) {
               </div>
               <div className="px-1.5">
                 {group.items.map((entry) => (
-                  <DraggablePaletteItem key={entry.type} entry={entry} />
+                  <DraggablePaletteItem
+                    key={entry.type}
+                    entry={entry}
+                    readOnly={readOnly}
+                  />
                 ))}
               </div>
             </div>

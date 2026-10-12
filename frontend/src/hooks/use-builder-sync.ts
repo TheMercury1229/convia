@@ -61,6 +61,10 @@ export function useBuilderSync(): { saveState: SaveState; save: () => void } {
           slug: form.slug ?? undefined,
           themeId: form.themeId,
           deadline: normalizedDeadline,
+          maxResponses: form.maxResponses ?? null,
+          redirectUrl: form.redirectUrl ?? null,
+          completionTitle: form.completionTitle ?? null,
+          completionMessage: form.completionMessage ?? null,
         }),
         saveBuilderState(form.id, {
           sections: sections.map((s) => ({

@@ -60,8 +60,12 @@ export function FormCard({ form }: FormCardProps) {
   const [copied, setCopied] = React.useState(false);
   const isLoading = toggling || duplicating || deleting;
 
-  // Determine status: Closed (expired deadline) vs Published vs Draft
-  const isClosed = Boolean(form.deadline && new Date() > new Date(form.deadline));
+  // Determine status: Closed (expired deadline or limit reached) vs Published vs Draft
+  const isDeadlinePassed = Boolean(form.deadline && new Date() > new Date(form.deadline));
+  const isLimitReached = Boolean(
+    form.maxResponses && (form.responseCount ?? 0) >= form.maxResponses,
+  );
+  const isClosed = isDeadlinePassed || isLimitReached;
   const isPublished = Boolean(form.isPublished && !isClosed);
 
   const copyShareLink = (e: React.MouseEvent) => {
@@ -103,7 +107,13 @@ export function FormCard({ form }: FormCardProps) {
               }`}
             />
             <span className="text-xs font-medium text-foreground/80">
-              {isClosed ? "Closed" : isPublished ? "Published" : "Draft"}
+              {isLimitReached
+                ? "Limit reached"
+                : isDeadlinePassed
+                ? "Closed"
+                : isPublished
+                ? "Published"
+                : "Draft"}
             </span>
           </div>
 
@@ -247,7 +257,9 @@ export function FormCard({ form }: FormCardProps) {
           >
             <Inbox className="size-3.5" />
             <span>
-              {form.responseCount ?? 0} {form.responseCount === 1 ? "response" : "responses"}
+              {form.maxResponses
+                ? `${form.responseCount ?? 0} / ${form.maxResponses} responses`
+                : `${form.responseCount ?? 0} ${form.responseCount === 1 ? "response" : "responses"}`}
             </span>
           </Link>
 

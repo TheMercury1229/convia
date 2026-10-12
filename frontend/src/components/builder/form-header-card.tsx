@@ -4,13 +4,14 @@ import * as React from "react";
 import { Clock } from "lucide-react";
 import { useBuilderStore } from "@/store/builder-store";
 import type { FormThemeResolved } from "@/lib/builder-themes";
+import { cn } from "cn";
 
 interface FormHeaderCardProps {
   theme: FormThemeResolved;
 }
 
 export function FormHeaderCard({ theme }: FormHeaderCardProps) {
-  const { form, selectedElement, selectElement, updateForm } = useBuilderStore();
+  const { form, selectedElement, selectElement, updateForm, readOnly } = useBuilderStore();
 
   const [editingTitle, setEditingTitle] = React.useState(false);
   const [editingDesc, setEditingDesc] = React.useState(false);
@@ -25,11 +26,13 @@ export function FormHeaderCard({ theme }: FormHeaderCardProps) {
   React.useEffect(() => { if (editingDesc) descRef.current?.focus(); }, [editingDesc]);
 
   const commitTitle = () => {
+    if (readOnly) return;
     updateForm({ title: titleDraft.trim() || "Untitled Form" });
     setEditingTitle(false);
   };
 
   const commitDesc = () => {
+    if (readOnly) return;
     updateForm({ description: descDraft });
     setEditingDesc(false);
   };
@@ -51,7 +54,7 @@ export function FormHeaderCard({ theme }: FormHeaderCardProps) {
       }}
     >
       {/* Title */}
-      {editingTitle ? (
+      {!readOnly && editingTitle ? (
         <input
           ref={titleRef}
           value={titleDraft}
@@ -72,10 +75,14 @@ export function FormHeaderCard({ theme }: FormHeaderCardProps) {
         />
       ) : (
         <h1
-          className="cursor-text font-heading text-2xl font-bold hover:opacity-85 transition-opacity break-words"
+          className={cn(
+            "font-heading text-2xl font-bold break-words",
+            readOnly ? "cursor-default" : "cursor-text hover:opacity-85 transition-opacity"
+          )}
           style={{ color: theme.colors.cardText }}
           onClick={(e) => {
             e.stopPropagation();
+            if (readOnly) return;
             setTitleDraft(form.title);
             setEditingTitle(true);
           }}
@@ -85,7 +92,7 @@ export function FormHeaderCard({ theme }: FormHeaderCardProps) {
       )}
 
       {/* Description */}
-      {editingDesc ? (
+      {!readOnly && editingDesc ? (
         <textarea
           ref={descRef}
           value={descDraft}
@@ -106,17 +113,23 @@ export function FormHeaderCard({ theme }: FormHeaderCardProps) {
           }}
         />
       ) : (
-        <p
-          className="mt-2 cursor-text text-base transition-colors hover:opacity-80 break-words"
-          style={{ color: theme.colors.cardMuted }}
-          onClick={(e) => {
-            e.stopPropagation();
-            setDescDraft(form.description);
-            setEditingDesc(true);
-          }}
-        >
-          {form.description || "Click to add a description…"}
-        </p>
+        form.description || !readOnly ? (
+          <p
+            className={cn(
+              "mt-2 text-base break-words",
+              readOnly ? "cursor-default" : "cursor-text transition-colors hover:opacity-80"
+            )}
+            style={{ color: theme.colors.cardMuted }}
+            onClick={(e) => {
+              e.stopPropagation();
+              if (readOnly) return;
+              setDescDraft(form.description);
+              setEditingDesc(true);
+            }}
+          >
+            {form.description || (readOnly ? "" : "Click to add a description…")}
+          </p>
+        ) : null
       )}
 
       {/* Expiration deadline badge */}

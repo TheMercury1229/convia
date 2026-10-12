@@ -131,7 +131,7 @@ interface QuestionDropSlotProps {
 }
 
 function QuestionDropSlot({ sectionId, insertAt, theme }: QuestionDropSlotProps) {
-  const { addQuestion, reorderQuestions, moveQuestion } = useBuilderStore();
+  const { addQuestion, reorderQuestions, moveQuestion, readOnly } = useBuilderStore();
 
   const [{ isOver, canDrop }, drop] = useDrop<
     PaletteDragItem | QuestionDragItem,
@@ -141,6 +141,7 @@ function QuestionDropSlot({ sectionId, insertAt, theme }: QuestionDropSlotProps)
     () => ({
       accept: [DND_TYPES.PALETTE_COMPONENT, DND_TYPES.QUESTION_CARD],
       canDrop(item) {
+        if (readOnly) return false;
         if (item.type === DND_TYPES.QUESTION_CARD) {
           if (item.sectionId === sectionId) {
             return item.index !== insertAt && item.index !== insertAt - 1;
@@ -149,6 +150,7 @@ function QuestionDropSlot({ sectionId, insertAt, theme }: QuestionDropSlotProps)
         return true;
       },
       drop(item) {
+        if (readOnly) return;
         if (item.type === DND_TYPES.PALETTE_COMPONENT) {
           addQuestion(sectionId, item.questionType as QuestionType, insertAt);
         } else {
@@ -164,8 +166,10 @@ function QuestionDropSlot({ sectionId, insertAt, theme }: QuestionDropSlotProps)
         canDrop: monitor.canDrop(),
       }),
     }),
-    [sectionId, insertAt],
+    [sectionId, insertAt, readOnly],
   );
+
+  if (readOnly) return null;
 
   return (
     <DropSlotIndicator
@@ -186,7 +190,7 @@ interface SectionDropSlotProps {
 }
 
 export function SectionDropSlot({ insertAt, theme }: SectionDropSlotProps) {
-  const { reorderSections } = useBuilderStore();
+  const { reorderSections, readOnly } = useBuilderStore();
 
   const [{ isOver, canDrop }, drop] = useDrop<
     SectionDragItem,
@@ -196,9 +200,11 @@ export function SectionDropSlot({ insertAt, theme }: SectionDropSlotProps) {
     () => ({
       accept: DND_TYPES.SECTION,
       canDrop(item) {
+        if (readOnly) return false;
         return item.index !== insertAt && item.index !== insertAt - 1;
       },
       drop(item) {
+        if (readOnly) return;
         reorderSections(item.index, insertAt);
       },
       collect: (monitor) => ({
@@ -206,8 +212,10 @@ export function SectionDropSlot({ insertAt, theme }: SectionDropSlotProps) {
         canDrop: monitor.canDrop(),
       }),
     }),
-    [insertAt],
+    [insertAt, readOnly],
   );
+
+  if (readOnly) return null;
 
   return (
     <DropSlotIndicator
@@ -225,7 +233,7 @@ export function SectionDropSlot({ insertAt, theme }: SectionDropSlotProps) {
 
 function EmptySectionDropZone({ sectionId, theme }: { sectionId: string; theme: FormThemeResolved }) {
   // Only subscribe to the actions this component calls — no form/theme resolution here.
-  const { addQuestion, moveQuestion } = useBuilderStore();
+  const { addQuestion, moveQuestion, readOnly } = useBuilderStore();
 
   const [{ isOver, canDrop }, drop] = useDrop<
     PaletteDragItem | QuestionDragItem,
@@ -234,7 +242,9 @@ function EmptySectionDropZone({ sectionId, theme }: { sectionId: string; theme: 
   >(
     () => ({
       accept: [DND_TYPES.PALETTE_COMPONENT, DND_TYPES.QUESTION_CARD],
+      canDrop: () => !readOnly,
       drop(item) {
+        if (readOnly) return;
         if (item.type === DND_TYPES.PALETTE_COMPONENT) {
           addQuestion(sectionId, item.questionType as QuestionType, 0);
         } else {
@@ -246,12 +256,12 @@ function EmptySectionDropZone({ sectionId, theme }: { sectionId: string; theme: 
         canDrop: monitor.canDrop(),
       }),
     }),
-    [sectionId],
+    [sectionId, readOnly],
   );
 
   return (
     <div
-      ref={drop as unknown as React.Ref<HTMLDivElement>}
+      ref={readOnly ? undefined : (drop as unknown as React.Ref<HTMLDivElement>)}
       className="flex h-20 items-center justify-center rounded-lg border border-dashed transition-all"
       style={{
         borderColor: isOver && canDrop
@@ -264,7 +274,11 @@ function EmptySectionDropZone({ sectionId, theme }: { sectionId: string; theme: 
       }}
     >
       <p className="text-sm font-medium">
-        {isOver && canDrop ? "Release to add here" : "Drop a component or use + Add question"}
+        {readOnly
+          ? "No questions in this section"
+          : isOver && canDrop
+            ? "Release to add here"
+            : "Drop a component or use + Add question"}
       </p>
     </div>
   );
@@ -295,6 +309,7 @@ export function SectionEditor({
     deleteSection,
     moveSectionUp,
     moveSectionDown,
+    readOnly,
   } = useBuilderStore();
 
   const currentTheme = useBuilderTheme();
@@ -315,6 +330,7 @@ export function SectionEditor({
   React.useEffect(() => { if (editingTitle) titleInputRef.current?.focus(); }, [editingTitle]);
 
   const commitTitle = () => {
+    if (readOnly) return;
     updateSection(section.id, { title: titleDraft.trim() || "Untitled Section" });
     setEditingTitle(false);
   };
@@ -327,8 +343,9 @@ export function SectionEditor({
   >(() => ({
     type: DND_TYPES.SECTION,
     item: () => ({ type: DND_TYPES.SECTION, sectionId: section.id, index }),
+    canDrag: () => !readOnly,
     collect: (monitor) => ({ isDragging: monitor.isDragging() }),
-  }));
+  }), [section.id, index, readOnly]);
 
   // Attach drag preview to the section card (not the grip alone)
   const sectionRef = React.useRef<HTMLDivElement>(null);
@@ -361,18 +378,20 @@ export function SectionEditor({
         style={{ borderColor: currentTheme.colors.cardBorder }}
       >
         {/* Drag grip */}
-        <div
-          ref={drag as unknown as React.Ref<HTMLDivElement>}
-          className="cursor-grab opacity-0 group-hover:opacity-100 transition-opacity active:cursor-grabbing shrink-0"
-          onClick={(e) => e.stopPropagation()}
-          title="Drag to reorder section"
-        >
-          <GripVertical className="size-4.5 text-muted-foreground/50" />
-        </div>
+        {!readOnly && (
+          <div
+            ref={drag as unknown as React.Ref<HTMLDivElement>}
+            className="cursor-grab opacity-0 group-hover:opacity-100 transition-opacity active:cursor-grabbing shrink-0"
+            onClick={(e) => e.stopPropagation()}
+            title="Drag to reorder section"
+          >
+            <GripVertical className="size-4.5 text-muted-foreground/50" />
+          </div>
+        )}
 
         {/* Title */}
         <div className="flex-1 min-w-0 overflow-hidden">
-          {editingTitle ? (
+          {!readOnly && editingTitle ? (
             <input
               ref={titleInputRef}
               value={titleDraft}
@@ -397,17 +416,19 @@ export function SectionEditor({
               >
                 {section.title}
               </h3>
-              <button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  setTitleDraft(section.title);
-                  setEditingTitle(true);
-                }}
-                className="opacity-0 group-hover:opacity-60 hover:!opacity-100 transition-opacity cursor-pointer shrink-0"
-                title="Edit section title"
-              >
-                <PencilIcon className="size-3.5 text-muted-foreground" />
-              </button>
+              {!readOnly && (
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setTitleDraft(section.title);
+                    setEditingTitle(true);
+                  }}
+                  className="opacity-0 group-hover:opacity-60 hover:!opacity-100 transition-opacity cursor-pointer shrink-0"
+                  title="Edit section title"
+                >
+                  <PencilIcon className="size-3.5 text-muted-foreground" />
+                </button>
+              )}
             </div>
           )}
           {section.description && (
@@ -421,64 +442,66 @@ export function SectionEditor({
         </div>
 
         {/* Section actions: move up/down + menu */}
-        <div
-          className={cn(
-            "flex items-center gap-0.5 transition-opacity shrink-0",
-            isSelected ? "opacity-100" : "opacity-0 group-hover:opacity-100",
-          )}
-        >
-          <Button
-            variant="ghost"
-            size="icon-sm"
-            className="h-7 w-7 text-muted-foreground hover:text-foreground disabled:opacity-25 disabled:pointer-events-none"
-            onClick={(e) => {
-              e.stopPropagation();
-              moveSectionUp(section.id);
-            }}
-            disabled={isFirst}
-            title="Move section up"
+        {!readOnly && (
+          <div
+            className={cn(
+              "flex items-center gap-0.5 transition-opacity shrink-0",
+              isSelected ? "opacity-100" : "opacity-0 group-hover:opacity-100",
+            )}
           >
-            <ArrowUp className="size-4" />
-          </Button>
-          <Button
-            variant="ghost"
-            size="icon-sm"
-            className="h-7 w-7 text-muted-foreground hover:text-foreground disabled:opacity-25 disabled:pointer-events-none"
-            onClick={(e) => {
-              e.stopPropagation();
-              moveSectionDown(section.id);
-            }}
-            disabled={isLast}
-            title="Move section down"
-          >
-            <ArrowDown className="size-4" />
-          </Button>
+            <Button
+              variant="ghost"
+              size="icon-sm"
+              className="h-7 w-7 text-muted-foreground hover:text-foreground disabled:opacity-25 disabled:pointer-events-none"
+              onClick={(e) => {
+                e.stopPropagation();
+                moveSectionUp(section.id);
+              }}
+              disabled={isFirst}
+              title="Move section up"
+            >
+              <ArrowUp className="size-4" />
+            </Button>
+            <Button
+              variant="ghost"
+              size="icon-sm"
+              className="h-7 w-7 text-muted-foreground hover:text-foreground disabled:opacity-25 disabled:pointer-events-none"
+              onClick={(e) => {
+                e.stopPropagation();
+                moveSectionDown(section.id);
+              }}
+              disabled={isLast}
+              title="Move section down"
+            >
+              <ArrowDown className="size-4" />
+            </Button>
 
-          {/* Section menu */}
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
-              <Button
-                variant="ghost"
-                size="icon-sm"
-                className="h-7 w-7 text-muted-foreground hover:text-foreground"
-              >
-                <MoreHorizontal className="size-4" />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-40">
-              <DropdownMenuItem
-                className="text-destructive focus:text-destructive"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  deleteSection(section.id);
-                }}
-              >
-                <Trash2 className="size-4 mr-2" />
-                Delete section
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
-        </div>
+            {/* Section menu */}
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
+                <Button
+                  variant="ghost"
+                  size="icon-sm"
+                  className="h-7 w-7 text-muted-foreground hover:text-foreground"
+                >
+                  <MoreHorizontal className="size-4" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-40">
+                <DropdownMenuItem
+                  className="text-destructive focus:text-destructive"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    deleteSection(section.id);
+                  }}
+                >
+                  <Trash2 className="size-4 mr-2" />
+                  Delete section
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
+        )}
       </div>
 
       {/* ── Question list with interleaved drop slots ─ */}
@@ -488,7 +511,9 @@ export function SectionEditor({
         ) : (
           <div>
             {/* Slot before the first card */}
-            <QuestionDropSlot sectionId={section.id} insertAt={0} theme={currentTheme} />
+            {!readOnly && (
+              <QuestionDropSlot sectionId={section.id} insertAt={0} theme={currentTheme} />
+            )}
 
             {questions.map((q, idx) => (
               <React.Fragment key={q.id}>
@@ -500,16 +525,20 @@ export function SectionEditor({
                   theme={currentTheme}
                 />
                 {/* Slot after each card */}
-                <QuestionDropSlot sectionId={section.id} insertAt={idx + 1} theme={currentTheme} />
+                {!readOnly && (
+                  <QuestionDropSlot sectionId={section.id} insertAt={idx + 1} theme={currentTheme} />
+                )}
               </React.Fragment>
             ))}
           </div>
         )}
 
         {/* Add question button */}
-        <div className="mt-2">
-          <AddQuestionPopover theme={currentTheme} sectionId={section.id} />
-        </div>
+        {!readOnly && (
+          <div className="mt-2">
+            <AddQuestionPopover theme={currentTheme} sectionId={section.id} />
+          </div>
+        )}
       </div>
     </div>
   );

@@ -3,6 +3,7 @@ import { ApiError } from "../../utils/api-error";
 import { generateSlug, makeSlugUnique } from "../../utils/slug";
 import type { CreateFormInput, UpdateFormInput } from "./form.schema";
 import * as formRepo from "./form.repository";
+import * as responseRepo from "../response/response.repository";
 
 // ---------------------------------------------------------------------------
 // List — scoped to the caller's organisation
@@ -40,6 +41,15 @@ export const getPublicForm = async (slug: string) => {
     throw ApiError.forbidden(
       "This form is no longer accepting responses — deadline has passed",
     );
+  }
+
+  if (formData.maxResponses !== null && formData.maxResponses !== undefined) {
+    const totalResponses = await responseRepo.countResponsesByFormId(formData.id);
+    if (totalResponses >= formData.maxResponses) {
+      throw ApiError.forbidden(
+        "This form is no longer accepting responses — maximum response limit reached",
+      );
+    }
   }
 
   return formData;
@@ -164,6 +174,10 @@ export const duplicateForm = async (
       themeId: original.themeId,
       isPublished: false,
       deadline: original.deadline,
+      maxResponses: original.maxResponses,
+      redirectUrl: original.redirectUrl,
+      completionTitle: original.completionTitle,
+      completionMessage: original.completionMessage,
       updatedBy: userId ?? null,
     },
     sections: original.sections.map((sec) => ({
