@@ -153,6 +153,7 @@ export function FormViewer({ form, isPreview = false }: FormViewerProps) {
   };
 
   const handleStartAi = () => {
+    if (isPreview) return;
     setIsWelcomeScreen(false);
     setMode("ai");
     startSession();
@@ -420,7 +421,7 @@ export function FormViewer({ form, isPreview = false }: FormViewerProps) {
           )}
         </div>
         <div className="flex items-center gap-3">
-          {!isWelcomeScreen && (
+          {!isWelcomeScreen && !isPreview && (
             <Button
               variant="outline"
               size="sm"
@@ -469,7 +470,7 @@ export function FormViewer({ form, isPreview = false }: FormViewerProps) {
               theme={theme}
               isPreview={isPreview}
               onStart={handleStartForm}
-              onFillWithAi={handleStartAi}
+              onFillWithAi={isPreview ? undefined : handleStartAi}
             />
           ) : currentItem ? (
             <ViewerQuestion

@@ -243,15 +243,17 @@ export function AllResponsesView({
           <div className="flex items-center gap-2">
             {/* Form Filter */}
             <Select value={selectedFormFilter} onValueChange={setSelectedFormFilter}>
-              <SelectTrigger className="w-[160px] sm:w-[200px] h-9.5 text-xs sm:text-sm bg-card border-border/80 rounded-xl">
+              <SelectTrigger className="w-[160px] sm:w-[200px] h-9.5 text-xs sm:text-sm bg-card border-border/80 rounded-xl min-w-0 overflow-hidden [&>[data-slot=select-value]]:truncate [&>[data-slot=select-value]]:min-w-0 [&>[data-slot=select-value]]:block">
                 <Layers className="size-3.5 mr-1.5 text-muted-foreground shrink-0" />
                 <SelectValue placeholder="All Forms" />
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">All Forms ({forms.length})</SelectItem>
                 {forms.map((f) => (
-                  <SelectItem key={f.id} value={f.id} className="truncate max-w-[220px]">
-                    {f.title}
+                  <SelectItem key={f.id} value={f.id}>
+                    <span className="truncate max-w-[160px] sm:max-w-[200px] block" title={f.title}>
+                      {f.title}
+                    </span>
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -366,12 +368,12 @@ export function AllResponsesView({
                       onClick={() => handleSelectResponse(item)}
                     >
                       {/* Form Title Column with quick drill-down link */}
-                      <TableCell>
+                      <TableCell className="max-w-[200px] sm:max-w-[240px] overflow-hidden">
                         <Link
                           href={`/responses/${item.formSlug || item.formId}`}
                           onClick={(e) => e.stopPropagation()}
-                          className="font-medium text-foreground text-sm hover:text-primary transition-colors truncate max-w-[200px] sm:max-w-[240px] block"
-                          title="View all responses for this form"
+                          className="font-medium text-foreground text-sm hover:text-primary transition-colors truncate max-w-[180px] sm:max-w-[220px] block"
+                          title={item.formTitle}
                         >
                           {item.formTitle}
                         </Link>

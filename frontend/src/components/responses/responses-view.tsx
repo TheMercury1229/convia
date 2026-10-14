@@ -234,8 +234,11 @@ export function ResponsesView({
         {/* Header: Clean Title and Muted Action Icons with Tooltips           */}
         {/* ------------------------------------------------------------------ */}
         <div className="flex items-center justify-between gap-4 border-b border-border/50 pb-5">
-          <div className="flex items-center gap-3">
-            <h1 className="font-heading text-xl sm:text-2xl font-bold tracking-tight text-foreground">
+          <div className="flex items-center gap-3 min-w-0">
+            <h1
+              className="font-heading text-xl sm:text-2xl font-bold tracking-tight text-foreground truncate max-w-[240px] sm:max-w-md md:max-w-xl"
+              title={form.title}
+            >
               {form.title}
             </h1>
           </div>

@@ -87,17 +87,17 @@ export function AnalyticsView({
               <div className="flex items-center gap-1.5 mr-1">
                 <Filter className="size-3.5 text-muted-foreground shrink-0" />
                 <Select value={selectedFormId} onValueChange={onSelectForm}>
-                  <SelectTrigger className="w-[180px] sm:w-[240px] h-8.5 text-xs rounded-xl bg-background/80 border-border/80">
+                  <SelectTrigger className="w-[180px] sm:w-[240px] h-8.5 text-xs rounded-xl bg-background/80 border-border/80 min-w-0 overflow-hidden [&>[data-slot=select-value]]:truncate [&>[data-slot=select-value]]:min-w-0 [&>[data-slot=select-value]]:block">
                     <SelectValue placeholder="Choose a form..." />
                   </SelectTrigger>
                   <SelectContent className="max-h-[300px]">
                     {forms.map((f) => (
                       <SelectItem key={f.id} value={f.id} className="text-xs">
-                        <div className="flex items-center justify-between w-full gap-2">
-                          <span className="truncate max-w-[150px] font-medium">
+                        <div className="flex items-center justify-between w-full min-w-0 gap-2">
+                          <span className="truncate max-w-[130px] sm:max-w-[160px] font-medium" title={f.title || "Untitled Form"}>
                             {f.title || "Untitled Form"}
                           </span>
-                          <span className="text-[10px] font-mono text-muted-foreground">
+                          <span className="text-[10px] font-mono text-muted-foreground shrink-0">
                             {f.totalSubmissions} resp
                           </span>
                         </div>

@@ -1,6 +1,7 @@
 "use client";
 
-import { ArrowRight, Clock, Eye } from "lucide-react";
+import * as React from "react";
+import { ArrowRight, Calendar, Clock, Eye } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import type { FormWithSections } from "@/lib/api/forms";
 import type { FormThemeResolved } from "@/lib/builder-themes";
@@ -20,6 +21,19 @@ export function ViewerWelcome({
   onStart,
   onFillWithAi,
 }: ViewerWelcomeProps) {
+  const totalQuestions = React.useMemo(() => {
+    return (
+      form.sections?.reduce((acc, s) => {
+        const qs = s.questions?.filter((q) => q.type !== "heading") || [];
+        return acc + qs.length;
+      }, 0) || 0
+    );
+  }, [form.sections]);
+
+  const estimatedMinutes = Math.max(1, Math.ceil(totalQuestions * 0.4));
+  const expectedTimeText =
+    totalQuestions <= 1 ? "~1 min to fill" : `~${estimatedMinutes} mins to fill`;
+
   return (
     <div className="w-full text-left transition-all animate-in fade-in duration-300 min-w-0 max-w-full overflow-hidden">
       <h1
@@ -37,25 +51,41 @@ export function ViewerWelcome({
         </p>
       )}
 
-      {form.deadline && (
+      {/* Form Metadata Badges: Expected Time to Fill & Deadline */}
+      <div className="mt-6 flex flex-wrap items-center gap-2.5">
         <div
-          className="mt-6 inline-flex items-center gap-2 rounded-xl border px-3.5 py-2 text-xs font-medium sm:text-sm"
+          className="inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-medium shadow-2xs transition-colors"
           style={{
             borderColor: theme.colors.cardInputBorder,
             backgroundColor: theme.colors.cardInputBg,
             color: theme.colors.cardMuted,
           }}
+          title="Estimated time to complete this form"
         >
-          <Clock className="size-4 shrink-0" style={{ color: theme.colors.primary }} />
-          <span>
-            Closes{" "}
-            {new Date(form.deadline).toLocaleString([], {
-              dateStyle: "medium",
-              timeStyle: "short",
-            })}
-          </span>
+          <Clock className="size-3.5 shrink-0" style={{ color: theme.colors.primary }} />
+          <span>{expectedTimeText}</span>
         </div>
-      )}
+
+        {form.deadline && (
+          <div
+            className="inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-medium shadow-2xs transition-colors"
+            style={{
+              borderColor: theme.colors.cardInputBorder,
+              backgroundColor: theme.colors.cardInputBg,
+              color: theme.colors.cardMuted,
+            }}
+          >
+            <Calendar className="size-3.5 shrink-0" style={{ color: theme.colors.primary }} />
+            <span>
+              Closes{" "}
+              {new Date(form.deadline).toLocaleString([], {
+                dateStyle: "medium",
+                timeStyle: "short",
+              })}
+            </span>
+          </div>
+        )}
+      </div>
 
       <div className="mt-8 flex flex-wrap items-center gap-4">
         <Button
@@ -71,7 +101,7 @@ export function ViewerWelcome({
           <ArrowRight className="size-4.5" />
         </Button>
 
-        {onFillWithAi && (
+        {!isPreview && onFillWithAi && (
           <Button
             onClick={onFillWithAi}
             variant="outline"

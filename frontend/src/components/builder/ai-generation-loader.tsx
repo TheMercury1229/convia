@@ -5,14 +5,14 @@ import Image from "next/image";
 import { Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
-interface FormBuildStage {
+export interface FormBuildStage {
   image: string;
   step: number;
   title: string;
   description: string;
 }
 
-const BUILD_STAGES: FormBuildStage[] = [
+export const BUILD_STAGES: FormBuildStage[] = [
   {
     image: "/grizzy/1.png",
     step: 1,
@@ -45,20 +45,49 @@ const BUILD_STAGES: FormBuildStage[] = [
   },
 ];
 
+export const BUILDER_LOADING_STAGES: FormBuildStage[] = [
+  {
+    image: "/grizzy/1.png",
+    step: 1,
+    title: "Loading form workspace",
+    description: "Grizzy is retrieving your questions, sections, and theme settings…",
+  },
+  {
+    image: "/grizzy/2.png",
+    step: 2,
+    title: "Preparing builder canvas",
+    description: "Setting up question types, layout controls, and interactive tools…",
+  },
+  {
+    image: "/grizzy/5.png",
+    step: 3,
+    title: "Almost ready",
+    description: "Finalizing your form environment and preparing the canvas…",
+  },
+];
+
 const STAGE_INTERVAL_MS = 2800;
 
-export function AiGenerationLoader() {
+export interface AiGenerationLoaderProps {
+  stages?: FormBuildStage[];
+  intervalMs?: number;
+}
+
+export function AiGenerationLoader({
+  stages = BUILD_STAGES,
+  intervalMs = STAGE_INTERVAL_MS,
+}: AiGenerationLoaderProps = {}) {
   const [currentStageIndex, setCurrentStageIndex] = React.useState(0);
 
   React.useEffect(() => {
     const timer = setInterval(() => {
-      setCurrentStageIndex((prev) => (prev + 1) % BUILD_STAGES.length);
-    }, STAGE_INTERVAL_MS);
+      setCurrentStageIndex((prev) => (prev + 1) % stages.length);
+    }, intervalMs);
 
     return () => clearInterval(timer);
-  }, []);
+  }, [stages.length, intervalMs]);
 
-  const currentStage = BUILD_STAGES[currentStageIndex];
+  const currentStage = stages[currentStageIndex] || stages[0];
 
   return (
     <div

@@ -28,6 +28,7 @@ interface InviteMembersDialogProps {
   open: boolean
   onOpenChange: (open: boolean) => void
   organizationId: string
+  isOwner?: boolean
   onSuccess?: () => void
 }
 
@@ -39,6 +40,7 @@ export function InviteMembersDialog({
   open,
   onOpenChange,
   organizationId,
+  isOwner = false,
   onSuccess,
 }: InviteMembersDialogProps) {
   const [emails, setEmails] = React.useState<string[]>([])
@@ -286,7 +288,7 @@ export function InviteMembersDialog({
               <SelectContent>
                 <SelectItem value="viewer">Viewer</SelectItem>
                 <SelectItem value="editor">Editor</SelectItem>
-                <SelectItem value="owner">Owner</SelectItem>
+                {isOwner && <SelectItem value="owner">Owner</SelectItem>}
               </SelectContent>
             </Select>
           </div>

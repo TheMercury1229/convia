@@ -22,6 +22,7 @@ import {
 } from "@/components/templates/template-data";
 import { FormUnavailableState } from "@/components/form-viewer/form-unavailable-state";
 import { FormBuilder } from "@/components/builder/form-builder";
+import { AiGenerationLoader, BUILDER_LOADING_STAGES } from "@/components/builder/ai-generation-loader";
 import { useBuilderStore } from "@/store/builder-store";
 import { createForm, saveBuilderState } from "@/lib/api/forms";
 import { formKeys } from "@/hooks/use-forms";
@@ -231,12 +232,7 @@ export default function TemplateBuilderViewPage() {
       {/* Existing Form Builder UI Workspace                         */}
       {/* ────────────────────────────────────────────────────────── */}
       {!isReady ? (
-        <div className="flex flex-1 items-center justify-center bg-background">
-          <div className="flex items-center gap-2 text-sm text-muted-foreground">
-            <Loader2 className="size-4 animate-spin text-primary" />
-            <span>Loading template builder…</span>
-          </div>
-        </div>
+        <AiGenerationLoader stages={BUILDER_LOADING_STAGES} />
       ) : (
         <FormBuilder />
       )}

@@ -117,7 +117,8 @@ export function OrgMembersTab({ activeOrg }: OrgMembersTabProps) {
   const currentMember = members.find((m) => m.userId === session?.user?.id)
   const currentRole = currentMember?.role || "viewer"
   const isOwner = currentRole === "owner"
-  const isEditor = currentRole === "editor"
+  const isEditor = currentRole === "editor" || currentRole === "admin"
+  const canInvite = isOwner || isEditor // Only admin and owner can invite, NOT viewer
   const canManage = isOwner || isEditor
 
   // Filter members
@@ -151,13 +152,8 @@ export function OrgMembersTab({ activeOrg }: OrgMembersTabProps) {
   const handleRoleChange = async (member: OrgMember, newRole: string) => {
     if (member.role === newRole) return
 
-    if (!canManage) {
-      toast.error("You don't have permission to change roles")
-      return
-    }
-
-    if ((member.role === "owner" || newRole === "owner") && !isOwner) {
-      toast.error("Only organisation owners can assign or modify owner roles")
+    if (!isOwner) {
+      toast.error("Only organisation owners can change member roles")
       return
     }
 
@@ -329,7 +325,7 @@ export function OrgMembersTab({ activeOrg }: OrgMembersTabProps) {
           </TabsTrigger>
         </TabsList>
 
-        {canManage && (
+        {canInvite && (
           <Button
             type="button"
             onClick={() => setIsInviteOpen(true)}
@@ -390,9 +386,8 @@ export function OrgMembersTab({ activeOrg }: OrgMembersTabProps) {
               const isUpdatingThisMember = updatingMemberId === member.id
 
               const cannotChangeRole =
-                !canManage ||
+                !isOwner ||
                 isUpdatingThisMember ||
-                (member.role === "owner" && !isOwner) ||
                 (isCurrentUser && isOwner && members.filter((m) => m.role === "owner").length === 1)
 
               const canRemoveThisMember =
@@ -438,32 +433,36 @@ export function OrgMembersTab({ activeOrg }: OrgMembersTabProps) {
                     )}
 
                     <div className="flex-1 sm:flex-initial sm:w-[125px]">
-                      <Select
-                        value={member.role}
-                        onValueChange={(newRole) => handleRoleChange(member, newRole)}
-                        disabled={cannotChangeRole}
-                      >
-                        <SelectTrigger className="h-9 text-xs w-full">
-                          {isUpdatingThisMember ? (
-                            <Loader2 className="size-3 animate-spin mx-auto text-muted-foreground" />
-                          ) : (
-                            <SelectValue />
-                          )}
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="viewer" className="text-xs">
-                            Viewer
-                          </SelectItem>
-                          <SelectItem value="editor" className="text-xs">
-                            Editor
-                          </SelectItem>
-                          {isOwner && (
+                      {isOwner ? (
+                        <Select
+                          value={member.role}
+                          onValueChange={(newRole) => handleRoleChange(member, newRole)}
+                          disabled={cannotChangeRole}
+                        >
+                          <SelectTrigger className="h-9 text-xs w-full">
+                            {isUpdatingThisMember ? (
+                              <Loader2 className="size-3 animate-spin mx-auto text-muted-foreground" />
+                            ) : (
+                              <SelectValue />
+                            )}
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="viewer" className="text-xs">
+                              Viewer
+                            </SelectItem>
+                            <SelectItem value="editor" className="text-xs">
+                              Editor
+                            </SelectItem>
                             <SelectItem value="owner" className="text-xs">
                               Owner
                             </SelectItem>
-                          )}
-                        </SelectContent>
-                      </Select>
+                          </SelectContent>
+                        </Select>
+                      ) : (
+                        <div className="flex items-center justify-center h-9 px-3 rounded-xl border border-border/60 bg-muted/30 text-xs font-medium capitalize text-muted-foreground select-none">
+                          {member.role}
+                        </div>
+                      )}
                     </div>
 
                     {canRemoveThisMember ? (
@@ -610,9 +609,10 @@ export function OrgMembersTab({ activeOrg }: OrgMembersTabProps) {
 
       {/* Invite Members Modal Dialog */}
       <InviteMembersDialog
-        open={isInviteOpen}
+        open={isInviteOpen && canInvite}
         onOpenChange={setIsInviteOpen}
         organizationId={activeOrg.id}
+        isOwner={isOwner}
         onSuccess={() => router.refresh()}
       />
 

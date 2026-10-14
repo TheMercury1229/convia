@@ -4,12 +4,11 @@ import * as React from "react";
 import { useParams, useSearchParams } from "next/navigation";
 import { FormBuilderHeader } from "@/components/builder/form-builder-header";
 import { FormBuilder } from "@/components/builder/form-builder";
-import { AiGenerationLoader } from "@/components/builder/ai-generation-loader";
+import { AiGenerationLoader, BUILDER_LOADING_STAGES } from "@/components/builder/ai-generation-loader";
 import { useBuilderStore } from "@/store/builder-store";
 import { useForm as useFormQuery } from "@/hooks/use-forms";
 import { useBuilderSync } from "@/hooks/use-builder-sync";
 import { useAiFormGeneration } from "@/hooks/use-ai-form-generation";
-import { Loader2 } from "lucide-react";
 
 /**
  * Inner component that uses client-side route params.
@@ -59,16 +58,9 @@ function BuilderPageContent() {
     return <AiGenerationLoader />;
   }
 
-  // ── Loading state — show spinner until data is fetched and store is hydrated
+  // ── Loading state — show Grizzy mascot loader until data is fetched and store is hydrated
   if (isLoading || (!isInitialised && id !== "ai" && id !== "generating")) {
-    return (
-      <div className="flex h-screen w-screen items-center justify-center bg-background">
-        <div className="flex items-center gap-2 text-sm text-muted-foreground">
-          <Loader2 className="size-4 animate-spin text-primary" />
-          <span>Loading builder…</span>
-        </div>
-      </div>
-    );
+    return <AiGenerationLoader stages={BUILDER_LOADING_STAGES} />;
   }
 
   return (
@@ -86,16 +78,7 @@ function BuilderPageContent() {
 
 export default function BuilderPage() {
   return (
-    <React.Suspense
-      fallback={
-        <div className="flex h-screen w-screen items-center justify-center bg-background">
-          <div className="flex items-center gap-2 text-sm text-muted-foreground">
-            <Loader2 className="size-4 animate-spin text-primary" />
-            <span>Loading builder…</span>
-          </div>
-        </div>
-      }
-    >
+    <React.Suspense fallback={<AiGenerationLoader stages={BUILDER_LOADING_STAGES} />}>
       <BuilderPageContent />
     </React.Suspense>
   );

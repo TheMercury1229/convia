@@ -366,12 +366,12 @@ export default function HomePage() {
                         onClick={() => handleSelectResponse(item)}
                       >
                         {/* Form Title */}
-                        <TableCell className="pl-5">
+                        <TableCell className="pl-5 max-w-[180px] sm:max-w-[220px] overflow-hidden">
                           <Link
                             href={`/responses/${item.formSlug || item.formId}`}
                             onClick={(e) => e.stopPropagation()}
                             className="font-medium text-foreground text-sm hover:text-primary transition-colors truncate max-w-[180px] sm:max-w-[220px] block"
-                            title="View all responses for this form"
+                            title={item.formTitle}
                           >
                             {item.formTitle}
                           </Link>
