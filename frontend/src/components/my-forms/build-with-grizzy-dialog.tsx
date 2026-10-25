@@ -15,6 +15,7 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { generateFormWithAi } from "@/lib/api/ai";
+import { CreditGateModal } from "@/components/billing/credit-gate";
 
 const PROMPT_SUGGESTIONS = [
   {
@@ -55,6 +56,7 @@ export function BuildWithGrizzyDialog({
   const router = useRouter();
   const [prompt, setPrompt] = React.useState("");
   const [isSubmitting, setIsSubmitting] = React.useState(false);
+  const [showCreditGate, setShowCreditGate] = React.useState(false);
 
   React.useEffect(() => {
     if (!open) {
@@ -87,15 +89,25 @@ export function BuildWithGrizzyDialog({
     } catch (err: unknown) {
       const message =
         err instanceof Error ? err.message : "Failed to start form generation";
-      toast.error(message);
+
+      if (
+        message.toLowerCase().includes("credit") ||
+        message.includes("402")
+      ) {
+        onOpenChange(false);
+        setShowCreditGate(true);
+      } else {
+        toast.error(message);
+      }
     } finally {
       setIsSubmitting(false);
     }
   };
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-lg">
+    <>
+      <Dialog open={open} onOpenChange={onOpenChange}>
+        <DialogContent className="sm:max-w-lg">
         <DialogHeader>
           <DialogTitle>Build with Grizzy</DialogTitle>
           <DialogDescription>
@@ -151,6 +163,14 @@ export function BuildWithGrizzyDialog({
         </form>
       </DialogContent>
     </Dialog>
+
+    <CreditGateModal
+      open={showCreditGate}
+      onOpenChange={setShowCreditGate}
+      requiredCredits={10}
+      actionName="AI Form Generation"
+    />
+    </>
   );
 }
 

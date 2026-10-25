@@ -1,4 +1,4 @@
-﻿export class ApiError extends Error {
+export class ApiError extends Error {
   public readonly statusCode: number;
   public readonly errors: string[];
   public readonly isOperational: boolean;
@@ -43,6 +43,10 @@
 
   static unprocessable(message: string, errors: string[] = []) {
     return new ApiError(422, message, errors);
+  }
+
+  static paymentRequired(message = "Insufficient credits") {
+    return new ApiError(402, message);
   }
 
   static internal(message = "Internal server error") {

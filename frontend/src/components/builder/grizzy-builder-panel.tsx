@@ -40,6 +40,7 @@ import { useGrizzyBuilderChat } from "@/hooks/use-grizzy-builder-chat";
 import { authClient } from "@/lib/auth-client";
 import { toast } from "sonner";
 import { GrizzyChangeReviewCard } from "@/components/builder/grizzy-change-review-card";
+import { CreditGateInline } from "@/components/billing/credit-gate";
 
 // Icon mapper for question types
 function getQuestionTypeIcon(type?: string) {
@@ -439,30 +440,39 @@ export function GrizzyBuilderPanel() {
 
                         {/* Error state inside bubble */}
                         {message.isError && (
-                          <div className={cn("flex flex-col gap-2", message.content && "mt-2 pt-2 border-t border-destructive/20")}>
-                            <div className="flex items-start gap-2 text-destructive text-xs">
-                              <AlertCircle className="size-4 shrink-0 mt-0.5" />
-                              <div className="flex-1 min-w-0">
-                                <p className="font-semibold text-xs text-destructive">
-                                  Unable to apply changes
-                                </p>
-                                <p className="text-xs text-muted-foreground leading-relaxed">
-                                  {message.errorMessage || "An error occurred with the AI builder."}
-                                </p>
+                          message.errorMessage?.toLowerCase().includes("credit") ||
+                          message.errorMessage?.includes("402") ? (
+                            <CreditGateInline
+                              actionName="Grizzy Builder"
+                              requiredCredits={0.5}
+                              className="mt-2"
+                            />
+                          ) : (
+                            <div className={cn("flex flex-col gap-2", message.content && "mt-2 pt-2 border-t border-destructive/20")}>
+                              <div className="flex items-start gap-2 text-destructive text-xs">
+                                <AlertCircle className="size-4 shrink-0 mt-0.5" />
+                                <div className="flex-1 min-w-0">
+                                  <p className="font-semibold text-xs text-destructive">
+                                    Unable to apply changes
+                                  </p>
+                                  <p className="text-xs text-muted-foreground leading-relaxed">
+                                    {message.errorMessage || "An error occurred with the AI builder."}
+                                  </p>
+                                </div>
                               </div>
+                              <Button
+                                type="button"
+                                variant="outline"
+                                size="sm"
+                                onClick={retryLastMessage}
+                                disabled={isStreaming}
+                                className="h-7 text-xs border-destructive/30 text-destructive hover:bg-destructive/10 cursor-pointer self-start"
+                              >
+                                <RotateCcw className="size-3 mr-1" />
+                                Retry
+                              </Button>
                             </div>
-                            <Button
-                              type="button"
-                              variant="outline"
-                              size="sm"
-                              onClick={retryLastMessage}
-                              disabled={isStreaming}
-                              className="h-7 text-xs border-destructive/30 text-destructive hover:bg-destructive/10 cursor-pointer self-start"
-                            >
-                              <RotateCcw className="size-3 mr-1" />
-                              Retry
-                            </Button>
-                          </div>
+                          )
                         )}
 
                         {/* Typing dots while awaiting first token */}

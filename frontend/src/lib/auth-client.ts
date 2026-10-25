@@ -1,10 +1,11 @@
 
 import { createAuthClient } from "better-auth/react";
 import { organizationClient } from "better-auth/client/plugins";
+import { dodopaymentsClient } from "@dodopayments/better-auth/client";
 import { ac, owner, editor, viewer } from "./permissions";
 
 export const authClient = createAuthClient({
-  baseURL: process.env.BACKEND_URL || "http://localhost:5000",
+  baseURL: process.env.NEXT_PUBLIC_BACKEND_URL || process.env.BACKEND_URL || "http://localhost:5000",
   plugins: [
     organizationClient({
       /**
@@ -23,5 +24,6 @@ export const authClient = createAuthClient({
         viewer,
       },
     }),
+    dodopaymentsClient(),
   ],
 });

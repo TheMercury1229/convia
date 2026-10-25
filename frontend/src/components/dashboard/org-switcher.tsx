@@ -2,8 +2,8 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { useQueryClient } from "@tanstack/react-query";
-import { ChevronsUpDown, Check, PlusCircle, Loader2 } from "lucide-react";
+import Link from "next/link";
+import { ChevronsUpDown, Check, PlusCircle, Loader2, Zap, ArrowUpRight } from "lucide-react";
 import { toast } from "sonner";
 
 import {
@@ -23,11 +23,14 @@ import {
 import { OrgAvatar } from "./org/org-avatar";
 import { CreateOrgDialog } from "./org/create-org-dialog";
 import { authClient } from "@/lib/auth-client";
+import { useOrgBilling } from "@/hooks/use-billing";
+import { useQueryClient } from "@tanstack/react-query";
 
 export function OrgSwitcher() {
   const { isMobile } = useSidebar();
   const router = useRouter();
   const queryClient = useQueryClient();
+  const { data: billing } = useOrgBilling();
 
   const { data: orgs, isPending: orgsLoading, refetch: refetchOrgs } =
     authClient.useListOrganizations();
@@ -50,7 +53,7 @@ export function OrgSwitcher() {
           ]);
           router.refresh();
         })
-        .catch(() => {});
+        .catch(() => { });
     }
   }, [activeOrg, orgs, router, queryClient, refetchActiveOrg, refetchOrgs]);
 
@@ -161,6 +164,55 @@ export function OrgSwitcher() {
                   New organisation
                 </span>
               </DropdownMenuItem>
+
+              {billing && (
+                <>
+                  <DropdownMenuSeparator />
+                  <div className="p-2.5 space-y-2">
+                    <div className="flex items-center justify-between text-xs font-medium">
+                      <span className="flex items-center gap-1.5 text-foreground">
+                        <Zap className="size-3.5 text-primary fill-primary/20" />
+                        Credits
+                      </span>
+                      <span className="font-semibold tabular-nums text-foreground">
+                        {billing.creditsRemaining}{" "}
+                        <span className="text-muted-foreground font-normal">
+                          / {billing.creditsTotal}
+                        </span>
+                      </span>
+                    </div>
+
+                    <div className="w-full h-1 bg-muted rounded-full overflow-hidden">
+                      <div
+                        className="h-full bg-primary rounded-full transition-all"
+                        style={{
+                          width: `${Math.min(
+                            100,
+                            Math.max(
+                              0,
+                              (billing.creditsRemaining / billing.creditsTotal) *
+                              100
+                            )
+                          )}%`,
+                        }}
+                      />
+                    </div>
+
+                    <div className="flex items-center justify-between text-[11px] pt-0.5">
+                      <span className="capitalize text-muted-foreground font-medium">
+                        {billing.plan} Plan
+                      </span>
+                      <Link
+                        href="/billing"
+                        className="text-primary hover:underline font-semibold flex items-center gap-0.5"
+                      >
+                        Manage
+                        <ArrowUpRight className="size-3" />
+                      </Link>
+                    </div>
+                  </div>
+                </>
+              )}
             </DropdownMenuContent>
           </DropdownMenu>
         </SidebarMenuItem>

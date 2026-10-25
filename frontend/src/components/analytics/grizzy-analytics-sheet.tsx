@@ -22,6 +22,7 @@ import { GrizzyMarkdown } from "./grizzy-markdown";
 import { useGrizzyAnalyticsChat } from "@/hooks/use-grizzy-analytics-chat";
 import type { FormAnalyticsData } from "@/lib/api/analytics";
 import { authClient } from "@/lib/auth-client";
+import { CreditGateInline } from "@/components/billing/credit-gate";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 
@@ -245,37 +246,46 @@ export function GrizzyAnalyticsSheet({
                           ) : null}
 
                           {message.isError ? (
-                            <div
-                              className={cn(
-                                "flex flex-col gap-2.5",
-                                message.content && "mt-3 pt-3 border-t border-destructive/20",
-                              )}
-                            >
-                              <div className="flex items-start gap-2.5 text-destructive">
-                                <AlertCircle className="size-4 shrink-0 mt-0.5" />
-                                <div className="flex-1 min-w-0 space-y-1">
-                                  <p className="font-semibold text-xs text-destructive">
-                                    Unable to generate response
-                                  </p>
-                                  <p className="text-xs text-muted-foreground leading-relaxed break-words">
-                                    {message.errorMessage || "An error occurred while communicating with the analytics service."}
-                                  </p>
+                            message.errorMessage?.toLowerCase().includes("credit") ||
+                            message.errorMessage?.includes("402") ? (
+                              <CreditGateInline
+                                actionName="Grizzy Analytics"
+                                requiredCredits={0.5}
+                                className="mt-3"
+                              />
+                            ) : (
+                              <div
+                                className={cn(
+                                  "flex flex-col gap-2.5",
+                                  message.content && "mt-3 pt-3 border-t border-destructive/20",
+                                )}
+                              >
+                                <div className="flex items-start gap-2.5 text-destructive">
+                                  <AlertCircle className="size-4 shrink-0 mt-0.5" />
+                                  <div className="flex-1 min-w-0 space-y-1">
+                                    <p className="font-semibold text-xs text-destructive">
+                                      Unable to generate response
+                                    </p>
+                                    <p className="text-xs text-muted-foreground leading-relaxed break-words">
+                                      {message.errorMessage || "An error occurred while communicating with the analytics service."}
+                                    </p>
+                                  </div>
+                                </div>
+                                <div className="flex items-center gap-2 pt-0.5">
+                                  <Button
+                                    type="button"
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={retryLastMessage}
+                                    disabled={isStreaming}
+                                    className="h-7 text-xs border-destructive/30 text-destructive hover:bg-destructive/10 hover:text-destructive cursor-pointer"
+                                  >
+                                    <RotateCcw className="size-3 mr-1.5" />
+                                    Retry
+                                  </Button>
                                 </div>
                               </div>
-                              <div className="flex items-center gap-2 pt-0.5">
-                                <Button
-                                  type="button"
-                                  variant="outline"
-                                  size="sm"
-                                  onClick={retryLastMessage}
-                                  disabled={isStreaming}
-                                  className="h-7 text-xs border-destructive/30 text-destructive hover:bg-destructive/10 hover:text-destructive cursor-pointer"
-                                >
-                                  <RotateCcw className="size-3 mr-1.5" />
-                                  Retry
-                                </Button>
-                              </div>
-                            </div>
+                            )
                           ) : !message.content ? (
                             /* Typing dots while awaiting first token */
                             <div className="flex items-center gap-1.5 py-1 text-muted-foreground">

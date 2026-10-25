@@ -11,6 +11,7 @@ import {
   BarChart3,
   User,
   Settings2,
+  CreditCard,
 } from "lucide-react";
 
 import {
@@ -27,6 +28,7 @@ import {
   SidebarSeparator,
 } from "@/components/ui/sidebar";
 import { OrgSwitcher } from "./org-switcher";
+import { CreditBadge } from "@/components/billing/credit-badge";
 import { authClient } from "@/lib/auth-client";
 
 // ---------------------------------------------------------------------------
@@ -44,6 +46,7 @@ const mainNavItems = [
 
 const ownerNavItems = [
   { title: "Org Settings", href: "/org-settings", icon: Settings2 },
+  { title: "Billing & Plans", href: "/billing", icon: CreditCard },
 ];
 
 // ---------------------------------------------------------------------------
@@ -161,10 +164,11 @@ export function AppSidebar() {
       </SidebarContent>
 
       {/* ------------------------------------------------------------------ */}
-      {/* Footer — only org switcher remains                                 */}
+      {/* Footer — Org switcher + sleek credit indicator                     */}
       {/* ------------------------------------------------------------------ */}
-      <SidebarFooter>
+      <SidebarFooter className="p-2 gap-1.5">
         <OrgSwitcher />
+        <CreditBadge variant="sidebar" />
       </SidebarFooter>
     </Sidebar>
   );
