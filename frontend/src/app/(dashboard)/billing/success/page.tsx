@@ -10,7 +10,15 @@ import { useOrgBilling, useInvalidateBilling } from "@/hooks/use-billing";
 
 export default function BillingSuccessPage() {
   const searchParams = useSearchParams();
+  const subscriptionId = searchParams.get("subscription_id");
+  const paymentId = searchParams.get("payment_id");
   const checkoutId = searchParams.get("checkout_id");
+
+  // Dodo Payments automatically appends `subscription_id` (or `payment_id`) upon redirect
+  const displayId =
+    subscriptionId ||
+    paymentId ||
+    (checkoutId && checkoutId !== "{CHECKOUT_ID}" ? checkoutId : null);
 
   const { data: billing, refetch } = useOrgBilling();
   const { invalidateCredits, invalidateTransactions } = useInvalidateBilling();
@@ -54,9 +62,9 @@ export default function BillingSuccessPage() {
             </div>
           )}
 
-          {checkoutId && (
+          {displayId && (
             <p className="text-[10px] font-mono text-muted-foreground/80 truncate">
-              ID: {checkoutId}
+              ID: {displayId}
             </p>
           )}
 

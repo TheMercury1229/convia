@@ -143,7 +143,7 @@ export const auth = betterAuth({
             { productId: ENV_CONFIG.DODO_PRODUCT_BUILDER!, slug: "builder" },
             { productId: ENV_CONFIG.DODO_PRODUCT_PRO!, slug: "pro" },
           ],
-          successUrl: `${ENV_CONFIG.CLIENT_URL}/billing/success?checkout_id={CHECKOUT_ID}`,
+          successUrl: `${ENV_CONFIG.CLIENT_URL}/billing/success`,
           authenticatedUsersOnly: true,
         }),
         portal(),

@@ -3,19 +3,19 @@ import db from "../../db/db";
 import { orgCredits } from "../../db/schema/billing-schema";
 import { grantPlanCredits, setOrgPlan } from "./billing.service";
 import type { Plan } from "../../db/schema/billing-schema";
+import ENV_CONFIG from "../../config/env.config";
 
 // ---------------------------------------------------------------------------
 // Map Dodo product IDs to plan names
 // ---------------------------------------------------------------------------
 
-const PRODUCT_PLAN_MAP: Record<string, Plan> = {
-  [process.env.DODO_PRODUCT_BUILDER ?? ""]: "builder",
-  [process.env.DODO_PRODUCT_PRO ?? ""]: "pro",
-};
-
 const resolveProductPlan = (productId?: string): Plan | null => {
   if (!productId) return null;
-  return PRODUCT_PLAN_MAP[productId] ?? null;
+  const builderId = ENV_CONFIG.DODO_PRODUCT_BUILDER || process.env.DODO_PRODUCT_BUILDER;
+  const proId = ENV_CONFIG.DODO_PRODUCT_PRO || process.env.DODO_PRODUCT_PRO;
+  if (builderId && productId === builderId) return "builder";
+  if (proId && productId === proId) return "pro";
+  return null;
 };
 
 // ---------------------------------------------------------------------------
@@ -30,6 +30,7 @@ const resolveOrgId = async (
   const metaOrgId =
     payload?.data?.metadata?.org_id ??
     payload?.data?.subscription?.metadata?.org_id ??
+    payload?.data?.customer?.metadata?.org_id ??
     null;
   if (metaOrgId) return metaOrgId;
 
@@ -49,31 +50,38 @@ const resolveOrgId = async (
 // ---------------------------------------------------------------------------
 
 export const handleDodoWebhook = async (payload: any): Promise<void> => {
-  const eventType: string = payload?.event_type ?? "";
+  // Dodo Payments webhook payload uses `type` (e.g. "subscription.active", "payment.succeeded")
+  const eventType: string = payload?.type ?? payload?.event_type ?? "";
 
   console.log(`[billing-webhook] event: ${eventType}`);
 
   try {
     switch (eventType) {
       // -----------------------------------------------------------------------
-      // New subscription created — grant credits for the purchased plan
+      // Subscription active / created — grant credits for the purchased plan
+      // Dodo Payments emits "subscription.active" when checkout finishes
       // -----------------------------------------------------------------------
+      case "subscription.active":
       case "subscription.created": {
         const orgId = await resolveOrgId(payload);
         if (!orgId) {
-          console.warn("[billing-webhook] subscription.created: no orgId found");
+          console.warn(`[billing-webhook] ${eventType}: no orgId found`);
           return;
         }
-        const plan = resolveProductPlan(payload?.data?.product_id);
+        const productId = payload?.data?.product_id ?? payload?.data?.product_cart?.[0]?.product_id;
+        const plan = resolveProductPlan(productId);
         if (!plan) {
-          console.warn("[billing-webhook] subscription.created: unknown product");
+          console.warn(`[billing-webhook] ${eventType}: unknown product ${productId}`);
           return;
         }
+        const customerId =
+          payload?.data?.customer?.customer_id ?? payload?.data?.customer_id;
+        const subscriptionId = payload?.data?.subscription_id;
         await grantPlanCredits(
           orgId,
           plan,
-          payload?.data?.customer_id,
-          payload?.data?.subscription_id,
+          customerId,
+          subscriptionId,
         );
         console.log(`[billing-webhook] granted ${plan} credits to org ${orgId}`);
         break;
@@ -82,22 +90,26 @@ export const handleDodoWebhook = async (payload: any): Promise<void> => {
       // -----------------------------------------------------------------------
       // Subscription renewed — reset credits to plan total for the new cycle
       // -----------------------------------------------------------------------
-      case "subscription.renewed":
-      case "subscription.active": {
+      case "subscription.renewed": {
         const orgId = await resolveOrgId(payload);
         if (!orgId) return;
-        const plan = resolveProductPlan(payload?.data?.product_id);
+        const productId = payload?.data?.product_id ?? payload?.data?.product_cart?.[0]?.product_id;
+        const plan = resolveProductPlan(productId);
         if (!plan) return;
-        await grantPlanCredits(orgId, plan);
+        const customerId =
+          payload?.data?.customer?.customer_id ?? payload?.data?.customer_id;
+        const subscriptionId = payload?.data?.subscription_id;
+        await grantPlanCredits(orgId, plan, customerId, subscriptionId);
         console.log(`[billing-webhook] renewed ${plan} credits for org ${orgId}`);
         break;
       }
 
       // -----------------------------------------------------------------------
-      // Subscription cancelled — downgrade to free on next cycle
+      // Subscription cancelled or expired — downgrade to free on next cycle
       // We set the plan flag immediately; credits remain until cycleEnd
       // -----------------------------------------------------------------------
-      case "subscription.cancelled": {
+      case "subscription.cancelled":
+      case "subscription.expired": {
         const orgId = await resolveOrgId(payload);
         if (!orgId) return;
         await setOrgPlan(orgId, "free");
@@ -108,14 +120,27 @@ export const handleDodoWebhook = async (payload: any): Promise<void> => {
       // -----------------------------------------------------------------------
       // Plan updated (upgrade or downgrade mid-cycle)
       // -----------------------------------------------------------------------
+      case "subscription.plan_changed":
       case "subscription.updated": {
         const orgId = await resolveOrgId(payload);
         if (!orgId) return;
-        const plan = resolveProductPlan(payload?.data?.product_id);
+        const productId = payload?.data?.product_id ?? payload?.data?.product_cart?.[0]?.product_id;
+        const plan = resolveProductPlan(productId);
         if (!plan) return;
+        const customerId =
+          payload?.data?.customer?.customer_id ?? payload?.data?.customer_id;
+        const subscriptionId = payload?.data?.subscription_id;
         // On upgrade: grant the new plan's full credits immediately
-        await grantPlanCredits(orgId, plan);
+        await grantPlanCredits(orgId, plan, customerId, subscriptionId);
         console.log(`[billing-webhook] plan updated to ${plan} for org ${orgId}`);
+        break;
+      }
+
+      // -----------------------------------------------------------------------
+      // Payment succeeded notification
+      // -----------------------------------------------------------------------
+      case "payment.succeeded": {
+        console.log(`[billing-webhook] payment succeeded for payment_id: ${payload?.data?.payment_id}`);
         break;
       }
 
