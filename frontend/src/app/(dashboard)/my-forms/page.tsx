@@ -20,6 +20,7 @@ import {
 } from "@/components/my-forms/build-with-grizzy-dialog";
 import { PageHeading } from "@/components/dashboard/page-heading";
 import { useForms } from "@/hooks/use-forms";
+import { useOrganization } from "@/hooks/use-organization";
 import { EmptyState } from "@/components/dashboard/empty-state";
 
 // ---------------------------------------------------------------------------
@@ -84,7 +85,9 @@ export default function MyFormsPage() {
   const [search, setSearch] = useState("");
   const [filter, setFilter] = useState<"all" | "published" | "draft" | "closed">("all");
 
-  const { data: forms, isLoading, isError, error } = useForms();
+  const { activeOrg, isLoading: isOrgLoading } = useOrganization();
+  const { data: forms, isLoading: formsLoading, isError, error } = useForms();
+  const isLoading = isOrgLoading || !activeOrg?.id || formsLoading;
 
   // Client-side filtering
   const filtered = useMemo(() => {

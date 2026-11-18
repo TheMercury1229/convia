@@ -7,7 +7,17 @@ System prompt templates and prompt builder for the Grizzy Builder Chat AI module
 from __future__ import annotations
 
 import json
+from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
 from src.modules.builder_chat.data_models import BuilderFormContext
+
+
+builder_chat_prompt = ChatPromptTemplate.from_messages(
+    [
+        ("system", "{system_prompt}"),
+        MessagesPlaceholder("history"),
+        ("human", "{user_message}"),
+    ]
+)
 
 
 def build_builder_system_prompt(context: BuilderFormContext) -> str:

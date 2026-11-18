@@ -28,6 +28,7 @@ from fastapi.responses import StreamingResponse
 
 from src.modules.analyze_responses.chain import run_analyze_responses_turn
 from src.modules.analyze_responses.data_models import AnalyzeResponsesTurnRequest
+from src.modules.analyze_responses.prompts import build_analyze_system_prompt
 
 logger = logging.getLogger(__name__)
 
@@ -43,13 +44,21 @@ async def _sse_generator(
 ) -> AsyncGenerator[str, None]:
     """
     Core SSE generator:
-      1. Await the full structured LLM response.
-      2. Stream the reply text in small chunks (typing effect).
-      3. Emit one final event with done=true.
+      1. Prepare system prompt (use provided string or compile from analytics_context).
+      2. Await the full structured LLM response.
+      3. Stream the reply text in small chunks (typing effect).
+      4. Emit one final event with done=true.
     """
+    system_prompt = request.system_prompt
+    if not system_prompt:
+        if request.analytics_context:
+            system_prompt = build_analyze_system_prompt(request.analytics_context)
+        else:
+            system_prompt = "You are Grizzy, a warm and insightful AI analytics assistant for Convia."
+
     try:
         result = await run_analyze_responses_turn(
-            system_prompt=request.system_prompt,
+            system_prompt=system_prompt,
             history=request.messages,
             user_message=request.user_message,
         )

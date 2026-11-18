@@ -23,13 +23,11 @@ export interface CreditTransaction {
 }
 
 export interface PaginatedTransactions {
-  transactions: CreditTransaction[];
-  pagination: {
-    page: number;
-    limit: number;
-    total: number;
-    totalPages: number;
-  };
+  data: CreditTransaction[];
+  total: number;
+  page: number;
+  limit: number;
+  hasNextPage: boolean;
 }
 
 export interface PlanDefinition {

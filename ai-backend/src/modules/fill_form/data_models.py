@@ -13,7 +13,7 @@ from __future__ import annotations
 
 from typing import Any, Literal, Optional
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 
 
 # ---------------------------------------------------------------------------
@@ -29,31 +29,56 @@ class ConversationMessage(BaseModel):
 
 
 # ---------------------------------------------------------------------------
+# Form Schema & Fill Context (sent by Node instead of pre-rendered string)
+# ---------------------------------------------------------------------------
+
+class FillFormQuestion(BaseModel):
+    id: str
+    label: str
+    type: str
+    isRequired: bool = False
+    description: Optional[str] = None
+    placeholder: Optional[str] = None
+    options: Optional[list[Any]] = Field(default_factory=list)
+    validation: Optional[dict[str, Any]] = Field(default_factory=dict)
+
+
+class FillFormSection(BaseModel):
+    id: str
+    title: Optional[str] = None
+    description: Optional[str] = None
+    questions: list[FillFormQuestion] = Field(default_factory=list)
+
+
+class FillFormContext(BaseModel):
+    model_config = ConfigDict(populate_by_name=True)
+
+    title: str
+    description: Optional[str] = ""
+    sections: list[FillFormSection] = Field(default_factory=list)
+    filled_answers: dict[str, Any] = Field(default_factory=dict)
+
+
+# ---------------------------------------------------------------------------
 # Request — sent by the app backend (stateless, full context every turn)
 # ---------------------------------------------------------------------------
 
 class FillFormTurnRequest(BaseModel):
     """
     Full context for one conversational turn.
-
-    The app backend is responsible for:
-    - building system_prompt from the form schema + already-filled answers
-    - forwarding the client-held messages[] history unchanged
-    - appending the latest user_message
+    Accepts form_context so Python builds the prompt internally.
     """
-    system_prompt: str = Field(
-        description=(
-            "System prompt built by the app backend. Contains form metadata, "
-            "field definitions, validation rules, already-filled values, and "
-            "the list of still-needed fields."
-        )
+    system_prompt: Optional[str] = Field(
+        None,
+        description="Pre-built system prompt (optional, for backward compatibility).",
+    )
+    form_context: Optional[FillFormContext] = Field(
+        None,
+        description="Structured form context and filled answers for Python prompt construction.",
     )
     messages: list[ConversationMessage] = Field(
         default_factory=list,
-        description=(
-            "Full conversation history so far (excluding the current user_message). "
-            "Empty on the very first turn."
-        ),
+        description="Full conversation history so far (excluding the current user_message).",
     )
     user_message: str = Field(
         min_length=1,

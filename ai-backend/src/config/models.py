@@ -27,4 +27,4 @@ if not GOOGLE_API_KEY:
         "GOOGLE_API_KEY is not set. Add it to your .env file before starting the server."
     )
 
-llm_google = ChatGoogleGenerativeAI(api_key=GOOGLE_API_KEY, model="gemini-3.5-flash")
+llm_google = ChatGoogleGenerativeAI(api_key=GOOGLE_API_KEY, model="gemini-3.8-flash")

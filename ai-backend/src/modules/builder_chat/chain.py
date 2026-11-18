@@ -11,43 +11,30 @@ Stateless LangChain chain for one conversational turn of the Grizzy Builder Chat
 from __future__ import annotations
 
 import logging
-from langchain_core.messages import AIMessage, HumanMessage, SystemMessage
+from langchain_core.messages import AIMessage, HumanMessage
 
 from src.config.models import llm_google
 from src.modules.builder_chat.data_models import (
     BuilderChatReply,
     ConversationMessage,
 )
+from src.modules.builder_chat.prompts import builder_chat_prompt
 
 logger = logging.getLogger(__name__)
 
 # Structured LLM forces the model to return a validated BuilderChatReply object.
 _structured_llm = llm_google.with_structured_output(BuilderChatReply)
+_chain = builder_chat_prompt | _structured_llm
 
 
-def _build_messages(
-    system_prompt: str,
-    history: list[ConversationMessage],
-    user_message: str,
-) -> list:
-    """
-    Convert history into LangChain message objects.
-    Order: [SystemMessage, ...history..., HumanMessage(user_message)]
-    """
-    # Ensure the messages contain the word 'json' to satisfy Groq's json_object mode requirement
-    prompt_text = system_prompt
-    if "json" not in prompt_text.lower():
-        prompt_text += "\n\nReturn your response as a valid JSON object with 'reply' and 'actions'."
-
-    lc_messages = [SystemMessage(content=prompt_text)]
-
+def _format_history(history: list[ConversationMessage]) -> list:
+    """Convert history into LangChain HumanMessage / AIMessage objects."""
+    lc_messages = []
     for msg in history:
         if msg.role == "user":
             lc_messages.append(HumanMessage(content=msg.content))
         else:
             lc_messages.append(AIMessage(content=msg.content))
-
-    lc_messages.append(HumanMessage(content=user_message))
     return lc_messages
 
 
@@ -67,7 +54,11 @@ async def run_builder_chat_turn(
     Returns:
         Validated BuilderChatReply with reply markdown and mutation actions.
     """
-    messages = _build_messages(system_prompt, history, user_message)
+    prompt_text = system_prompt
+    if "json" not in prompt_text.lower():
+        prompt_text += "\n\nReturn your response as a valid JSON object with 'reply' and 'actions'."
+
+    history_messages = _format_history(history)
 
     logger.info(
         "builder_chat turn | history_len=%d | user_message_len=%d",
@@ -75,7 +66,11 @@ async def run_builder_chat_turn(
         len(user_message),
     )
 
-    result: BuilderChatReply = await _structured_llm.ainvoke(messages)
+    result: BuilderChatReply = await _chain.ainvoke({
+        "system_prompt": prompt_text,
+        "history": history_messages,
+        "user_message": user_message,
+    })
 
     logger.info(
         "builder_chat turn complete | reply_len=%d | action_count=%d",

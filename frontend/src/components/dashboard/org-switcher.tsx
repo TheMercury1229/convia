@@ -1,10 +1,8 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
+import { useState } from "react";
 import Link from "next/link";
 import { ChevronsUpDown, Check, PlusCircle, Loader2, Zap, ArrowUpRight } from "lucide-react";
-import { toast } from "sonner";
 
 import {
   DropdownMenu,
@@ -22,60 +20,22 @@ import {
 } from "@/components/ui/sidebar";
 import { OrgAvatar } from "./org/org-avatar";
 import { CreateOrgDialog } from "./org/create-org-dialog";
-import { authClient } from "@/lib/auth-client";
+import { useOrganization } from "@/hooks/use-organization";
 import { useOrgBilling } from "@/hooks/use-billing";
-import { useQueryClient } from "@tanstack/react-query";
 
 export function OrgSwitcher() {
   const { isMobile } = useSidebar();
-  const router = useRouter();
-  const queryClient = useQueryClient();
   const { data: billing } = useOrgBilling();
 
-  const { data: orgs, isPending: orgsLoading, refetch: refetchOrgs } =
-    authClient.useListOrganizations();
-  const { data: activeOrg, refetch: refetchActiveOrg } =
-    authClient.useActiveOrganization();
+  const {
+    orgs,
+    activeOrg,
+    isLoading: orgsLoading,
+    isSwitching,
+    switchOrganization,
+  } = useOrganization();
 
   const [openCreateDialog, setOpenCreateDialog] = useState(false);
-  const [isSwitching, setIsSwitching] = useState(false);
-
-  // Auto-activate the first organisation if user has organisations but none is set active
-  useEffect(() => {
-    if (!activeOrg?.id && orgs && orgs.length > 0) {
-      authClient.organization
-        .setActive({ organizationId: orgs[0].id })
-        .then(async () => {
-          await Promise.allSettled([
-            refetchActiveOrg?.(),
-            refetchOrgs?.(),
-            queryClient.resetQueries(),
-          ]);
-          router.refresh();
-        })
-        .catch(() => { });
-    }
-  }, [activeOrg, orgs, router, queryClient, refetchActiveOrg, refetchOrgs]);
-
-  const handleSwitch = async (orgId: string) => {
-    if (activeOrg?.id === orgId || isSwitching) return;
-    setIsSwitching(true);
-    try {
-      await authClient.organization.setActive({ organizationId: orgId });
-      toast.success("Switched organisation");
-      // Refetch Better Auth state and reset React Query queries so cache clears and active queries refetch immediately
-      await Promise.allSettled([
-        refetchActiveOrg?.(),
-        refetchOrgs?.(),
-        queryClient.resetQueries(),
-      ]);
-      router.refresh();
-    } catch {
-      toast.error("Failed to switch organisation. Please try again.");
-    } finally {
-      setIsSwitching(false);
-    }
-  };
 
   const displayName =
     activeOrg?.name ?? (orgsLoading ? "Loading..." : "Select Organisation");
@@ -128,7 +88,7 @@ export function OrgSwitcher() {
                   <DropdownMenuItem
                     key={org.id}
                     className="gap-2 p-2 cursor-pointer"
-                    onClick={() => handleSwitch(org.id)}
+                    onClick={() => switchOrganization(org.id)}
                   >
                     <OrgAvatar
                       name={org.name}

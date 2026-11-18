@@ -13,8 +13,10 @@
 import type { Request, Response } from "express";
 import { asyncHandler } from "../../utils/async-handler";
 import { ApiError } from "../../utils/api-error";
+import type { AuthenticatedRequest } from "../../types/index";
 import type { BuilderChatTurnInput } from "./builder-chat.schema";
 import { streamBuilderChatTurn } from "./builder-chat.service";
+import { attachStreamUsageLogger } from "./ai-usage-log.repository";
 
 // ---------------------------------------------------------------------------
 // POST /api/ai/builder/turn
@@ -23,7 +25,8 @@ import { streamBuilderChatTurn } from "./builder-chat.service";
 
 export const builderChatTurn = asyncHandler(
   async (req: Request, res: Response) => {
-    const { messages, userMessage, formContext } =
+    const authReq = req as AuthenticatedRequest;
+    const { formId, messages, userMessage, formContext } =
       req.body as BuilderChatTurnInput;
 
     let aiStream;
@@ -36,6 +39,19 @@ export const builderChatTurn = asyncHandler(
     } catch (err) {
       if (err instanceof ApiError) throw err;
       throw ApiError.internal("Failed to connect to AI backend");
+    }
+
+    // Record AI usage turn once the stream ends (non-blocking)
+    if (authReq.orgId) {
+      attachStreamUsageLogger({
+        stream: aiStream,
+        orgId: authReq.orgId,
+        userId: authReq.user?.id,
+        formId,
+        feature: "builder_chat",
+        userMessage,
+        turnIndex: messages.length,
+      });
     }
 
     // -------------------------------------------------------------------------

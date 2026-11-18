@@ -3,4 +3,5 @@ export * from "./form-schema";
 export * from "./response-schema";
 export * from "./analytics-schema";
 export * from "./ai-job-schema";
+export * from "./ai-usage-log-schema";
 export * from "./billing-schema";

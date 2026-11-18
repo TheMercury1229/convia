@@ -10,19 +10,15 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { useOrgTransactions } from "@/hooks/use-billing";
+import type { CreditTransaction } from "@/lib/api/billing";
 import { authClient } from "@/lib/auth-client";
 import {
   ChevronLeft,
   ChevronRight,
-  Bot,
-  MessageSquare,
-  Wand2,
   RefreshCw,
-  CreditCard,
   Lock,
   Loader2,
   Receipt,
@@ -69,69 +65,29 @@ export function UsageLog({ className }: UsageLogProps) {
     );
   }
 
-  const transactions = data?.transactions ?? [];
-  const pagination = data?.pagination;
+  const transactions = data?.data ?? [];
+  const total = data?.total ?? 0;
+  const totalPages = Math.ceil(total / limit) || 1;
 
-  // Helper to format reason into human badge
-  const renderReasonBadge = (reason: string) => {
+  const formatReason = (reason: string) => {
     switch (reason) {
       case "ai_generate_form":
-        return (
-          <Badge
-            variant="outline"
-            className="gap-1.5 border-purple-500/30 bg-purple-500/10 text-purple-600 dark:text-purple-400 font-medium text-xs"
-          >
-            <Wand2 className="size-3" />
-            AI Form Generation
-          </Badge>
-        );
+        return "AI Form Generation";
       case "grizzy_analytics":
-        return (
-          <Badge
-            variant="outline"
-            className="gap-1.5 border-blue-500/30 bg-blue-500/10 text-blue-600 dark:text-blue-400 font-medium text-xs"
-          >
-            <MessageSquare className="size-3" />
-            Analytics Chat Turn
-          </Badge>
-        );
+        return "Analytics Chat Turn";
       case "grizzy_builder":
-        return (
-          <Badge
-            variant="outline"
-            className="gap-1.5 border-amber-500/30 bg-amber-500/10 text-amber-600 dark:text-amber-400 font-medium text-xs"
-          >
-            <Bot className="size-3" />
-            Builder Chat Turn
-          </Badge>
-        );
+        return "Builder Chat Turn";
       case "plan_renewal":
       case "cycle_reset":
-        return (
-          <Badge
-            variant="outline"
-            className="gap-1.5 border-emerald-500/30 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 font-medium text-xs"
-          >
-            <RefreshCw className="size-3" />
-            Cycle Renewal
-          </Badge>
-        );
+        return "Cycle Renewal";
       case "plan_upgrade":
-        return (
-          <Badge
-            variant="outline"
-            className="gap-1.5 border-emerald-500/30 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 font-medium text-xs"
-          >
-            <CreditCard className="size-3" />
-            Plan Upgrade
-          </Badge>
-        );
+        return "Plan Upgrade";
+      case "plan_downgrade":
+        return "Plan Downgrade";
+      case "initial_grant":
+        return "Initial Credit Grant";
       default:
-        return (
-          <Badge variant="outline" className="text-xs font-mono">
-            {reason}
-          </Badge>
-        );
+        return reason.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
     }
   };
 
@@ -160,8 +116,7 @@ export function UsageLog({ className }: UsageLogProps) {
         </Button>
       </div>
 
-      <Card className="border-border/70 shadow-xs overflow-hidden">
-        <CardContent className="p-0">
+      <div className="rounded-2xl border border-border/70 bg-card overflow-hidden shadow-xs">
           {isLoading ? (
             <div className="flex flex-col items-center justify-center p-12 text-muted-foreground gap-2">
               <Loader2 className="size-5 animate-spin text-primary" />
@@ -224,19 +179,12 @@ export function UsageLog({ className }: UsageLogProps) {
                       </div>
                     </TableCell>
 
-                    <TableCell className="py-3">
-                      {renderReasonBadge(tx.reason)}
+                    <TableCell className="py-3 text-xs text-foreground">
+                      {formatReason(tx.reason)}
                     </TableCell>
 
                     <TableCell className="py-3 text-right">
-                      <span
-                        className={cn(
-                          "font-mono text-xs font-semibold tabular-nums px-2 py-0.5 rounded-md",
-                          isDebit
-                            ? "bg-rose-500/10 text-rose-600 dark:text-rose-400"
-                            : "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400",
-                        )}
-                      >
+                      <span className="font-mono text-xs tabular-nums text-foreground">
                         {formattedAmount}
                       </span>
                     </TableCell>
@@ -257,12 +205,12 @@ export function UsageLog({ className }: UsageLogProps) {
         )}
 
         {/* Pagination controls */}
-        {pagination && pagination.totalPages > 1 && (
+        {totalPages > 1 && (
           <div className="flex items-center justify-between px-4 py-3 border-t border-border/40 text-xs">
             <span className="text-muted-foreground">
-              Showing page <strong className="text-foreground">{pagination.page}</strong> of{" "}
-              <strong className="text-foreground">{pagination.totalPages}</strong> (
-              {pagination.total} total)
+              Showing page <strong className="text-foreground">{page}</strong> of{" "}
+              <strong className="text-foreground">{totalPages}</strong> (
+              {total} total)
             </span>
 
             <div className="flex items-center gap-1.5">
@@ -279,8 +227,8 @@ export function UsageLog({ className }: UsageLogProps) {
               <Button
                 variant="outline"
                 size="sm"
-                onClick={() => setPage((p) => Math.min(pagination.totalPages, p + 1))}
-                disabled={page >= pagination.totalPages}
+                onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+                disabled={!data?.hasNextPage}
                 className="h-7 px-2 gap-1 text-xs"
               >
                 Next
@@ -289,8 +237,7 @@ export function UsageLog({ className }: UsageLogProps) {
             </div>
           </div>
         )}
-      </CardContent>
-    </Card>
+      </div>
     </div>
   );
 }

@@ -36,6 +36,7 @@ from fastapi.responses import StreamingResponse
 
 from src.modules.fill_form.chain import run_fill_form_turn
 from src.modules.fill_form.data_models import FillFormTurnRequest
+from src.modules.fill_form.prompts import build_fill_form_system_prompt
 
 logger = logging.getLogger(__name__)
 
@@ -52,13 +53,21 @@ _STREAM_DELAY_S = 0.015
 async def _sse_generator(request: FillFormTurnRequest) -> AsyncGenerator[str, None]:
     """
     Core generator:
-      1. Await the full structured LLM response.
-      2. Stream the reply text in small chunks (typing effect).
-      3. Emit one final event with done=true and the full extracted answers.
+      1. Prepare system prompt (use provided string or compile from form_context).
+      2. Await the full structured LLM response.
+      3. Stream the reply text in small chunks (typing effect).
+      4. Emit one final event with done=true and the full extracted answers.
     """
+    system_prompt = request.system_prompt
+    if not system_prompt:
+        if request.form_context:
+            system_prompt = build_fill_form_system_prompt(request.form_context)
+        else:
+            system_prompt = "You are Grizzy, a friendly AI assistant for Convia."
+
     try:
         turn = await run_fill_form_turn(
-            system_prompt=request.system_prompt,
+            system_prompt=system_prompt,
             history=request.messages,
             user_message=request.user_message,
         )

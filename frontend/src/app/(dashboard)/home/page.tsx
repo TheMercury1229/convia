@@ -18,6 +18,7 @@ import {
 
 import { useForms, useForm } from "@/hooks/use-forms";
 import { useAllOrgResponses } from "@/hooks/use-responses";
+import { useOrganization } from "@/hooks/use-organization";
 import type { OrgResponseItem } from "@/lib/api/responses";
 import type { ApiQuestion } from "@/lib/api/forms";
 
@@ -48,6 +49,8 @@ import { ResponseDetailDialog } from "@/components/responses/response-detail-dia
 import { PageHeading } from "@/components/dashboard/page-heading";
 
 export default function HomePage() {
+  const { activeOrg, isLoading: isOrgLoading } = useOrganization();
+
   // 1. Data hooks
   const {
     data: forms,
@@ -63,7 +66,10 @@ export default function HomePage() {
     isRefetching: responsesRefetching,
   } = useAllOrgResponses();
 
-  const isInitialLoading = (formsLoading || responsesLoading) && (!forms || !orgResponsesData);
+  const isInitialLoading =
+    isOrgLoading ||
+    !activeOrg?.id ||
+    ((formsLoading || responsesLoading) && (!forms || !orgResponsesData));
   const isRefreshing = formsRefetching || responsesRefetching;
 
   // 2. Local State

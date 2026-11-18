@@ -38,7 +38,7 @@ class QuestionOptionContext(BaseModel):
 
 class QuestionContext(BaseModel):
     id: str
-    sectionId: str
+    sectionId: Optional[str] = ""
     type: str
     label: str
     description: Optional[str] = ""
@@ -57,7 +57,7 @@ class SectionContext(BaseModel):
 
 
 class FormMetaContext(BaseModel):
-    title: str
+    title: Optional[str] = ""
     description: Optional[str] = ""
 
 

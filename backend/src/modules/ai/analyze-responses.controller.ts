@@ -15,8 +15,10 @@
 import type { Request, Response } from "express";
 import { asyncHandler } from "../../utils/async-handler";
 import { ApiError } from "../../utils/api-error";
+import type { AuthenticatedRequest } from "../../types/index";
 import type { AnalyzeResponsesTurnInput } from "./analyze-responses.schema";
 import { streamAnalyzeResponsesTurn } from "./analyze-responses.service";
+import { attachStreamUsageLogger } from "./ai-usage-log.repository";
 
 // ---------------------------------------------------------------------------
 // POST /api/ai/analyze-responses/turn
@@ -25,7 +27,8 @@ import { streamAnalyzeResponsesTurn } from "./analyze-responses.service";
 
 export const analyzeResponsesTurn = asyncHandler(
   async (req: Request, res: Response) => {
-    const { messages, userMessage, analyticsContext } =
+    const authReq = req as AuthenticatedRequest;
+    const { formId, messages, userMessage, analyticsContext } =
       req.body as AnalyzeResponsesTurnInput;
 
     // Get the raw streaming response from the AI backend
@@ -39,6 +42,19 @@ export const analyzeResponsesTurn = asyncHandler(
     } catch (err) {
       if (err instanceof ApiError) throw err;
       throw ApiError.internal("Failed to connect to AI backend");
+    }
+
+    // Record AI usage turn once the stream ends (non-blocking)
+    if (authReq.orgId) {
+      attachStreamUsageLogger({
+        stream: aiStream,
+        orgId: authReq.orgId,
+        userId: authReq.user?.id,
+        formId,
+        feature: "analyze_responses",
+        userMessage,
+        turnIndex: messages.length,
+      });
     }
 
     // -------------------------------------------------------------------------
