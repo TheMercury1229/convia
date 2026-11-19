@@ -46,6 +46,12 @@ export function LandingNavbar() {
             How it works
           </a>
           <a
+            href="#pricing"
+            className="transition-colors hover:text-foreground"
+          >
+            Pricing
+          </a>
+          <a
             href="#faq"
             className="transition-colors hover:text-foreground"
           >

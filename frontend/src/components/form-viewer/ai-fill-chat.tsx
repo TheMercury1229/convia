@@ -393,7 +393,7 @@ export function AiFillChat({
         onScroll={handleScroll}
         className="flex-1 overflow-y-auto mask-scroll-b px-4 sm:px-6 overscroll-contain transition-colors"
       >
-        <div className="mx-auto flex min-h-full max-w-2xl sm:max-w-3xl flex-col justify-start pt-6 pb-28 space-y-5">
+        <div className="mx-auto flex min-h-full max-w-3xl sm:max-w-4xl flex-col justify-start pt-6 pb-28 space-y-5">
           {messages.map((message, index) => {
             const isAi = message.role === "assistant";
             const isLastMessage = index === messages.length - 1;
@@ -647,7 +647,7 @@ export function AiFillChat({
           WebkitBackdropFilter: "blur(12px)",
         }}
       >
-        <div className="mx-auto max-w-2xl sm:max-w-3xl">
+        <div className="mx-auto max-w-3xl sm:max-w-4xl">
           {/* Error Banner with Retry */}
           {error && (
             <div

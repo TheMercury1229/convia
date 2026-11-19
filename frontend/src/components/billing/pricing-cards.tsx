@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import Link from "next/link";
 import { Check, Zap, ArrowRight, Loader2, ExternalLink } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -14,9 +15,11 @@ import { cn } from "@/lib/utils";
 interface PricingCardsProps {
   className?: string;
   onSuccess?: () => void;
+  variant?: "dashboard" | "landing";
 }
 
-export function PricingCards({ className }: PricingCardsProps) {
+export function PricingCards({ className, variant = "dashboard" }: PricingCardsProps) {
+  const isLanding = variant === "landing";
   const { data: billing } = useOrgBilling();
   const { data: plansData } = useBillingPlans();
   const { data: activeOrg } = authClient.useActiveOrganization();
@@ -31,7 +34,8 @@ export function PricingCards({ className }: PricingCardsProps) {
   )?.role;
   const isOwnerOrAdmin = currentRole === "owner" || currentRole === "admin";
 
-  const currentPlan: Plan = billing?.plan ?? "free";
+  const currentPlan: Plan | null =
+    isLanding && !session?.user ? null : (billing?.plan ?? (isLanding ? null : "free"));
 
   // Fallback plans if API hasn't loaded yet
   const plans = plansData ?? [
@@ -135,12 +139,16 @@ export function PricingCards({ className }: PricingCardsProps) {
           <Card
             key={plan.id}
             className={cn(
-              "flex flex-col justify-between transition-all duration-200 border shadow-xs",
-              isPro
-                ? "border-primary/50 shadow-sm ring-1 ring-primary/20"
-                : isCurrent
-                  ? "border-foreground/30 bg-muted/15"
-                  : "border-border/70 hover:border-border",
+              "flex flex-col justify-between transition-all duration-200 border",
+              isLanding
+                ? isPro
+                  ? "border-primary/60 shadow-[0_8px_30px_-8px_rgba(20,184,166,0.15)] dark:shadow-[0_8px_30px_-8px_rgba(45,212,191,0.2)] ring-1 ring-primary/30 bg-card hover:border-primary/80"
+                  : "border-border/80 bg-card hover:border-foreground/25 hover:shadow-xs"
+                : isPro
+                  ? "border-primary/50 shadow-sm ring-1 ring-primary/20"
+                  : isCurrent
+                    ? "border-foreground/30 bg-muted/15"
+                    : "border-border/70 hover:border-border",
             )}
           >
             <div>
@@ -206,7 +214,39 @@ export function PricingCards({ className }: PricingCardsProps) {
 
             {/* Bottom action button */}
             <CardFooter className="pt-4 border-t border-border/40 mt-auto flex flex-col gap-1.5">
-              {isCurrent ? (
+              {isLanding && !session?.user ? (
+                plan.id === "free" ? (
+                  <Button
+                    variant="outline"
+                    asChild
+                    className="w-full h-9 text-xs font-semibold cursor-pointer"
+                  >
+                    <Link href="/sign-up">Get started free</Link>
+                  </Button>
+                ) : plan.id === "builder" ? (
+                  <Button
+                    variant="secondary"
+                    asChild
+                    className="w-full h-9 text-xs font-semibold gap-1.5 cursor-pointer"
+                  >
+                    <Link href="/sign-up">
+                      Get started with Builder
+                      <ArrowRight className="size-3.5" />
+                    </Link>
+                  </Button>
+                ) : (
+                  <Button
+                    variant="default"
+                    asChild
+                    className="w-full h-9 text-xs font-semibold gap-1.5 cursor-pointer shadow-xs"
+                  >
+                    <Link href="/sign-up">
+                      Get started with Pro
+                      <ArrowRight className="size-3.5" />
+                    </Link>
+                  </Button>
+                )
+              ) : isCurrent ? (
                 plan.id === "free" ? (
                   <Button variant="outline" disabled className="w-full h-9 text-xs font-medium">
                     Current Plan
@@ -237,6 +277,17 @@ export function PricingCards({ className }: PricingCardsProps) {
                 >
                   Downgrade in Portal
                 </Button>
+              ) : isLanding && (!activeOrg?.id || !isOwnerOrAdmin) ? (
+                <Button
+                  variant={isPro ? "default" : "secondary"}
+                  asChild
+                  className="w-full h-9 text-xs font-semibold gap-1.5 cursor-pointer"
+                >
+                  <Link href="/billing/plans">
+                    Upgrade to {plan.name}
+                    <ArrowRight className="size-3.5" />
+                  </Link>
+                </Button>
               ) : (
                 <Button
                   variant={isPro ? "default" : "secondary"}
@@ -258,7 +309,7 @@ export function PricingCards({ className }: PricingCardsProps) {
                 </Button>
               )}
 
-              {!isOwnerOrAdmin && !isCurrent && (
+              {!isLanding && !isOwnerOrAdmin && !isCurrent && (
                 <p className="text-[10px] text-center text-muted-foreground">
                   Only org owners/admins can change subscription
                 </p>

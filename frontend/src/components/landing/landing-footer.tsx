@@ -48,6 +48,11 @@ export function LandingFooter() {
                 </a>
               </li>
               <li>
+                <a href="#pricing" className="transition-colors hover:text-foreground">
+                  Pricing
+                </a>
+              </li>
+              <li>
                 <a href="#faq" className="transition-colors hover:text-foreground">
                   FAQ
                 </a>

@@ -1,6 +1,7 @@
 import { LandingNavbar } from "@/components/landing/landing-navbar";
 import { BentoFeatures } from "@/components/landing/bento-features";
 import { HowItWorks } from "@/components/landing/how-it-works";
+import { LandingPricing } from "@/components/landing/landing-pricing";
 import { LandingFaq } from "@/components/landing/landing-faq";
 import { LandingCta } from "@/components/landing/landing-cta";
 import { LandingFooter } from "@/components/landing/landing-footer";
@@ -32,6 +33,9 @@ export default function Page() {
 
         {/* How It Works Stacking Section */}
         <HowItWorks />
+
+        {/* Pricing Cards Section */}
+        <LandingPricing />
 
         {/* Frequently Asked Questions */}
         <LandingFaq />

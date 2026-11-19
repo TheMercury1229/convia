@@ -84,17 +84,18 @@ export function TypeformInput({
   if (question.type === "scale") {
     const min = question.validation?.minScale ?? 1;
     const max = question.validation?.maxScale ?? 10;
-    const current = typeof value === "number" ? value : min;
+    const current = typeof value === "number" ? value : undefined;
+    const sliderCurrent = current ?? min;
 
-    if (max - min > 9) {
+    if (max - min > 10) {
       return (
-        <div className="w-full max-w-md space-y-4">
+        <div className="w-full max-w-xl space-y-4">
           <div className="flex items-center justify-between text-sm">
             <span
               className="font-mono text-2xl font-bold transition-colors"
               style={{ color: theme.colors.primary }}
             >
-              {current}
+              {sliderCurrent}
             </span>
             <span
               className="font-mono text-xs font-medium"
@@ -111,7 +112,7 @@ export function TypeformInput({
             }}
           >
             <Slider
-              value={[current]}
+              value={[sliderCurrent]}
               min={min}
               max={max}
               step={1}
@@ -124,10 +125,12 @@ export function TypeformInput({
     }
 
     const steps = Array.from({ length: max - min + 1 }, (_, index) => min + index);
+    const minLabel = question.validation?.minLabel || "Not likely";
+    const maxLabel = question.validation?.maxLabel || "Extremely likely";
 
     return (
-      <div className="w-full max-w-md space-y-3">
-        <div className="flex flex-wrap gap-2.5">
+      <div className="w-full max-w-xl sm:max-w-2xl space-y-3">
+        <div className="flex flex-wrap sm:flex-nowrap gap-2 sm:gap-2.5">
           {steps.map((item) => {
             const isSelected = current === item;
             return (
@@ -139,7 +142,7 @@ export function TypeformInput({
                   window.setTimeout(() => onSubmit?.(item), 180);
                 }}
                 className={cn(
-                  "flex size-11 cursor-pointer items-center justify-center rounded-xl border text-sm font-semibold transition-all duration-150 active:scale-95",
+                  "flex size-10 sm:size-11 cursor-pointer items-center justify-center rounded-xl border text-sm font-semibold transition-all duration-150 active:scale-95 shrink-0 sm:shrink",
                   isSelected ? "scale-105 shadow-sm" : "hover:scale-102",
                 )}
                 style={{
@@ -164,8 +167,8 @@ export function TypeformInput({
           className="flex justify-between px-1 text-xs"
           style={{ color: theme.colors.cardMuted }}
         >
-          <span>Not likely</span>
-          <span>Extremely likely</span>
+          <span>{minLabel}</span>
+          <span>{maxLabel}</span>
         </div>
       </div>
     );

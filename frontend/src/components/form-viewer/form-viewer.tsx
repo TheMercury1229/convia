@@ -463,7 +463,7 @@ export function FormViewer({ form, isPreview = false }: FormViewerProps) {
 
       {/* Main Content Area */}
       <main className="flex flex-1 items-center justify-center px-4 py-8 sm:px-8 sm:py-12 min-w-0 max-w-full overflow-hidden">
-        <div className="mx-auto w-full max-w-2xl min-w-0">
+        <div className="mx-auto w-full max-w-3xl min-w-0">
           {isWelcomeScreen ? (
             <ViewerWelcome
               form={form}
